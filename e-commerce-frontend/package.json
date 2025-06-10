@@ -1,5 +1,5 @@
 {
-  "name": "vue-frontend",
+  "name": "e-commerce-frontend",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,11 +11,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "@popperjs/core": "^2.11.8",
-    "bootstrap": "^5.3.6",
-    "firebase": "^11.9.0",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
@@ -25,7 +22,6 @@
     "eslint-plugin-vue": "~10.0.0",
     "globals": "^16.0.0",
     "prettier": "3.5.3",
-    "sass": "^1.89.1",
     "vite": "^6.2.4",
     "vite-plugin-vue-devtools": "^7.7.2"
   }
