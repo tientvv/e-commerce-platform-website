@@ -1,0 +1,55 @@
+services:
+  e-commerce-admin-frontend:
+    build:
+      context: ./e-commerce-admin-frontend
+      dockerfile: Dockerfile
+    image: e-commerce-admin-frontend
+    ports:
+      - "${ADMIN_FRONTEND_PORT}:5173"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT}
+    volumes:
+      - ./e-commerce-admin-frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run dev
+
+  e-commerce-buyer-frontend:
+    build:
+      context: ./e-commerce-buyer-frontend
+      dockerfile: Dockerfile
+    image: e-commerce-buyer-frontend
+    ports:
+      - "${BUYER_FRONTEND_PORT}:5174"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT}
+    volumes:
+      - ./e-commerce-buyer-frontend:/app
+      - /app/node_modules
+    working_dir: /app
+    command: npm run dev
+
+  e-commerce-user-service-backend:
+    build: ./e-commerce-user-service-backend
+    image: e-commerce-user-service-backend
+    ports:
+      - "${BACKEND_PORT}:8080"
+    environment:
+      - USER_SERVICE_URL_DB_NAME=jdbc:sqlserver://sql-server:1433;databaseName=${USER_SERVICE_DB_NAME};encrypt=true;trustServerCertificate=true
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    depends_on:
+      - sql-server
+
+  sql-server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: ${DB_PASSWORD}
+      ACCEPT_EULA: "Y"
+    volumes:
+      - data_backup:/var/opt/mssql
+
+volumes:
+  data_backup:
