@@ -11,8 +11,6 @@ services:
     volumes:
       - ./e-commerce-admin-frontend:/app
       - /app/node_modules
-    working_dir: /app
-    command: npm run dev
 
   e-commerce-buyer-frontend:
     build:
@@ -26,8 +24,6 @@ services:
     volumes:
       - ./e-commerce-buyer-frontend:/app
       - /app/node_modules
-    working_dir: /app
-    command: npm run dev
 
   e-commerce-user-service-backend:
     build: ./e-commerce-user-service-backend
