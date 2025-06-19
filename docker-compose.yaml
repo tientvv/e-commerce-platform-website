@@ -45,7 +45,7 @@ services:
       SA_PASSWORD: ${DB_PASSWORD}
       ACCEPT_EULA: "Y"
     volumes:
-      - data_backup:/var/opt/mssql
+      - backup_data:/var/opt/mssql
 
 volumes:
-  data_backup:
+  backup_data:
