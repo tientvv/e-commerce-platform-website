@@ -7,7 +7,7 @@ services:
     ports:
       - "${ADMIN_FRONTEND_PORT}:5173"
     environment:
-      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT}
+      - VITE_BACKEND_URL=http://localhost:${USER_SERVICE_BACKEND_PORT}
     volumes:
       - ./e-commerce-admin-frontend:/app
       - /app/node_modules
@@ -20,7 +20,7 @@ services:
     ports:
       - "${BUYER_FRONTEND_PORT}:5174"
     environment:
-      - VITE_BACKEND_URL=http://localhost:${BACKEND_PORT}
+      - VITE_BACKEND_URL=http://localhost:${USER_SERVICE_BACKEND_PORT}
     volumes:
       - ./e-commerce-buyer-frontend:/app
       - /app/node_modules
@@ -29,11 +29,14 @@ services:
     build: ./e-commerce-user-service-backend
     image: e-commerce-user-service-backend
     ports:
-      - "${BACKEND_PORT}:8080"
+      - "${USER_SERVICE_BACKEND_PORT}:${USER_SERVICE_BACKEND_PORT}"
+    env_file:
+      - .env
     environment:
-      - USER_SERVICE_URL_DB_NAME=jdbc:sqlserver://sql-server:1433;databaseName=${USER_SERVICE_DB_NAME};encrypt=true;trustServerCertificate=true
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - SPRING_DATASOURCE_URL=${DB_URL}
+      - SPRING_DATASOURCE_USERNAME=${DB_USERNAME}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      - SERVER_PORT=${USER_SERVICE_BACKEND_PORT}
     depends_on:
       - sql-server
 
