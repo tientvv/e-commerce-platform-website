@@ -1,5 +1,5 @@
 # E Commerce Platform
-## Services:
+### Services:
 ### e-commerce-user-service-backend
 Notice: The update functionality for the following fields is not implemented yet: 
   - `birth_of_date`
