@@ -1,0 +1,7 @@
+/* color palette from <https://github.com/vuejs/theme> */
+:root {
+  --width-default: 1440px;
+  --primary-color: #082026;
+  /* Base color of Login Page */
+  --login-bg-color: var(--primary-color);
+}
