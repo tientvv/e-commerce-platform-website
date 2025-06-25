@@ -1,3 +1,6 @@
+-- Before creating tables, remember to create the database first
+-- Example: CREATE DATABASE ecommerce_db;
+-- USE ecommerce_db;
 CREATE TABLE users (
     id UNIQUEIDENTIFIER DEFAULT NEWID() NOT NULL,
     full_name NVARCHAR(100) NULL,
