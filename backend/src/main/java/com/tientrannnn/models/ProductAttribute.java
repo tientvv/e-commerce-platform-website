@@ -1,0 +1,32 @@
+package com.tientrannnn.models;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
+
+import java.util.UUID;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "product_attributes")
+public class ProductAttribute {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
+    private UUID id;
+
+    @Nationalized
+    @Column(name = "attribute_name", nullable = false, length = 100)
+    private String attributeName;
+
+    @Nationalized
+    @Column(name = "attribute_value", nullable = false)
+    private String attributeValue;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "product_id", nullable = false)
+    private Product product;
+
+}

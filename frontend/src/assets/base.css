@@ -2,6 +2,18 @@
 :root {
   --width-default: 1440px;
   --primary-color: #082026;
+  --default-bg-color: #f5f5fa;
   /* Base color of Login Page */
   --login-bg-color: var(--primary-color);
+  --default-font-family: 'Inter', sans-serif;
+  --default-font-size: 14px;
+  --default-font-weight: 400;
+  /* Default color for border */
+  --default-border-color: #ebebf0;
+  /* Default color for text */
+  --default-text-color: #808089;
+  /* Hover background color */
+  --bg-color-hover: #27272a1f;
+  /* Default for button */
+  --default-button-border-radius: 8px;
 }

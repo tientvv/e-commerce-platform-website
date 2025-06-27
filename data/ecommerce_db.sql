@@ -39,24 +39,16 @@ CREATE TABLE shops (
     created_at DATETIMEOFFSET(6) DEFAULT GETDATE() NULL,
     updated_at DATETIMEOFFSET(6) DEFAULT GETDATE() NULL,
     is_deleted BIT DEFAULT 0 NOT NULL,
-    user_id UNIQUEIDENTIFIER NOT NULL,
-    PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users (id),
-    UNIQUE (user_id)
-);
-
-CREATE TABLE seller_register (
-    id UNIQUEIDENTIFIER DEFAULT NEWID() NOT NULL,
     cccd VARCHAR(50) NOT NULL,
     cccd_front_url VARCHAR(500) NOT NULL,
     cccd_back_url VARCHAR(500) NOT NULL,
     status BIT DEFAULT 0 NOT NULL,
     reason NVARCHAR(MAX) NULL,
-    created_at DATETIMEOFFSET(6) DEFAULT GETDATE() NULL,
-    updated_at DATETIMEOFFSET(6) DEFAULT GETDATE() NULL,
+    is_seller BIT DEFAULT 0 NOT NULL,
     user_id UNIQUEIDENTIFIER NOT NULL,
     PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users (id),
+    UNIQUE (user_id),
     UNIQUE (cccd)
 );
 

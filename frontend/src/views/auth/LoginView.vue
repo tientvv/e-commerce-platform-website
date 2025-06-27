@@ -1,15 +1,22 @@
 <script setup>
 // Import HeaderView and FooterView components
 import FooterView from '@/components/user/FooterView.vue'
+// Import LoginForm component
+import LoginForm from './LoginForm.vue'
 </script>
 
 <template>
   <main class="login_page">
-    <div class="login_header">
-      <div class="login_navbar">
-        <div class="login_title">
-          <img class="login_logo" src="" alt="logo" />
-          <span>Đăng nhập</span>
+    <div class="bg-white">
+      <div class="login_header">
+        <div class="login_navbar">
+          <div class="login_title">
+            <router-link to="/" class="login_logo">
+              <img src="/images/logo.svg" alt="Logo" width="50px" height="50px" />
+              <p>E-Commerce</p>
+            </router-link>
+            <span class="ms-4">Đăng nhập</span>
+          </div>
         </div>
       </div>
     </div>
@@ -23,7 +30,7 @@ import FooterView from '@/components/user/FooterView.vue'
             <div class="login_form--title">
               <h2>Đăng nhập</h2>
             </div>
-            <form>Form Đăng nhập</form>
+            <LoginForm />
           </div>
         </div>
         <div class="w-1/2 flex justify-center">
