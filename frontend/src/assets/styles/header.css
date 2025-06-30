@@ -1,8 +1,7 @@
 /* Header */
 
 .header {
-  @apply bg-white py-2
-  border-b border-b-[var(--default-border-color)];
+  @apply bg-white py-2;
 }
 
 .header_nav {

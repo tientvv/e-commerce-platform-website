@@ -28,7 +28,7 @@ import LoginForm from './LoginForm.vue'
           <!-- Login Form -->
           <div class="login_form--login">
             <div class="login_form--title">
-              <h2>Đăng nhập</h2>
+              <h2 class="text-[20px] mb-8">Đăng nhập</h2>
             </div>
             <LoginForm />
           </div>
@@ -36,7 +36,7 @@ import LoginForm from './LoginForm.vue'
         <div class="w-1/2 flex justify-center">
           <div class="login_from--register">
             <div class="login_form--title">
-              <h2>Đăng ký</h2>
+              <h2 class="text-[20px] mb-8">Đăng ký</h2>
             </div>
             <form>Form Đăng ký</form>
           </div>

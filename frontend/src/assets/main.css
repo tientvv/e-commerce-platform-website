@@ -12,4 +12,11 @@ body {
   font-style: normal;
   font-weight: var(--default-font-weight);
   background-color: var(--default-bg-color);
+  line-height: 1.2;
+}
+
+button,
+input,
+a {
+  outline: none;
 }
