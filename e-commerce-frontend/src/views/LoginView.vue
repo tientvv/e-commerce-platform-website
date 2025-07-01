@@ -6,7 +6,7 @@
         <LoginForm />
       </div>
     </div>
-    <div class="px-4">
+    <div class="px-4 bg-white shadow">
       <MainFooter />
     </div>
   </main>

@@ -49,14 +49,14 @@ async function handleLogin() {
     await login(email.value, password.value)
     toast.success('Đăng nhập thành công', {
       position: 'top-right',
-      autoClose: 1000,
+      autoClose: 750,
       theme: 'colored',
       onClose: () => router.push('/'),
     })
   } catch {
-    toast.error('Đăng nhập sai email hoặc mật khẩu', {
+    toast.error('Email hoặc mật khẩu không chính xác', {
       position: 'top-right',
-      autoClose: 2000,
+      autoClose: 3000,
       theme: 'colored',
     })
   }

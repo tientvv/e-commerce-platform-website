@@ -1,5 +1,5 @@
 <template>
-  <main class="max-w-[1440px] mx-auto w-full px-4 pt-4 bg-white rounded-tr-xl rounded-tl-xl shadow">
+  <main class="max-w-[1440px] mx-auto w-full px-4 pt-4">
     <div class="flex justify-between gap-8 pb-8 border-b">
       <div class="w-1/5">
         <div class="mb-4">Hỗ trợ khách hàng</div>
