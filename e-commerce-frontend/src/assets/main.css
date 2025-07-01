@@ -1,2 +1,17 @@
 @import './base.css';
 @import 'tailwindcss';
+
+a,
+input,
+button {
+  outline: none;
+}
+
+.link {
+  @apply bg-white 
+  text-[14px];
+}
+
+button {
+  @apply cursor-pointer;
+}
