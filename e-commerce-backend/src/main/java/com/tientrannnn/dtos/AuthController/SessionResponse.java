@@ -3,6 +3,8 @@ package com.tientrannnn.dtos.AuthController;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
+
+import com.tientrannnn.models.Shop;
 import com.tientrannnn.models.User;
 import lombok.Data;
 
@@ -10,7 +12,6 @@ import lombok.Data;
 public class SessionResponse {
   private UUID id;
   private String email;
-  private String password;
   private String avatarUrl;
   private String role;
   private Boolean isSeller;
@@ -22,6 +23,9 @@ public class SessionResponse {
   private String address;
   private OffsetDateTime createdAt;
   private OffsetDateTime updatedAt;
+
+  private Integer status;
+  private String reason;
 
   public SessionResponse(User user) {
     this.id = user.getId();
@@ -37,5 +41,15 @@ public class SessionResponse {
     this.address = user.getAddress();
     this.createdAt = user.getCreatedAt();
     this.updatedAt = user.getUpdatedAt();
+
+    Shop shop = user.getShop();
+
+    if (shop != null) {
+      this.status = shop.getStatus();
+      this.reason = shop.getReason();
+    } else {
+      this.status = null;
+      this.reason = null;
+    }
   }
 }

@@ -20,7 +20,7 @@ public class DataComponent implements CommandLineRunner {
     boolean isAdminAccount = !userRepository.existsByEmail(adminAccount);
     String userAccount = "user";
     boolean isUserAccount = !userRepository.existsByEmail(userAccount);
-    String sellerAccount = "seller";
+    String sellerAccount = "user1";
     boolean isSellerAccount = !userRepository.existsByEmail(sellerAccount);
 
     if (isAdminAccount) {
@@ -53,10 +53,10 @@ public class DataComponent implements CommandLineRunner {
     if (isSellerAccount) {
       User user = new User();
       user.setEmail(sellerAccount);
-      user.setPassword(BCrypt.hashpw("seller123", BCrypt.gensalt()));
+      user.setPassword(BCrypt.hashpw("user123", BCrypt.gensalt()));
       user.setPhone("1234567890");
       user.setRole("USER");
-      user.setIsSeller(true);
+      user.setIsSeller(false);
       user.setCreatedAt(OffsetDateTime.now());
       user.setUpdatedAt(OffsetDateTime.now());
       userRepository.save(user);

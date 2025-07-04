@@ -1,5 +1,7 @@
 <template>
-  <img class="w-[100px] h-auto" :src="Logo" />
+  <router-link to="/" class="flex items-center gap-2 max-w-[80px]">
+    <img class="w-full h-auto" :src="Logo" alt="Logo" />
+  </router-link>
 </template>
 
 <script setup>

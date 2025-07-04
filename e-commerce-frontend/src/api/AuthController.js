@@ -18,3 +18,12 @@ export async function getInfoAccount() {
     throw error
   }
 }
+
+export const logout = async () => {
+  try {
+    await axios.post('/api/auth/logout')
+  } catch (error) {
+    console.log('Logout failed:', error)
+    throw error
+  }
+}

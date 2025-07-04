@@ -44,4 +44,10 @@ public class AuthController {
     session.setAttribute("user", user);
     return ResponseEntity.ok("Login successful");
   }
+
+  @PostMapping("logout")
+  public ResponseEntity<?> logout(HttpSession session) {
+    session.removeAttribute("user");
+    return ResponseEntity.ok("Logout successful");
+  }
 }

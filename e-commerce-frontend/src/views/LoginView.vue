@@ -1,7 +1,7 @@
 <template>
   <main class="flex flex-col h-screen">
     <MainNavbar />
-    <div class="flex-1 px-4 pb-4">
+    <div class="flex-1 p-4">
       <div class="max-w-[1440px] h-full mx-auto flex flex-row justify-center items-center">
         <LoginForm />
       </div>

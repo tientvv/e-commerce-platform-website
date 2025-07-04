@@ -9,7 +9,7 @@
             v-model="email"
             type="text"
             id="emailUser"
-            placeholder="Nhâp email"
+            placeholder="Nhập email"
             class="w-full p-2 border rounded mt-2"
           />
         </li>
@@ -36,7 +36,7 @@
 import { ref } from 'vue'
 import LoginButton from '../buttons/LoginButton.vue'
 import RegisterUser from '../links/RegisterUser.vue'
-import { login } from '@/api/AuthController'
+import { getInfoAccount, login } from '@/api/AuthController'
 import { toast } from 'vue3-toastify'
 import 'vue3-toastify/dist/index.css'
 import router from '@/router'
@@ -44,20 +44,27 @@ import router from '@/router'
 const email = ref('admin')
 const password = ref('admin123')
 
+const infoAccount = ref({})
+
 async function handleLogin() {
   try {
     await login(email.value, password.value)
-    toast.success('Đăng nhập thành công', {
-      position: 'top-right',
-      autoClose: 750,
-      theme: 'colored',
-      onClose: () => router.push('/'),
-    })
+    infoAccount.value = await getInfoAccount()
+    if (infoAccount.value.role === 'ADMIN') {
+      router.push('/admins/dashboard')
+    } else if (infoAccount.value.isSeller === 1) {
+      router.push('/shops')
+      window.location.reload()
+    } else {
+      router.push('/')
+    }
   } catch {
-    toast.error('Email hoặc mật khẩu không chính xác', {
+    toast.error('Đăng nhập thất bại!', {
       position: 'top-right',
-      autoClose: 3000,
+      autoClose: 1000,
       theme: 'colored',
+      transition: 'zoom',
+      pauseOnHover: false,
     })
   }
 }

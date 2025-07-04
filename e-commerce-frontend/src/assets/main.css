@@ -8,8 +8,7 @@ button {
 }
 
 .link {
-  @apply bg-white 
-  text-[14px];
+  @apply text-[14px];
 }
 
 button {

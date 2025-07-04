@@ -47,11 +47,18 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<!-- ################## ADD MORE DEPENDENCIES ################## -->
 		<dependency>
 			<groupId>org.mindrot</groupId>
 			<artifactId>jbcrypt</artifactId>
 			<version>0.4</version>
 		</dependency>
+		<dependency>
+				<groupId>com.cloudinary</groupId>
+				<artifactId>cloudinary-http44</artifactId>
+				<version>1.39.0</version>
+		</dependency>
+		<!-- ################## ADD MORE DEPENDENCIES ################## -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
