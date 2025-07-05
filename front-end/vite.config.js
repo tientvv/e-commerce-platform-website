@@ -1,24 +1,16 @@
-import { resolve } from "path";
+import { fileURLToPath, URL } from 'node:url'
 
-export default {
-  root: resolve(__dirname, "src"),
-  build: {
-    outDir: "../dist",
-  },
-  server: {
-    port: 8080,
-  },
-  // Optional: Silence Sass deprecation warnings. See note below.
-  css: {
-    preprocessorOptions: {
-      scss: {
-        silenceDeprecations: [
-          "import",
-          "mixed-decls",
-          "color-functions",
-          "global-builtin",
-        ],
-      },
+import { defineConfig } from 'vite'
+
+import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [vue(), tailwindcss(), ,],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
-};
+})
