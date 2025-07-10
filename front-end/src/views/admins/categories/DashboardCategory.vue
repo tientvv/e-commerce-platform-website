@@ -1,9 +1,10 @@
 <script setup>
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue'
-import Navbar from '@/components/admins/Navbar.vue'
-import AdminFooter from '@/components/admins/Footer.vue'
 import { useRoute } from 'vue-router'
 import { ref } from 'vue'
+
+import Navbar from '@/components/admins/Navbar.vue'
+import AdminFooter from '@/components/admins/Footer.vue'
 
 const isOpen = ref(false)
 const isOpen1 = ref(false)
@@ -132,29 +133,54 @@ const isActive = (path) => {
               <DialogPanel
                 class="w-full max-w-[400px] transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
               >
-                <DialogTitle as="h3" class="text-xl text-gray-800">Chỉnh sửa danh mục </DialogTitle>
-                <div class="mt-2">
-                  <p class="text-sm text-gray-600">
-                    Your payment has been successfully submitted. We’ve sent you an email with all
-                    of the details of your order.
-                  </p>
-                </div>
-                <div class="mt-4">
-                  <button
-                    type="button"
-                    class="py-1 px-2 bg-blue-600 text-white rounded me-2"
-                    @click="closeModal"
-                  >
-                    Lưu danh mục
-                  </button>
-                  <button
-                    type="button"
-                    class="py-1 px-2 bg-red-400/25 text-red-600 rounded"
-                    @click="closeModal"
-                  >
-                    Huỷ
-                  </button>
-                </div>
+                <form action="">
+                  <DialogTitle as="h3" class="text-xl text-gray-800 text-center">
+                    Sửa danh mục
+                  </DialogTitle>
+                  <div class="mt-4">
+                    <ul>
+                      <li>
+                        <p class="mb-2">Tên danh mục</p>
+                        <input
+                          class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800"
+                          type="text"
+                          placeholder="Nhập tên danh mục"
+                        />
+                      </li>
+                      <li class="mt-2">
+                        <p class="block mb-2">Danh mục cha</p>
+                        <select
+                          class="w-full border px-2 py-1 rounded-md border-gray-300 text-gray-800"
+                        >
+                          <option value="" class="text-gray-800">
+                            Chọn danh mục cha (tùy chọn)
+                          </option>
+                          <option value="1" class="text-gray-800">Danh mục 1</option>
+                          <option value="2" class="text-gray-800">Danh mục 2</option>
+                        </select>
+                      </li>
+                      <li class="mt-2">
+                        <p class="block mb-2">Hình ảnh danh mục</p>
+                        <input
+                          type="file"
+                          class="file:cursor-pointer w-full rounded-md file:border file:py-1 file:px-2 file:bg-blue-50 file:border-blue-200 file:text-blue-800 file:rounded-md"
+                        />
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="mt-4">
+                    <button type="submit" class="py-1 px-2 bg-blue-600 text-white rounded-md me-2">
+                      Sửa danh mục
+                    </button>
+                    <button
+                      type="button"
+                      class="py-1 px-2 bg-red-400/25 text-red-600 rounded-md"
+                      @click="closeModal1"
+                    >
+                      Huỷ
+                    </button>
+                  </div>
+                </form>
               </DialogPanel>
             </TransitionChild>
           </div>
@@ -187,31 +213,56 @@ const isActive = (path) => {
               leave-to="opacity-0 scale-95"
             >
               <DialogPanel
-                class="w-full max-w-[500px] transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
+                class="w-full max-w-[400px] transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
               >
-                <DialogTitle as="h3" class="text-xl text-gray-800"> Thêm danh mục </DialogTitle>
-                <div class="mt-2">
-                  <p class="text-sm text-gray-400">
-                    Your payment has been successfully submitted. We' ve sent you an email with all
-                    of the details of your order.
-                  </p>
-                </div>
-                <div class="mt-4">
-                  <button
-                    type="button"
-                    class="py-1 px-2 bg-blue-600 text-white rounded me-2"
-                    @click="closeModal1"
-                  >
+                <form action="">
+                  <DialogTitle as="h3" class="text-xl text-gray-800 text-center">
                     Thêm danh mục
-                  </button>
-                  <button
-                    type="button"
-                    class="py-1 px-2 bg-red-400/25 text-red-600 rounded"
-                    @click="closeModal1"
-                  >
-                    Huỷ
-                  </button>
-                </div>
+                  </DialogTitle>
+                  <div class="mt-4">
+                    <ul>
+                      <li>
+                        <p class="mb-2">Tên danh mục</p>
+                        <input
+                          class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800"
+                          type="text"
+                          placeholder="Nhập tên danh mục"
+                        />
+                      </li>
+                      <li class="mt-2">
+                        <p class="block mb-2">Danh mục cha</p>
+                        <select
+                          class="w-full border px-2 py-1 rounded-md border-gray-300 text-gray-800"
+                        >
+                          <option value="" class="text-gray-800">
+                            Chọn danh mục cha (tùy chọn)
+                          </option>
+                          <option value="1" class="text-gray-800">Danh mục 1</option>
+                          <option value="2" class="text-gray-800">Danh mục 2</option>
+                        </select>
+                      </li>
+                      <li class="mt-2">
+                        <p class="block mb-2">Hình ảnh danh mục</p>
+                        <input
+                          type="file"
+                          class="file:cursor-pointer w-full rounded-md file:border file:py-1 file:px-2 file:bg-blue-50 file:border-blue-200 file:text-blue-800 file:rounded-md"
+                        />
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="mt-4">
+                    <button type="submit" class="py-1 px-2 bg-blue-600 text-white rounded-md me-2">
+                      Thêm danh mục
+                    </button>
+                    <button
+                      type="button"
+                      class="py-1 px-2 bg-red-400/25 text-red-600 rounded-md"
+                      @click="closeModal1"
+                    >
+                      Huỷ
+                    </button>
+                  </div>
+                </form>
               </DialogPanel>
             </TransitionChild>
           </div>

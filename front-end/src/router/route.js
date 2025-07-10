@@ -19,8 +19,14 @@ const router = createRouter({
       path: '/admins',
       redirect: '/admins/dashboard',
       children: [
-        { path: '/admins/dashboard', component: () => import('../views/admins/dashboard.vue') },
-        { path: '/admins/categories', component: () => import('../views/admins/categories.vue') },
+        {
+          path: '/admins/dashboard',
+          component: () => import('../views/admins/DashboardAdmin.vue'),
+        },
+        {
+          path: '/admins/categories',
+          component: () => import('../views/admins/categories/DashboardCategory.vue'),
+        },
         { path: '/admins/sellers', component: () => import('../views/admins/sellers.vue') },
       ],
     },
