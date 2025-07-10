@@ -175,7 +175,7 @@ const isActive = (path) => {
                     <button
                       type="button"
                       class="py-1 px-2 bg-red-400/25 text-red-600 rounded-md"
-                      @click="closeModal1"
+                      @click="closeModal"
                     >
                       Huỷ
                     </button>
