@@ -30,6 +30,10 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+
     @Nationalized
     @Column(name = "name", nullable = false)
     private String name;
