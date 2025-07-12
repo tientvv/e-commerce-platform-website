@@ -6,6 +6,9 @@ import com.tientv.repository.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+
 @Service
 public class CategoryService {
 
@@ -17,6 +20,8 @@ public class CategoryService {
 
         category.setName(categoryDto.getName());
         category.setImageUrl(categoryDto.getImageUrl());
+        category.setCreatedAt(OffsetDateTime.now());
+        category.setUpdatedAt(OffsetDateTime.now());
 
         if (categoryDto.getParentId() != null) {
             Category parent = categoryRepository.findById(categoryDto.getParentId())
