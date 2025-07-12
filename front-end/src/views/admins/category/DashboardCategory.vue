@@ -1,22 +1,15 @@
 <script setup>
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue'
 import { useRoute } from 'vue-router'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 
 import Navbar from '@/components/admins/Navbar.vue'
 import AdminFooter from '@/components/admins/Footer.vue'
+import axios from 'axios'
+import TableCategory from './TableCategory.vue'
 
-const isOpen = ref(false)
 const isOpen1 = ref(false)
 const route = useRoute()
-
-function closeModal() {
-  isOpen.value = false
-}
-
-function openModal() {
-  isOpen.value = true
-}
 
 function closeModal1() {
   isOpen1.value = false
@@ -33,6 +26,59 @@ const isActive = (path) => {
     return 'py-2 px-3 rounded hover:bg-gray-200 transition-colors duration-200'
   }
 }
+
+const resetForm = () => {
+  category.value = {
+    name: '',
+    parentId: null,
+    imageUrl: '',
+  }
+  file.value = null
+}
+
+const category = ref({
+  name: '',
+  parentId: null,
+  imageUrl: '',
+})
+
+const file = ref(null)
+
+const handleFile = (e) => {
+  file.value = e.target.files[0]
+}
+
+const createCategory = async () => {
+  try {
+    if (file.value) {
+      const formData = new FormData()
+      formData.append('file', file.value)
+
+      const res = await axios.post('/api/upload', formData)
+      console.log('Upload response:', res)
+      category.value.imageUrl = res.data.url
+    }
+
+    await axios.post('/api/category/add', {
+      name: category.value.name,
+      parentId: category.value.parentId || null,
+      imageUrl: category.value.imageUrl || null,
+    })
+    alert('Tạo danh mục thành công!')
+    window.location.reload()
+  } catch (error) {
+    console.error('Error creating category:', error)
+    alert('Lỗi khi thêm danh mục!')
+    resetForm()
+  }
+}
+
+const parentCategories = ref({})
+
+onMounted(async () => {
+  const res = await axios.get('/api/category/select')
+  parentCategories.value = res.data
+})
 </script>
 
 <template>
@@ -76,117 +122,13 @@ const isActive = (path) => {
             </div>
           </div>
           <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse rounded overflow-hidden">
-              <thead>
-                <tr class="bg-blue-950 text-white">
-                  <th class="p-2 border-b border-gray-300">ID</th>
-                  <th class="p-2 border-b border-gray-300">Tên danh mục</th>
-                  <th class="p-2 border-b border-gray-300">Danh mục cha</th>
-                  <th class="p-2 border-b border-gray-300">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="border-b border-gray-300 p-2">1</td>
-                  <td class="border-b border-gray-300 p-2">Danh mục 1</td>
-                  <td class="border-b border-gray-300 p-2">Không có</td>
-                  <td class="border-b border-gray-300 p-2">
-                    <button @click="openModal" class="text-blue-600 hover:underline">
-                      Chỉnh sửa
-                    </button>
-                    <button class="text-red-600 hover:underline ml-2">Xóa</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <TableCategory />
           </div>
         </aside>
       </div>
     </div>
 
     <AdminFooter />
-
-    <TransitionRoot appear :show="isOpen" as="template">
-      <Dialog as="div" @close="closeModal" class="relative z-10">
-        <TransitionChild
-          as="template"
-          enter="duration-300 ease-out"
-          enter-from="opacity-0"
-          enter-to="opacity-100"
-          leave="duration-200 ease-in"
-          leave-from="opacity-100"
-          leave-to="opacity-0"
-        >
-          <div class="fixed inset-0 bg-black/25"></div>
-        </TransitionChild>
-        <div class="fixed inset-0 overflow-y-auto">
-          <div class="flex min-h-full items-center justify-center p-4 text-center">
-            <TransitionChild
-              as="template"
-              enter="duration-300 ease-out"
-              enter-from="opacity-0 scale-95"
-              enter-to="opacity-100 scale-100"
-              leave="duration-200 ease-in"
-              leave-from="opacity-100 scale-100"
-              leave-to="opacity-0 scale-95"
-            >
-              <DialogPanel
-                class="w-full max-w-[400px] transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
-              >
-                <form action="">
-                  <DialogTitle as="h3" class="text-xl text-gray-800 text-center">
-                    Sửa danh mục
-                  </DialogTitle>
-                  <div class="mt-4">
-                    <ul>
-                      <li>
-                        <p class="mb-2">Tên danh mục</p>
-                        <input
-                          class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800"
-                          type="text"
-                          placeholder="Nhập tên danh mục"
-                        />
-                      </li>
-                      <li class="mt-2">
-                        <p class="block mb-2">Danh mục cha</p>
-                        <select
-                          class="w-full border px-2 py-1 rounded-md border-gray-300 text-gray-800"
-                        >
-                          <option value="" class="text-gray-800">
-                            Chọn danh mục cha (tùy chọn)
-                          </option>
-                          <option value="1" class="text-gray-800">Danh mục 1</option>
-                          <option value="2" class="text-gray-800">Danh mục 2</option>
-                        </select>
-                      </li>
-                      <li class="mt-2">
-                        <p class="block mb-2">Hình ảnh danh mục</p>
-                        <input
-                          type="file"
-                          class="file:cursor-pointer w-full rounded-md file:border file:py-1 file:px-2 file:bg-blue-50 file:border-blue-200 file:text-blue-800 file:rounded-md"
-                        />
-                      </li>
-                    </ul>
-                  </div>
-                  <div class="mt-4">
-                    <button type="submit" class="py-1 px-2 bg-blue-600 text-white rounded-md me-2">
-                      Sửa danh mục
-                    </button>
-                    <button
-                      type="button"
-                      class="py-1 px-2 bg-red-400/25 text-red-600 rounded-md"
-                      @click="closeModal"
-                    >
-                      Huỷ
-                    </button>
-                  </div>
-                </form>
-              </DialogPanel>
-            </TransitionChild>
-          </div>
-        </div>
-      </Dialog>
-    </TransitionRoot>
 
     <TransitionRoot appear :show="isOpen1" as="template">
       <Dialog as="div" @close="closeModal1" class="relative z-10">
@@ -215,7 +157,7 @@ const isActive = (path) => {
               <DialogPanel
                 class="w-full max-w-[400px] transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all"
               >
-                <form action="">
+                <form @submit.prevent="createCategory">
                   <DialogTitle as="h3" class="text-xl text-gray-800 text-center">
                     Thêm danh mục
                   </DialogTitle>
@@ -224,6 +166,7 @@ const isActive = (path) => {
                       <li>
                         <p class="mb-2">Tên danh mục</p>
                         <input
+                          v-model="category.name"
                           class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800"
                           type="text"
                           placeholder="Nhập tên danh mục"
@@ -232,18 +175,23 @@ const isActive = (path) => {
                       <li class="mt-2">
                         <p class="block mb-2">Danh mục cha</p>
                         <select
+                          v-model="category.parentId"
                           class="w-full border px-2 py-1 rounded-md border-gray-300 text-gray-800"
                         >
-                          <option value="" class="text-gray-800">
-                            Chọn danh mục cha (tùy chọn)
+                          <option :value="null">Chọn danh mục cha (tùy chọn)</option>
+                          <option
+                            v-for="category in parentCategories"
+                            :key="category.id"
+                            :value="category.id"
+                          >
+                            {{ category.name }}
                           </option>
-                          <option value="1" class="text-gray-800">Danh mục 1</option>
-                          <option value="2" class="text-gray-800">Danh mục 2</option>
                         </select>
                       </li>
                       <li class="mt-2">
                         <p class="block mb-2">Hình ảnh danh mục</p>
                         <input
+                          @change="handleFile"
                           type="file"
                           class="file:cursor-pointer w-full rounded-md file:border file:py-1 file:px-2 file:bg-blue-50 file:border-blue-200 file:text-blue-800 file:rounded-md"
                         />

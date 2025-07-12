@@ -1,5 +1,6 @@
 package com.tientv.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -41,6 +42,7 @@ public class Category {
     private OffsetDateTime updatedAt;
 
     @OneToMany(mappedBy = "parent")
+    @JsonIgnore
     private Set<Category> categories = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "category")

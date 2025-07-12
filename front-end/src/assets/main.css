@@ -20,3 +20,13 @@ textarea {
 button {
   @apply cursor-pointer;
 }
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+option {
+  border-radius: 20px;
+}
