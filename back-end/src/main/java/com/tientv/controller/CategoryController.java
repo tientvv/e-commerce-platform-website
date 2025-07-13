@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -28,9 +29,14 @@ public class CategoryController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<Category> addCategory(@RequestBody CategoryDto categoryDto) {
-        Category category = categoryService.createCategory(categoryDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(category);
+    public ResponseEntity<?> addCategory(@RequestBody CategoryDto categoryDto) {
+        try {
+            CategoryResponse category = categoryService.createCategory(categoryDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(category);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/list")
@@ -49,7 +55,34 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public Category updateCategory(@PathVariable UUID id, @RequestBody CategoryDto dto) {
-        return categoryService.updateCategory(id, dto);
+    public ResponseEntity<?> updateCategory(@PathVariable UUID id, @RequestBody CategoryDto dto) {
+        try {
+            CategoryResponse category = categoryService.updateCategory(id, dto);
+            return ResponseEntity.ok(category);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCategory(@PathVariable UUID id) {
+        try {
+            categoryService.deleteCategory(id);
+            return ResponseEntity.ok(Map.of("message", "Xóa danh mục thành công!"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Long>> getCategoryStats() {
+        Map<String, Long> stats = Map.of(
+                "total", categoryService.getTotalCategories(),
+                "parent", categoryService.getTotalParentCategories(),
+                "child", categoryService.getTotalChildCategories()
+        );
+        return ResponseEntity.ok(stats);
     }
 }

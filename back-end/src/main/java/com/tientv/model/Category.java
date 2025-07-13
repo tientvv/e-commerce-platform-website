@@ -42,7 +42,6 @@ public class Category {
     private OffsetDateTime updatedAt;
 
     @OneToMany(mappedBy = "parent")
-    @JsonIgnore
     private Set<Category> categories = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "category")

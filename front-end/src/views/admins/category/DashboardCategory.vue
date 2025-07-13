@@ -1,15 +1,22 @@
 <script setup>
 import { TransitionRoot, TransitionChild, Dialog, DialogPanel, DialogTitle } from '@headlessui/vue'
 import { useRoute } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
+import { useToast } from 'vue-toastification'
 
 import Navbar from '@/components/admins/Navbar.vue'
 import AdminFooter from '@/components/admins/Footer.vue'
 import axios from 'axios'
 import TableCategory from './TableCategory.vue'
 
+const toast = useToast()
 const isOpen1 = ref(false)
 const route = useRoute()
+const stats = ref({
+  total: 0,
+  parent: 0,
+  child: 0,
+})
 
 function closeModal1() {
   isOpen1.value = false
@@ -36,6 +43,16 @@ const resetForm = () => {
   file.value = null
 }
 
+// Lấy thống kê
+const fetchStats = async () => {
+  try {
+    const response = await axios.get('/api/category/stats')
+    stats.value = response.data
+  } catch (error) {
+    console.error('Error fetching stats:', error)
+  }
+}
+
 const category = ref({
   name: '',
   parentId: null,
@@ -50,12 +67,16 @@ const handleFile = (e) => {
 
 const createCategory = async () => {
   try {
+    // Kiểm tra tên category không được để trống
+    if (!category.value.name.trim()) {
+      toast.error('Tên danh mục không được để trống!')
+      return
+    }
+
     if (file.value) {
       const formData = new FormData()
       formData.append('file', file.value)
-
       const res = await axios.post('/api/upload', formData)
-      console.log('Upload response:', res)
       category.value.imageUrl = res.data.url
     }
 
@@ -64,11 +85,24 @@ const createCategory = async () => {
       parentId: category.value.parentId || null,
       imageUrl: category.value.imageUrl || null,
     })
-    alert('Tạo danh mục thành công!')
-    window.location.reload()
+
+    toast.success('Tạo danh mục thành công!')
+    closeModal1()
+    resetForm()
+
+    // Cập nhật dữ liệu mà không reload page
+    await fetchStats()
+
+    // Reload danh sách parent categories cho select
+    const res = await axios.get('/api/category/select')
+    parentCategories.value = res.data
+
+    // Emit event để TableCategory reload
+    window.dispatchEvent(new CustomEvent('categoryUpdated'))
   } catch (error) {
     console.error('Error creating category:', error)
-    alert('Lỗi khi thêm danh mục!')
+    const errorMessage = error.response?.data?.message || 'Lỗi khi thêm danh mục!'
+    toast.error(errorMessage)
     resetForm()
   }
 }
@@ -76,8 +110,21 @@ const createCategory = async () => {
 const parentCategories = ref({})
 
 onMounted(async () => {
-  const res = await axios.get('/api/category/select')
-  parentCategories.value = res.data
+  try {
+    const res = await axios.get('/api/category/select')
+    parentCategories.value = res.data
+    await fetchStats()
+
+    // Listen for category updates từ TableCategory
+    window.addEventListener('categoryUpdated', fetchStats)
+  } catch (error) {
+    console.error('Error loading data:', error)
+  }
+})
+
+// Cleanup event listener
+onUnmounted(() => {
+  window.removeEventListener('categoryUpdated', fetchStats)
 })
 </script>
 
@@ -103,26 +150,29 @@ onMounted(async () => {
         </aside>
         <aside class="w-[80%] bg-white rounded shadow-sm p-4">
           <div class="pb-4 border-b border-gray-300">
-            <button @click="openModal1" class="bg-blue-600 py-1 px-2 rounded text-white">
+            <button
+              @click="openModal1"
+              class="bg-blue-600 py-1 px-2 rounded text-white hover:bg-blue-700 transition-colors"
+            >
               Thêm danh mục
             </button>
           </div>
           <div class="mt-2 mb-4 flex gap-4">
             <div class="w-1/3 bg-blue-50 p-4 rounded border border-blue-200">
               <div class="text-blue-800 font-semibold">Tổng danh mục</div>
-              <div class="font-semibold">0</div>
+              <div class="font-semibold text-2xl">{{ stats.total }}</div>
             </div>
-            <div class="w-1/3 bg-blue-50 p-4 rounded border border-blue-200">
-              <div class="text-blue-800 font-semibold">Tổng danh mục cha</div>
-              <div class="font-semibold">0</div>
+            <div class="w-1/3 bg-green-50 p-4 rounded border border-green-200">
+              <div class="text-green-800 font-semibold">Tổng danh mục cha</div>
+              <div class="font-semibold text-2xl">{{ stats.parent }}</div>
             </div>
-            <div class="w-1/3 bg-blue-50 p-4 rounded border border-blue-200">
-              <div class="text-blue-800 font-semibold">Tổng danh mục con</div>
-              <div class="font-semibold">0</div>
+            <div class="w-1/3 bg-purple-50 p-4 rounded border border-purple-200">
+              <div class="text-purple-800 font-semibold">Tổng danh mục con</div>
+              <div class="font-semibold text-2xl">{{ stats.child }}</div>
             </div>
           </div>
           <div class="overflow-x-auto">
-            <TableCategory />
+            <TableCategory @categoryUpdated="fetchStats" />
           </div>
         </aside>
       </div>
@@ -164,19 +214,20 @@ onMounted(async () => {
                   <div class="mt-4">
                     <ul>
                       <li>
-                        <p class="mb-2">Tên danh mục</p>
+                        <p class="mb-2">Tên danh mục <span class="text-red-500">*</span></p>
                         <input
                           v-model="category.name"
-                          class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800"
+                          class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                           type="text"
                           placeholder="Nhập tên danh mục"
+                          required
                         />
                       </li>
                       <li class="mt-2">
                         <p class="block mb-2">Danh mục cha</p>
                         <select
                           v-model="category.parentId"
-                          class="w-full border px-2 py-1 rounded-md border-gray-300 text-gray-800"
+                          class="w-full border px-2 py-1 rounded-md border-gray-300 text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                         >
                           <option :value="null">Chọn danh mục cha (tùy chọn)</option>
                           <option
@@ -193,18 +244,22 @@ onMounted(async () => {
                         <input
                           @change="handleFile"
                           type="file"
-                          class="file:cursor-pointer w-full rounded-md file:border file:py-1 file:px-2 file:bg-blue-50 file:border-blue-200 file:text-blue-800 file:rounded-md"
+                          accept="image/*"
+                          class="file:cursor-pointer w-full rounded-md file:border file:py-1 file:px-2 file:bg-blue-50 file:border-blue-200 file:text-blue-800 file:rounded-md file:hover:file:bg-blue-100"
                         />
                       </li>
                     </ul>
                   </div>
-                  <div class="mt-4">
-                    <button type="submit" class="py-1 px-2 bg-blue-600 text-white rounded-md me-2">
+                  <div class="mt-6 flex gap-2">
+                    <button
+                      type="submit"
+                      class="flex-1 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
                       Thêm danh mục
                     </button>
                     <button
                       type="button"
-                      class="py-1 px-2 bg-red-400/25 text-red-600 rounded-md"
+                      class="flex-1 py-2 px-4 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
                       @click="closeModal1"
                     >
                       Huỷ
