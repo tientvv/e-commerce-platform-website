@@ -98,7 +98,7 @@ const createCategory = async () => {
     parentCategories.value = res.data
 
     // Emit event để TableCategory reload
-    window.dispatchEvent(new CustomEvent('categoryUpdated'))
+    window.dispatchEvent(new CustomEvent('categoryCreated'))
   } catch (error) {
     console.error('Error creating category:', error)
     const errorMessage = error.response?.data?.message || 'Lỗi khi thêm danh mục!'
@@ -220,7 +220,6 @@ onUnmounted(() => {
                           class="py-1 px-2 border rounded-md w-full border-gray-300 text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                           type="text"
                           placeholder="Nhập tên danh mục"
-                          required
                         />
                       </li>
                       <li class="mt-2">

@@ -7,6 +7,8 @@ import com.tientv.dto.SelectCategory;
 import com.tientv.model.Category;
 import com.tientv.repository.CategoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,7 @@ public class CategoryService {
     private CategoryRepository categoryRepository;
 
     @Transactional
+    @CacheEvict(value = {"categories", "categoryStats"}, allEntries = true)
     public CategoryResponse createCategory(CategoryDto categoryDto) {
         // Kiểm tra tên category đã tồn tại chưa
         if (categoryRepository.existsByNameIgnoreCase(categoryDto.getName())) {
@@ -48,6 +51,7 @@ public class CategoryService {
         return convertToResponse(savedCategory);
     }
 
+    @Cacheable(value = "categories", key = "'select'")
     public List<SelectCategory> getSelectCategory() {
         return categoryRepository.findAll().stream()
                 .map(category -> new SelectCategory(category.getId(), category.getName()))
@@ -67,6 +71,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict(value = {"categories", "categoryStats"}, allEntries = true)
     public CategoryResponse updateCategory(UUID id, CategoryDto dto) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
@@ -81,6 +86,11 @@ public class CategoryService {
         category.setUpdatedAt(OffsetDateTime.now());
 
         if (dto.getParentId() != null) {
+            // Kiểm tra tránh vòng lặp vô hạn - category không thể là parent của chính nó
+            if (dto.getParentId().equals(id)) {
+                throw new RuntimeException("Danh mục không thể là danh mục cha của chính nó!");
+            }
+
             Category parent = categoryRepository.findById(dto.getParentId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục cha"));
             category.setParent(parent);
@@ -93,6 +103,7 @@ public class CategoryService {
     }
 
     @Transactional
+    @CacheEvict(value = {"categories", "categoryStats"}, allEntries = true)
     public void deleteCategory(UUID id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục"));
@@ -116,14 +127,17 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
+    @Cacheable(value = "categoryStats", key = "'total'")
     public long getTotalCategories() {
         return categoryRepository.count();
     }
 
+    @Cacheable(value = "categoryStats", key = "'parent'")
     public long getTotalParentCategories() {
         return categoryRepository.countByParentIsNull();
     }
 
+    @Cacheable(value = "categoryStats", key = "'child'")
     public long getTotalChildCategories() {
         return categoryRepository.countByParentIsNotNull();
     }

@@ -143,8 +143,8 @@ onMounted(() => {
   fetchCategories()
   fetchParentCategories()
 
-  // Listen for category updates từ parent component
-  window.addEventListener('categoryUpdated', refreshData)
+  // Listen for category creation từ parent component
+  window.addEventListener('categoryCreated', refreshData)
 })
 
 // Cleanup event listener
