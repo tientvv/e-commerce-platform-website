@@ -1,0 +1,58 @@
+package com.tientv.entity;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.Nationalized;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.UUID;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "shops", schema = "dbo")
+public class Shop {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
+    private UUID id;
+
+    @Lob
+    @Column(name = "shop_image")
+    private String shopImage;
+
+    @Nationalized
+    @Lob
+    @Column(name = "shop_name")
+    private String shopName;
+
+    @Nationalized
+    @Lob
+    @Column(name = "description")
+    private String description;
+
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "phone")
+    private String phone;
+
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "email")
+    private String email;
+
+    @Nationalized
+    @Lob
+    @Column(name = "address")
+    private String address;
+
+    @OneToMany(mappedBy = "shop")
+    private Set<Order> orders = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "shop")
+    private Set<Product> products = new LinkedHashSet<>();
+
+}

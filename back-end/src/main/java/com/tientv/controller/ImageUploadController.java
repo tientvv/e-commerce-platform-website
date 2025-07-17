@@ -1,13 +1,9 @@
 package com.tientv.controller;
 
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
 import com.cloudinary.Cloudinary;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Map;
@@ -24,10 +20,9 @@ public class ImageUploadController {
         try {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), Map.of());
             String url = (String) uploadResult.get("secure_url");
-            return ResponseEntity.ok(Map.of("url", url));
+            return ResponseEntity.ok(Map.of("image", url));
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("" + e.getMessage());
         }
     }
 }
