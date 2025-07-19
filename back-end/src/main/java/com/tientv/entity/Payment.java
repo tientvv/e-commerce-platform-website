@@ -14,17 +14,29 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "payments", schema = "dbo")
+@Table(name = "payments")
 public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private UUID id;
 
+    @Size(max = 50)
+    @Column(name = "payment_code", length = 50)
+    private String paymentCode;
+
+    @Size(max = 20)
+    @Column(name = "payment_type", length = 20)
+    private String paymentType;
+
     @Size(max = 100)
     @Nationalized
     @Column(name = "payment_name", length = 100)
     private String paymentName;
+
+    @Lob
+    @Column(name = "icon")
+    private String icon;
 
     @Nationalized
     @Lob
@@ -37,5 +49,8 @@ public class Payment {
 
     @OneToMany(mappedBy = "payment")
     private Set<Order> orders = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "payment")
+    private Set<Transaction> transactions = new LinkedHashSet<>();
 
 }

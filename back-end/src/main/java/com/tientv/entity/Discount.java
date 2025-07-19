@@ -14,7 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "discounts", schema = "dbo")
+@Table(name = "discounts")
 public class Discount {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -44,6 +44,9 @@ public class Discount {
     @Column(name = "end_date")
     private OffsetDateTime endDate;
 
+    @Column(name = "min_order_value", precision = 18, scale = 2)
+    private BigDecimal minOrderValue;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Product product;
@@ -51,6 +54,10 @@ public class Discount {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
 
     @ColumnDefault("1")
     @Column(name = "is_active")

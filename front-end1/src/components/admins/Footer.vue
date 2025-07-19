@@ -1,1 +1,0 @@
-<template>Footer Admin</template>

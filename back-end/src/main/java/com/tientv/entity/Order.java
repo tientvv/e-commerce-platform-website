@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.math.BigDecimal;
@@ -15,7 +16,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "orders", schema = "dbo")
+@Table(name = "orders")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -41,12 +42,22 @@ public class Order {
     @Column(name = "total_amount", precision = 18, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(name = "delivered_date")
+    private OffsetDateTime deliveredDate;
+
+    @ColumnDefault("0")
+    @Column(name = "discount_amount", precision = 18, scale = 2)
+    private BigDecimal discountAmount;
+
     @Size(max = 50)
     @Column(name = "order_status", length = 50)
     private String orderStatus;
 
     @Column(name = "order_date")
     private OffsetDateTime orderDate;
+
+    @Column(name = "cancelled_date")
+    private OffsetDateTime cancelledDate;
 
     @Nationalized
     @Lob

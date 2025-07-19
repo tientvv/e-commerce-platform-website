@@ -7,12 +7,14 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "transactions", schema = "dbo")
+@Table(name = "transactions")
 public class Transaction {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,8 +25,9 @@ public class Transaction {
     @JoinColumn(name = "order_id")
     private Order order;
 
-    @Column(name = "payment_id")
-    private UUID paymentId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id")
+    private Payment payment;
 
     @Size(max = 255)
     @Column(name = "transaction_code")
@@ -43,5 +46,8 @@ public class Transaction {
     @Size(max = 50)
     @Column(name = "vnpay_response_code", length = 50)
     private String vnpayResponseCode;
+
+    @OneToMany(mappedBy = "transaction")
+    private Set<ReturnRefund> returnRefunds = new LinkedHashSet<>();
 
 }

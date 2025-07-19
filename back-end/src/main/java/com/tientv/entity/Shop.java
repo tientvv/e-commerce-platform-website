@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -13,7 +16,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "shops", schema = "dbo")
+@Table(name = "shops")
 public class Shop {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -48,6 +51,20 @@ public class Shop {
     @Lob
     @Column(name = "address")
     private String address;
+
+    @Column(name = "rating", precision = 18, scale = 2)
+    private BigDecimal rating;
+
+    @Column(name = "created_at")
+    private OffsetDateTime createdAt;
+
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private Account user;
 
     @OneToMany(mappedBy = "shop")
     private Set<Order> orders = new LinkedHashSet<>();

@@ -6,12 +6,14 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "order_items", schema = "dbo")
+@Table(name = "order_items")
 public class OrderItem {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -23,8 +25,8 @@ public class OrderItem {
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    private Product product;
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
 
     @Column(name = "quantity")
     private Integer quantity;
@@ -35,5 +37,8 @@ public class OrderItem {
     @ColumnDefault("0")
     @Column(name = "discount_applied", precision = 18, scale = 2)
     private BigDecimal discountApplied;
+
+    @OneToMany(mappedBy = "orderItem")
+    private Set<ReturnRefund> returnRefunds = new LinkedHashSet<>();
 
 }

@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -14,7 +14,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "products", schema = "dbo")
+@Table(name = "products")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -35,17 +35,22 @@ public class Product {
     @Column(name = "name")
     private String name;
 
+    @Lob
+    @Column(name = "product_image")
+    private String productImage;
+
     @Nationalized
     @Lob
     @Column(name = "description")
     private String description;
 
-    @Column(name = "quantity")
-    private Integer quantity;
+    @Column(name = "view_count")
+    private Integer viewCount;
 
-    @Column(name = "price", precision = 18, scale = 2)
-    private BigDecimal price;
+    @Column(name = "sold_count")
+    private Integer soldCount;
 
+    @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
 
@@ -57,10 +62,10 @@ public class Product {
     private Set<Discount> discounts = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "product")
-    private Set<OrderItem> orderItems = new LinkedHashSet<>();
+    private Set<ProductImage> productImages = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "product")
-    private Set<ProductImage> productImages = new LinkedHashSet<>();
+    private Set<ProductVariant> productVariants = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "product")
     private Set<Review> reviews = new LinkedHashSet<>();

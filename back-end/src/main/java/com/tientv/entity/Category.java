@@ -13,7 +13,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "categories", schema = "dbo")
+@Table(name = "categories")
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -24,6 +24,10 @@ public class Category {
     @Nationalized
     @Column(name = "name")
     private String name;
+
+    @Lob
+    @Column(name = "category_image")
+    private String categoryImage;
 
     @OneToMany(mappedBy = "category")
     private Set<Discount> discounts = new LinkedHashSet<>();

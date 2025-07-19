@@ -10,7 +10,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "wishlists", schema = "dbo")
+@Table(name = "wishlists")
 public class Wishlist {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
