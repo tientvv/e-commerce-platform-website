@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-screen">
     <NavbarView />
-    <main class="flex-1 w-[1440px] mx-auto">Nội dung</main>
+    <main class="flex-1 w-[1440px] mx-auto">Danh sách yêu thích sản phẩm</main>
     <FooterView />
   </div>
 </template>

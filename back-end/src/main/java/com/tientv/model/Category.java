@@ -1,4 +1,4 @@
-package com.tientv.entity;
+package com.tientv.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;

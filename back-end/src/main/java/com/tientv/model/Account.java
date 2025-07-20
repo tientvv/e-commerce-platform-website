@@ -1,4 +1,4 @@
-package com.tientv.entity;
+package com.tientv.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
@@ -29,6 +29,11 @@ public class Account {
     @Size(max = 255)
     @Column(name = "username")
     private String username;
+
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "name")
+    private String name;
 
     @Size(max = 255)
     @Column(name = "password")
