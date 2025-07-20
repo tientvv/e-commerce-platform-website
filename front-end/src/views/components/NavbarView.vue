@@ -21,11 +21,14 @@
             <LogIn width="18" />
             Đăng nhập
           </RouterLink>
-          <button v-if="accountInfo" class="py-1 px-2 relative border border-gray-400 flex items-center gap-2 rounded">
+          <button
+            v-if="accountInfo != null"
+            class="py-1 px-2 relative border border-gray-400 flex items-center gap-2 rounded"
+          >
             <User width="18" />
             Xin chào, {{ accountInfo.username }}
           </button>
-          <FormLogoutAccount v-if="accountInfo" />
+          <FormLogoutAccount v-if="accountInfo != null" />
         </div>
       </div>
     </div>
@@ -45,10 +48,12 @@ import FormLogoutAccount from '../LoginView/FormLogoutAccount.vue'
 const message = ref('')
 
 const accountInfo = ref({
-  username: 'Không có dữ liệu',
-  email: '',
-  phone: '',
+  username: null,
+  email: null,
+  phone: null,
 })
+
+accountInfo.value = null
 
 onMounted(() => {
   fetchAccountInfo()
