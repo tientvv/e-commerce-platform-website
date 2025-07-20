@@ -43,7 +43,6 @@ router.beforeEach(async (to) => {
     if (to.meta.roles && !to.meta.roles.includes(user.role)) {
       return '/'
     }
-
     return true
   } catch {
     return '/login'
