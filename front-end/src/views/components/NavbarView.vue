@@ -21,13 +21,14 @@
             <LogIn width="18" />
             Đăng nhập
           </RouterLink>
-          <button
+          <RouterLink
+            to="/user/profile"
             v-if="accountInfo != null"
             class="py-1 px-2 relative border border-gray-400 flex items-center gap-2 rounded"
           >
             <User width="18" />
             Xin chào, {{ accountInfo.username }}
-          </button>
+          </RouterLink>
           <FormLogoutAccount v-if="accountInfo != null" />
         </div>
       </div>

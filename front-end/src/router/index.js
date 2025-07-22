@@ -4,6 +4,7 @@ import LoginAccountView from '~/views/LoginAccountView.vue'
 import WishlistView from '~/views/WishlistView.vue'
 import RegisterAccountView from '~/views/RegisterAccountView.vue'
 import axios from 'axios'
+import UserView from '~/views/UserView/UserView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -19,7 +20,24 @@ const router = createRouter({
       },
     },
     { path: '/register', component: RegisterAccountView },
-    { path: '/user', component: RegisterAccountView },
+    {
+      path: '/user',
+      component: UserView,
+      meta: { requiresAuth: true, roles: ['USER', 'ADMIN'] },
+      children: [
+        { path: 'profile', component: () => import('~/views/UserView/ProfileView.vue') },
+        {
+          path: 'shop',
+          children: [{ path: 'profile', component: () => import('~/views/UserView/ShopView.vue') }],
+        },
+        { path: 'order', component: () => import('~/views/UserView/OrderView.vue') },
+      ],
+    },
+    {
+      path: '/register-shop',
+      component: () => import('~/views/ShopView/RegisterShopView.vue'),
+      meta: { requiresAuth: true, roles: ['USER', 'ADMIN'] },
+    },
   ],
 })
 

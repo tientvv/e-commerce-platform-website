@@ -1,6 +1,6 @@
 <template>
   <form @submit.prevent="registerAccount">
-    <div class="text-2xl">Tạo tài khoản</div>
+    <div class="text-xl">Tạo tài khoản</div>
     <div class="mt-4">
       Bạn có tài khoản rồi? <RouterLink to="/login" class="underline text-blue-600">Đăng nhập</RouterLink>
     </div>
@@ -34,7 +34,6 @@
         />
       </div>
     </div>
-    <div class="mt-4"></div>
     <div class="mt-4">
       <label for="email" class="mb-2 block">Email:</label>
       <input

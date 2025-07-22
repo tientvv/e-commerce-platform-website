@@ -1,6 +1,6 @@
 <template>
   <form @submit.prevent="login" class="w-full">
-    <div class="text-2xl">Đăng nhập</div>
+    <div class="text-xl">Đăng nhập</div>
     <div class="mt-4">
       Bạn chưa có tài khoản đăng nhập? <RouterLink to="/register" class="underline text-blue-600">Đăng ký</RouterLink>
     </div>

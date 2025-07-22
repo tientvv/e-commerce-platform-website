@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-screen">
     <NavbarView />
-    <main class="flex-1 w-[1440px] mx-auto">Nội dung</main>
+    <main class="flex-1 max-w-[1440px] w-full mx-auto">Nội dung</main>
     <FooterView />
   </div>
 </template>

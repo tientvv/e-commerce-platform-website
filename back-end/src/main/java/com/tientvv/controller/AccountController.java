@@ -2,17 +2,11 @@ package com.tientvv.controller;
 
 import java.util.*;
 import org.springframework.web.bind.annotation.*;
-
-import com.tientvv.dto.account.InfoAccountDto;
-import com.tientvv.dto.account.LoginAccountDto;
-import com.tientvv.dto.account.RegisterAccountDto;
-import com.tientvv.dto.account.UpdateAccountDto;
+import com.tientvv.dto.account.*;
 import com.tientvv.model.Account;
 import com.tientvv.repository.AccountRepository;
 import com.tientvv.service.AccountService;
-
 import jakarta.servlet.http.HttpSession;
-
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 

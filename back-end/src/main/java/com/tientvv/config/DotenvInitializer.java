@@ -8,7 +8,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class DotenvInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
     @Override
-    public void initialize(@NotNull ConfigurableApplicationContext context) {
+    public void initialize(@SuppressWarnings("null") @NotNull ConfigurableApplicationContext context) {
         Dotenv dotenv = Dotenv.configure()
                 .directory(".")
                 .ignoreIfMissing()
