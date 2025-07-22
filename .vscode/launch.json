@@ -5,7 +5,7 @@
       "name": "Spring Boot-BackEndApplication<back-end>",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "mainClass": "com.tientv.BackEndApplication",
+      "mainClass": "com.tientvv.BackEndApplication",
       "projectName": "back-end",
       "args": "",
       "envFile": "${workspaceFolder}/.env"
