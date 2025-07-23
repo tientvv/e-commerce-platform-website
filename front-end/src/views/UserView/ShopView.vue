@@ -1,7 +1,7 @@
 <template>
-  <div class="flex h-full gap-4 py-4">
-    <div class="w-2/12 bg-white rounded"><MenuBarView /></div>
-    <div class="w-10/12 bg-white rounded p-4"><RouterView /></div>
+  <div class="flex h-full gap-4">
+    <div class="w-2/12 bg-white"><MenuBarView /></div>
+    <div class="w-10/12 bg-white p-4"><RouterView /></div>
   </div>
 </template>
 
