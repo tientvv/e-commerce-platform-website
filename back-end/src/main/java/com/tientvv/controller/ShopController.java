@@ -1,13 +1,10 @@
 package com.tientvv.controller;
 
 import java.util.*;
-
-import org.springframework.beans.factory.annotation.Autowired;
+import com.tientvv.model.*;
+import com.tientvv.dto.shop.*;
 import org.springframework.web.bind.annotation.*;
-import com.tientvv.dto.shop.RegisterShopDto;
-import com.tientvv.dto.shop.ShopDto;
-import com.tientvv.model.Account;
-import com.tientvv.model.Shop;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.tientvv.repository.ShopRepository;
 import com.tientvv.service.ShopService;
 import jakarta.servlet.http.HttpSession;
