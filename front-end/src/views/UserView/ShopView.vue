@@ -1,6 +1,6 @@
 <template>
-  <div class="flex h-full">
-    <MenuBarView />
+  <div class="flex">
+    <div class="w-4/12"><MenuBarView /></div>
     <div class="w-8/12"><RouterView /></div>
   </div>
 </template>
