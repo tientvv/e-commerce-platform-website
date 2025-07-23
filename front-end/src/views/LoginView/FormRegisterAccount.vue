@@ -4,7 +4,7 @@
     <div class="mt-4">
       Bạn có tài khoản rồi? <RouterLink to="/login" class="underline text-blue-600">Đăng nhập</RouterLink>
     </div>
-    <div v-if="successMessage" class="mt-8 border border-green-500 text-green-500 py-2 px-3 rounded">
+    <div v-if="successMessage" class="mt-8 border border-green-500 text-green-500 py-3 px-4 rounded">
       {{ successMessage }}
     </div>
     <div v-if="errorMessage" class="mt-8 border border-red-500 text-red-500 py-3 px-4 rounded">

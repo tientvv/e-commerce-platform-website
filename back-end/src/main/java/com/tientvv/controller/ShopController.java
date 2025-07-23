@@ -10,7 +10,6 @@ import com.tientvv.model.Account;
 import com.tientvv.model.Shop;
 import com.tientvv.repository.ShopRepository;
 import com.tientvv.service.ShopService;
-
 import jakarta.servlet.http.HttpSession;
 
 @RestController
@@ -56,22 +55,6 @@ public class ShopController {
     if (dto.getShopName().isEmpty() || dto.getEmail().isEmpty() ||
         dto.getPhone().isEmpty() || dto.getAddress().isEmpty()) {
       response.put("message", "Vui lòng điền đầy đủ thông tin cửa hàng!");
-      return response;
-    }
-    if (dto.getShopName() == null || dto.getShopName().isEmpty()) {
-      response.put("message", "Tên cửa hàng không được để trống!");
-      return response;
-    }
-    if (dto.getEmail() == null || dto.getEmail().isEmpty()) {
-      response.put("message", "Email không được để trống!");
-      return response;
-    }
-    if (dto.getPhone() == null || dto.getPhone().isEmpty()) {
-      response.put("message", "Số điện thoại không được để trống!");
-      return response;
-    }
-    if (dto.getAddress() == null || dto.getAddress().isEmpty()) {
-      response.put("message", "Địa chỉ không được để trống!");
       return response;
     }
     try {
