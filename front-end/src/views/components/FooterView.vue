@@ -4,7 +4,7 @@
       <div class="flex flex-wrap justify-between gap-8 mb-4">
         <div>
           <div class="font-semibold mb-2 text-[16px]">Hỗ trợ khách hàng</div>
-          <div class="flex flex-col gap-1 text-gray-300">
+          <div class="flex flex-col gap-1 text-gray-400">
             <div>Hotline: <span class="font-bold">1900-6035</span></div>
             <div>(1000 đ/phút, 8-21h kể cả T7, CN)</div>
             <div>Các câu hỏi thường gặp</div>
@@ -20,7 +20,7 @@
         </div>
         <div>
           <div class="font-semibold mb-2 text-[16px]">Về chúng tôi</div>
-          <div class="flex flex-col gap-1 text-gray-300">
+          <div class="flex flex-col gap-1 text-gray-400">
             <div>Giới thiệu</div>
             <div>Liên hệ</div>
             <div>Chính sách bảo mật thanh toán</div>
@@ -32,14 +32,14 @@
         </div>
         <div>
           <div class="font-semibold mb-2 text-[16px]">Hợp tác và liên kết</div>
-          <div class="flex flex-col gap-1 text-gray-300">
+          <div class="flex flex-col gap-1 text-gray-400">
             <div>Quy chế hoạt động Sàn GDTMĐT</div>
             <div>Bán hàng cùng chúng tôi</div>
           </div>
         </div>
         <div>
           <div class="font-semibold mb-2 text-[16px]">Phương thức thanh toán</div>
-          <div class="flex flex-col gap-1 text-gray-300">
+          <div class="flex flex-col gap-1 text-gray-400">
             <div>MOMO</div>
             <div>VNPAY</div>
             <div>ZALOPAY</div>
@@ -48,9 +48,9 @@
         <div>
           <div class="font-semibold mb-2">Kết nối với chúng tôi</div>
           <div class="flex gap-2">
-            <a href="#" aria-label="Facebook" class="hover:text-blue-400">Facebook</a>
-            <a href="#" aria-label="Instagram" class="hover:text-pink-400">Instagram</a>
-            <a href="#" aria-label="Twitter" class="hover:text-blue-300">Twitter</a>
+            <a href="#" aria-label="Facebook" class="hover:text-blue-400 text-gray-400">Facebook</a>
+            <a href="#" aria-label="Instagram" class="hover:text-pink-400 text-gray-400">Instagram</a>
+            <a href="#" aria-label="Twitter" class="hover:text-blue-300 text-gray-400">Twitter</a>
           </div>
         </div>
       </div>

@@ -29,7 +29,17 @@ const router = createRouter({
         {
           path: 'shop',
           component: () => import('~/views/UserView/ShopView.vue'),
-          children: [{ path: 'profile', component: () => import('~/views/ShopView/ProfileShopView.vue') }],
+          children: [
+            { path: 'profile', component: () => import('~/views/ShopView/ProfileShopView.vue') },
+            {
+              path: 'product',
+              component: () => import('~/views/ShopView/ProductShopView.vue'),
+              children: [
+                { path: 'list', component: () => import('~/views/ShopView/ListProductView.vue') },
+                { path: 'add', component: () => import('~/views/ShopView/CRUDProduct/CreateProductShopView.vue') },
+              ],
+            },
+          ],
         },
         { path: 'order', component: () => import('~/views/UserView/OrderView.vue') },
       ],
