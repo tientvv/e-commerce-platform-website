@@ -4,7 +4,7 @@
     <div class="bg-white py-4 px-2">
       <NavbarUserView />
     </div>
-    <main class="flex-1 max-w-[1440px] w-full mx-auto">
+    <main class="flex-1 max-w-[1440px] w-full mx-auto py-4">
       <RouterView />
     </main>
     <FooterView />
