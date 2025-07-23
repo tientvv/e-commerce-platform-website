@@ -54,7 +54,7 @@
           </div>
         </div>
       </div>
-      <div class="border-t border-gray-700 pt-4 text-center text-sm text-gray-400">
+      <div class="border-t border-gray-700 pt-4 text-sm text-gray-400">
         &copy; 2025 E-Commerce Platform. All rights reserved.
       </div>
     </div>
