@@ -28,7 +28,8 @@ const router = createRouter({
         { path: 'profile', component: () => import('~/views/UserView/ProfileView.vue') },
         {
           path: 'shop',
-          children: [{ path: 'profile', component: () => import('~/views/UserView/ShopView.vue') }],
+          component: () => import('~/views/UserView/ShopView.vue'),
+          children: [{ path: 'profile', component: () => import('~/views/ShopView/ProfileShopView.vue') }],
         },
         { path: 'order', component: () => import('~/views/UserView/OrderView.vue') },
       ],

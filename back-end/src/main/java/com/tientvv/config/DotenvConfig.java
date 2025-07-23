@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 
-public class DotenvInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+public class DotenvConfig implements ApplicationContextInitializer<ConfigurableApplicationContext> {
 
     @Override
     public void initialize(@SuppressWarnings("null") @NotNull ConfigurableApplicationContext context) {

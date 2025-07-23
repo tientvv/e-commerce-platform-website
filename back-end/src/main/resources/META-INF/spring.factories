@@ -1,2 +1,2 @@
 org.springframework.context.ApplicationContextInitializer=\
-com.tientvv.config.DotenvInitializer
+com.tientvv.config.DotenvConfig

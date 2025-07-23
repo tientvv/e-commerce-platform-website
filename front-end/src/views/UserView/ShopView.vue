@@ -1,7 +1,7 @@
 <template>
-  <div>
-    Kênh đã đăng ký bán hàng (Đang phát triển)
-    <RouterView />
+  <div class="flex h-full">
+    <MenuBarView />
+    <div class="w-8/12"><RouterView /></div>
   </div>
 </template>
 
@@ -9,6 +9,7 @@
 import axios from 'axios'
 import { onMounted, ref } from 'vue'
 import router from '~/router'
+import MenuBarView from '../ShopView/MenuBarView.vue'
 
 const shop = ref(null)
 const message = ref('')

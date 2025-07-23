@@ -21,7 +21,6 @@ public class ShopController {
 
   @GetMapping("/user/shop")
   public Map<String, Object> getShopByUserId(HttpSession session) {
-
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
     if (account == null) {
