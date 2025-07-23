@@ -5,8 +5,6 @@
         <div>
           <div class="font-semibold mb-2 text-[16px]">Hỗ trợ khách hàng</div>
           <div class="flex flex-col gap-1 text-gray-400">
-            <div>Hotline: <span class="font-bold">1900-6035</span></div>
-            <div>(1000 đ/phút, 8-21h kể cả T7, CN)</div>
             <div>Các câu hỏi thường gặp</div>
             <div>Gửi yêu cầu hỗ trợ</div>
             <div>Hướng dẫn đặt hàng</div>
@@ -14,8 +12,6 @@
             <div>Chính sách kiểm hàng</div>
             <div>Chính sách đổi trả</div>
             <div>Chính sách hàng nhập khẩu</div>
-            <div>Hỗ trợ khách hàng: hotro@tientvv</div>
-            <div>Báo lỗi bảo mật: security@tientvv</div>
           </div>
         </div>
         <div>
@@ -36,6 +32,12 @@
             <div>Quy chế hoạt động Sàn GDTMĐT</div>
             <div>Bán hàng cùng chúng tôi</div>
           </div>
+          <div class="font-semibold mb-2 text-[16px] mt-4">Phương thức vận chuyển</div>
+          <div class="flex flex-col gap-1 text-gray-400">
+            <div>Giao hàng nhanh</div>
+            <div>Giao hàng tiết kiệm</div>
+            <div>Giao hàng nội thành</div>
+          </div>
         </div>
         <div>
           <div class="font-semibold mb-2 text-[16px]">Phương thức thanh toán</div>
@@ -44,13 +46,28 @@
             <div>VNPAY</div>
             <div>ZALOPAY</div>
           </div>
+          <div class="font-semibold mb-2 text-[16px] mt-4">Thời gian hoạt động</div>
+          <div class="flex flex-col gap-1 text-gray-400">
+            <div>Hotline: <span class="font-bold">1900-6035</span></div>
+            <div>(1000 đ/phút, 8-21h kể cả T7, CN)</div>
+          </div>
         </div>
         <div>
           <div class="font-semibold mb-2">Kết nối với chúng tôi</div>
-          <div class="flex gap-2">
-            <a href="#" aria-label="Facebook" class="hover:text-blue-400 text-gray-400">Facebook</a>
-            <a href="#" aria-label="Instagram" class="hover:text-pink-400 text-gray-400">Instagram</a>
-            <a href="#" aria-label="Twitter" class="hover:text-blue-300 text-gray-400">Twitter</a>
+          <div class="flex flex-col gap-1">
+            <div class="flex gap-2">
+              <a href="#" aria-label="Facebook" class="hover:text-blue-400 text-gray-400">Facebook</a>
+              <a href="#" aria-label="Instagram" class="hover:text-pink-400 text-gray-400">Instagram</a>
+              <a href="#" aria-label="Twitter" class="hover:text-blue-300 text-gray-400">Twitter</a>
+            </div>
+            <div class="text-gray-400">
+              Hỗ trợ khách hàng:
+              <a href="mailto:hotro@tientvv" class="underline hover:text-white">hotro@tientvv</a>
+            </div>
+            <div class="text-gray-400">
+              Báo lỗi bảo mật:
+              <a href="mailto:security@tientvv" class="underline hover:text-white">security@tientvv</a>
+            </div>
           </div>
         </div>
       </div>
