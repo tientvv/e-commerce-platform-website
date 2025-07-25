@@ -18,7 +18,7 @@
             <td class="p-2 border-r border-gray-200">{{ product.brand }}</td>
             <td class="p-2 border-r border-gray-200">{{ product.categoryName }}</td>
             <td class="p-2 border-r border-gray-200">{{ product.description }}</td>
-            <td class="p-2 border-gray-200">
+            <td class="p-2 border-r border-gray-200">
               <img :src="product.productImage" alt="Ảnh" class="w-16 h-16 object-cover" />
             </td>
             <td class="p-2 border-gray-200 flex flex-col gap-2">
