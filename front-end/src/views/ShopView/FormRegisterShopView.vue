@@ -137,8 +137,8 @@ const registerShop = async () => {
       errorMessage.value = ''
       return
     } else {
+      errorMessage.value = res.data.message || 'Đăng ký cửa hàng thất bại!'
       successMessage.value = ''
-      errorMessage.value = res.data.message
     }
   } catch {
     errorMessage.value = 'Đăng ký thất bại!'

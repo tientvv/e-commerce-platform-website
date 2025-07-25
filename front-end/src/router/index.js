@@ -37,6 +37,7 @@ const router = createRouter({
               children: [
                 { path: 'list', component: () => import('~/views/ShopView/ListProductView.vue') },
                 { path: 'add', component: () => import('~/views/ShopView/CRUDProduct/CreateProductShopView.vue') },
+                { path: 'edit/:id', component: () => import('~/views/ShopView/CRUDProduct/EditProductShopView.vue') },
               ],
             },
           ],

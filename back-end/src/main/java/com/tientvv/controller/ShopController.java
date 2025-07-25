@@ -35,8 +35,9 @@ public class ShopController {
       response.put("message", "Cửa hàng của bạn đã bị khóa!");
       return response;
     }
-    ShopDto shop = shopService.getShopByUserId(account.getId());
-    response.put("shop", shop);
+
+    ShopDto shopDto = shopService.getShopByUserId(account.getId());
+    response.put("shop", shopDto);
     return response;
   }
 

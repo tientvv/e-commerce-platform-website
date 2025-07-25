@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
+
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.util.LinkedHashSet;
@@ -28,6 +30,10 @@ public class Category {
     @Lob
     @Column(name = "category_image")
     private String categoryImage;
+
+    @ColumnDefault("1")
+    @Column(name = "is_active")
+    private Boolean isActive;
 
     @OneToMany(mappedBy = "category")
     private Set<Discount> discounts = new LinkedHashSet<>();

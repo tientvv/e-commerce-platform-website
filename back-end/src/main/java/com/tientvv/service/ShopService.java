@@ -30,6 +30,7 @@ public class ShopService {
       return null;
     }
     ShopDto dto = new ShopDto();
+    dto.setId(shop.getId());
     dto.setShopName(shop.getShopName());
     dto.setDescription(shop.getDescription());
     dto.setEmail(shop.getEmail());
