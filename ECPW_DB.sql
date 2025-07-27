@@ -256,3 +256,8 @@ GO
 
 ALTER TABLE [return_refunds] ADD FOREIGN KEY ([transaction_id]) REFERENCES [transactions] ([id])
 GO
+
+-- Thêm cột last_updated vào bảng shops để theo dõi thời gian cập nhật cuối
+ALTER TABLE shops ADD COLUMN last_updated DATETIMEOFFSET NULL;
+
+-- Comment: Cột này được sử dụng để giới hạn việc cập nhật thông tin cửa hàng chỉ 1 lần trong 24 giờ

@@ -1,5 +1,6 @@
 package com.tientvv.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -22,6 +23,7 @@ public class ProductVariant {
     @Column(name = "id", nullable = false)
     private UUID id;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id")
     private Product product;
@@ -46,15 +48,19 @@ public class ProductVariant {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "productVariant")
     private Set<Discount> discounts = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "productVariant")
     private Set<OrderItem> orderItems = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "productVariant")
     private Set<ProductImage> productImages = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "productVariant")
     private Set<Review> reviews = new LinkedHashSet<>();
 

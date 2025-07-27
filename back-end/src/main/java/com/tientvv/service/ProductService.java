@@ -92,6 +92,10 @@ public class ProductService {
     return productRepository.findAllByShopIdAndIsActiveTrue(shopId);
   }
 
+  public List<Product> findAllActiveProducts() {
+    return productRepository.findByIsActiveTrue();
+  }
+
   public ProductDto getProductDtoById(UUID id) {
     Product product = productRepository.findById(id).orElse(null);
     if (product == null) {

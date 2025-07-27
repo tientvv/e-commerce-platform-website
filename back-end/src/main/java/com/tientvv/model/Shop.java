@@ -1,5 +1,6 @@
 package com.tientvv.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -58,17 +59,23 @@ public class Shop {
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
+    @Column(name = "last_updated")
+    private OffsetDateTime lastUpdated;
+
     @ColumnDefault("1")
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private Account user;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "shop")
     private Set<Order> orders = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "shop")
     private Set<Product> products = new LinkedHashSet<>();
 

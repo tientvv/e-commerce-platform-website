@@ -89,7 +89,6 @@ const name = ref('')
 const brand = ref('')
 const description = ref('')
 const productImage = ref(null)
-const shopId = ref(null)
 const imageInput = ref(null)
 const isLoading = ref(false)
 const successMessage = ref('')
@@ -111,6 +110,15 @@ const resetForm = () => {
 }
 
 const registerProduct = async () => {
+  console.log('🚀 Starting product registration...')
+  console.log('📝 Form data:', {
+    name: name.value,
+    brand: brand.value,
+    description: description.value,
+    categoryId: selectedCategory.value,
+    hasImage: !!productImage.value,
+  })
+
   isLoading.value = true
   const formData = new FormData()
   formData.append('name', name.value)
@@ -118,25 +126,34 @@ const registerProduct = async () => {
   formData.append('description', description.value)
   formData.append('productImage', productImage.value)
   formData.append('categoryId', selectedCategory.value)
-  formData.append('shopId', shopId.value)
+  // shopId sẽ được backend tự động lấy từ session
   try {
+    console.log('📤 Sending request to /api/products/add')
     const res = await axios.post('/api/products/add', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
+    console.log('📥 Response:', res.data)
+
     if (res.data.message === 'Sản phẩm đã được tạo thành công!') {
+      console.log('✅ Product created successfully!')
       successMessage.value = res.data.message
       resetForm()
       errorMessage.value = ''
       return
     } else {
+      console.log('⚠️ Product creation failed:', res.data)
       errorMessage.value =
-        res.data.errorMessage || 'Đăng ký sản phẩm thất bại! Vui lòng điền đầy đủ thông tin sản phẩm!'
+        res.data.errorMessage ||
+        res.data.message ||
+        'Đăng ký sản phẩm thất bại! Vui lòng điền đầy đủ thông tin sản phẩm!'
       successMessage.value = ''
     }
-  } catch {
-    errorMessage.value = 'Đăng ký sản phẩm thất bại! Vui lòng điền đầy đủ thông tin sản phẩm!'
+  } catch (error) {
+    console.error('❌ Product creation error:', error.response?.data || error.message)
+    errorMessage.value =
+      error.response?.data?.message || 'Đăng ký sản phẩm thất bại! Vui lòng điền đầy đủ thông tin sản phẩm!'
     resetForm()
   } finally {
     isLoading.value = false
@@ -167,18 +184,10 @@ const fetchCategories = async () => {
   }
 }
 
-const fetchShop = async () => {
-  try {
-    const res = await axios.get('/api/user/shop')
-    shopId.value = res.data?.shop?.id || null
-  } catch (err) {
-    console.error('Lỗi khi lấy shop:', err)
-  }
-}
+// Không cần fetch shop nữa vì backend tự động lấy từ session
 
 onMounted(() => {
   fetchCategories()
-  fetchShop()
 })
 </script>
 

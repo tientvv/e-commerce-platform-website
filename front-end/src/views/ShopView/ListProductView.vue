@@ -50,22 +50,31 @@ const products = ref([])
 
 const loadProducts = async () => {
   try {
+    console.log('🔍 Loading products...')
     const response = await axios.get('/api/user/shop')
+    console.log('📦 Shop response:', response.data)
+
     const shop = response.data.shop
     if (!shop || !shop.id) {
-      console.warn('Không tìm thấy shop')
+      console.warn('⚠️ Không tìm thấy shop')
       return
     }
-    const productRes = await axios.get('/api/products/index', {
+
+    console.log('🏪 Shop ID:', shop.id)
+
+    // Sử dụng endpoint /api/products/all với shopId parameter
+    const productRes = await axios.get('/api/products/all', {
       params: {
         shopId: shop.id,
-        isActive: true,
       },
     })
 
+    console.log('📋 Products response:', productRes.data)
     products.value = productRes.data.products || []
+    console.log('✅ Loaded products count:', products.value.length)
   } catch (err) {
-    console.error('Lỗi khi tải sản phẩm:', err)
+    console.error('❌ Lỗi khi tải sản phẩm:', err.response?.data || err.message)
+    products.value = []
   }
 }
 

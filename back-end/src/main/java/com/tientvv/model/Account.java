@@ -1,5 +1,6 @@
 package com.tientvv.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -73,18 +74,23 @@ public class Account {
     @Column(name = "is_active")
     private Boolean isActive;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "account")
     private Set<Order> orders = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "account")
     private Set<ReturnRefund> returnRefunds = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "account")
     private Set<Review> reviews = new LinkedHashSet<>();
 
+    @JsonIgnore
     @OneToOne(mappedBy = "user")
     private Shop shop;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "account")
     private Set<Wishlist> wishlists = new LinkedHashSet<>();
 

@@ -29,19 +29,48 @@ const router = createRouter({
         {
           path: 'shop',
           component: () => import('~/views/UserView/ShopView.vue'),
+          meta: { requiresShop: true },
           children: [
             {
               path: 'product-variants/index',
               component: () => import('~/views/ProductVariants/ProductVariantsView.vue'),
+              meta: { requiresShop: true },
             },
-            { path: 'profile', component: () => import('~/views/ShopView/ProfileShopView.vue') },
+            {
+              path: 'product-images/index',
+              component: () => import('~/views/ProductVariants/ProductImageView.vue'),
+              meta: { requiresShop: true },
+            },
+            {
+              path: 'profile',
+              component: () => import('~/views/ShopView/ProfileShopView.vue'),
+              meta: { requiresShop: true },
+            },
+            {
+              path: 'statistics',
+              component: () => import('~/views/ShopView/StatisticsShopView.vue'),
+              meta: { requiresShop: true },
+            },
             {
               path: 'product',
               component: () => import('~/views/ShopView/ProductShopView.vue'),
+              meta: { requiresShop: true },
               children: [
-                { path: 'list', component: () => import('~/views/ShopView/ListProductView.vue') },
-                { path: 'add', component: () => import('~/views/ShopView/CRUDProduct/CreateProductShopView.vue') },
-                { path: 'edit/:id', component: () => import('~/views/ShopView/CRUDProduct/EditProductShopView.vue') },
+                {
+                  path: 'list',
+                  component: () => import('~/views/ShopView/ListProductView.vue'),
+                  meta: { requiresShop: true },
+                },
+                {
+                  path: 'add',
+                  component: () => import('~/views/ShopView/CRUDProduct/CreateProductShopView.vue'),
+                  meta: { requiresShop: true },
+                },
+                {
+                  path: 'edit/:id',
+                  component: () => import('~/views/ShopView/CRUDProduct/EditProductShopView.vue'),
+                  meta: { requiresShop: true },
+                },
               ],
             },
           ],
@@ -70,7 +99,9 @@ router.beforeEach(async (to) => {
     }
     return true
   }
+
   if (!to.meta.requiresAuth) return true
+
   try {
     const res = await axios.get('/api/info-account')
     const user = res.data.account
@@ -78,6 +109,21 @@ router.beforeEach(async (to) => {
     if (to.meta.roles && !to.meta.roles.includes(user.role)) {
       return '/'
     }
+
+    // Kiểm tra xem route có yêu cầu shop không
+    if (to.meta.requiresShop || to.matched.some((record) => record.meta.requiresShop)) {
+      try {
+        const shopRes = await axios.get('/api/user/shop')
+        if (!shopRes.data.shop) {
+          // Chưa có shop, chuyển hướng đến trang đăng ký shop
+          return '/register-shop'
+        }
+      } catch {
+        // Lỗi khi kiểm tra shop (có thể chưa đăng ký shop)
+        return '/register-shop'
+      }
+    }
+
     return true
   } catch {
     return '/login'

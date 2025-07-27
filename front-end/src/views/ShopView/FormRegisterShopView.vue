@@ -86,6 +86,9 @@
 <script setup>
 import axios from 'axios'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const shopName = ref('')
 const description = ref('')
@@ -135,6 +138,11 @@ const registerShop = async () => {
       successMessage.value = res.data.message
       resetForm()
       errorMessage.value = ''
+
+      // Redirect đến trang thông tin cửa hàng sau 2 giây
+      setTimeout(() => {
+        router.push('/user/shop/profile')
+      }, 2000)
       return
     } else {
       errorMessage.value = res.data.message || 'Đăng ký cửa hàng thất bại!'

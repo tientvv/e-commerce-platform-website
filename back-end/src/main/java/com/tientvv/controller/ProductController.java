@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
+import com.tientvv.service.ImageUploadService;
 
 @RestController
 @RequestMapping("/api/products")
@@ -31,9 +34,35 @@ public class ProductController {
   @Autowired
   private ProductService productService;
 
+  @Autowired
+  private ImageUploadService imageUploadService;
+
+  @Autowired
+  private com.tientvv.service.ShopService shopService;
+
   @GetMapping("/all")
-  public List<Product> getAllProducts(@RequestParam UUID shopId) {
-    return productService.findAllByShopIdAndIsActiveTrue(shopId);
+  public Map<String, Object> getAllProducts(@RequestParam(required = false) String shopId) {
+    Map<String, Object> response = new HashMap<>();
+    try {
+      List<Product> products;
+      if (shopId == null || "your-shop-id".equals(shopId)) {
+        // Trả về tất cả sản phẩm nếu không có shopId hoặc là placeholder
+        products = productService.findAllActiveProducts();
+      } else {
+        UUID uuid = UUID.fromString(shopId);
+        products = productService.findAllByShopIdAndIsActiveTrue(uuid);
+      }
+
+      // Convert to DTOs to avoid circular reference
+      List<ProductDto> productDtos = products.stream()
+          .map(ProductDto::fromEntity)
+          .collect(Collectors.toList());
+
+      response.put("products", productDtos);
+    } catch (Exception e) {
+      response.put("message", e.getMessage());
+    }
+    return response;
   }
 
   @GetMapping("/index")
@@ -53,7 +82,7 @@ public class ProductController {
     return response;
   }
 
-  @PostMapping("add")
+  @PostMapping("/add")
   public Map<String, Object> createProduct(@ModelAttribute CreateProductDto dto, HttpSession session) throws Exception {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
@@ -61,6 +90,20 @@ public class ProductController {
       response.put("message", "Bạn chưa đăng nhập!");
       return response;
     }
+
+    // Lấy shopId từ user session
+    try {
+      com.tientvv.dto.shop.ShopDto shopDto = shopService.getShopByUserId(account.getId());
+      if (shopDto == null) {
+        response.put("message", "Bạn chưa đăng ký cửa hàng!");
+        return response;
+      }
+      dto.setShopId(shopDto.getId());
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi lấy thông tin cửa hàng: " + e.getMessage());
+      return response;
+    }
+
     if (dto.getName().isEmpty() || dto.getBrand().isEmpty() || dto.getDescription().isEmpty()) {
       response.put("message", "Vui lòng điền đầy đủ thông tin sản phẩm!");
       return response;
@@ -69,12 +112,37 @@ public class ProductController {
       response.put("errorMessage", "Vui lòng chọn danh mục cho sản phẩm!");
       return response;
     }
-    if (dto.getProductImage().isEmpty()) {
+    if (dto.getProductImage() == null || dto.getProductImage().isEmpty()) {
       response.put("errorMessage", "Vui lòng chọn hình ảnh cho sản phẩm!");
       return response;
     }
+
     productService.createProduct(dto);
     response.put("message", "Sản phẩm đã được tạo thành công!");
+    return response;
+  }
+
+  @PostMapping("/upload-image")
+  public Map<String, Object> uploadImage(@RequestParam("file") MultipartFile file, HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+    if (account == null) {
+      response.put("message", "Bạn chưa đăng nhập!");
+      return response;
+    }
+
+    try {
+      if (file == null || file.isEmpty()) {
+        response.put("message", "Vui lòng chọn file ảnh!");
+        return response;
+      }
+
+      String imageUrl = imageUploadService.uploadImage(file);
+      response.put("message", "Upload ảnh thành công!");
+      response.put("url", imageUrl);
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi upload ảnh: " + e.getMessage());
+    }
     return response;
   }
 
@@ -89,7 +157,7 @@ public class ProductController {
     return ResponseEntity.ok(productDto);
   }
 
-  @PutMapping("update/{id}")
+  @PutMapping("/update/{id}")
   public Map<String, Object> updateProduct(@ModelAttribute UpdateProductDto dto, @PathVariable UUID id,
       HttpSession session)
       throws Exception {
@@ -108,7 +176,7 @@ public class ProductController {
     return response;
   }
 
-  @PutMapping("delete/{id}")
+  @PutMapping("/delete/{id}")
   public Map<String, Object> deleteProduct(@PathVariable UUID id, HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
