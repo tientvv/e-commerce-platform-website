@@ -4,24 +4,24 @@
       <table class="w-full text-left">
         <thead class="bg-gray-200">
           <tr>
-            <th class="p-2 border-b border-r border-gray-200">Tên</th>
-            <th class="p-2 border-b border-r border-gray-200">Thương hiệu</th>
-            <th class="p-2 border-b border-r border-gray-200">Danh mục</th>
-            <th class="p-2 border-b border-r border-gray-200">Mô tả</th>
-            <th class="p-2 border-b border-gray-200">Ảnh</th>
-            <th class="p-2 border-b border-gray-200">Hành động</th>
+            <th class="p-2 border-r border-gray-200">Tên</th>
+            <th class="p-2 border-r border-gray-200">Thương hiệu</th>
+            <th class="p-2 border-r border-gray-200">Danh mục</th>
+            <th class="p-2 border-r border-gray-200">Mô tả</th>
+            <th class="p-2 border-gray-200">Ảnh</th>
+            <th class="p-2 border-gray-200 w-24">Hành động</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="product in products" :key="product.id">
-            <td class="p-2 border-r border-gray-200">{{ product.name }}</td>
-            <td class="p-2 border-r border-gray-200">{{ product.brand }}</td>
-            <td class="p-2 border-r border-gray-200">{{ product.categoryName }}</td>
-            <td class="p-2 border-r border-gray-200">{{ product.description }}</td>
-            <td class="p-2 border-r border-gray-200">
+            <td class="p-2 border-t border-r border-gray-200">{{ product.name }}</td>
+            <td class="p-2 border-t border-r border-gray-200">{{ product.brand }}</td>
+            <td class="p-2 border-t border-r border-gray-200">{{ product.categoryName }}</td>
+            <td class="p-2 border-t border-r border-gray-200">{{ product.description }}</td>
+            <td class="p-2 border-t border-r border-gray-200">
               <img :src="product.productImage" alt="Ảnh" class="w-16 h-16 object-cover" />
             </td>
-            <td class="p-2 border-gray-200 flex flex-col gap-2">
+            <td class="p-2 border-t border-gray-200 flex flex-col gap-2 w-24">
               <RouterLink
                 :to="`/user/shop/product/edit/${product.id}`"
                 class="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center"

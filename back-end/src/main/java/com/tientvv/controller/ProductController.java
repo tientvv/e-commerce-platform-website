@@ -6,6 +6,7 @@ import com.tientvv.dto.CrudProduct.CreateProductDto;
 import com.tientvv.dto.CrudProduct.ProductDto;
 import com.tientvv.dto.CrudProduct.UpdateProductDto;
 import com.tientvv.model.Account;
+import com.tientvv.model.Product;
 import com.tientvv.service.ProductService;
 import jakarta.servlet.http.HttpSession;
 import java.util.HashMap;
@@ -29,6 +30,11 @@ public class ProductController {
 
   @Autowired
   private ProductService productService;
+
+  @GetMapping("/all")
+  public List<Product> getAllProducts(@RequestParam UUID shopId) {
+    return productService.findAllByShopIdAndIsActiveTrue(shopId);
+  }
 
   @GetMapping("/index")
   public Map<String, Object> getAllProductsByShop(

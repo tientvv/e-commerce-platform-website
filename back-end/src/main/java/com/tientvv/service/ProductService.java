@@ -88,6 +88,10 @@ public class ProductService {
     return productRepository.findByShopIdAndIsActive(shopId, isActive);
   }
 
+  public List<Product> findAllByShopIdAndIsActiveTrue(UUID shopId) {
+    return productRepository.findAllByShopIdAndIsActiveTrue(shopId);
+  }
+
   public ProductDto getProductDtoById(UUID id) {
     Product product = productRepository.findById(id).orElse(null);
     if (product == null) {

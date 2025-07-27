@@ -15,7 +15,9 @@
           <div
             :class="[
               'py-1 px-2 flex items-center gap-2 rounded',
-              route.path.startsWith('/user/shop/product') ? 'bg-gray-200' : 'hover:bg-gray-200',
+              route.path.startsWith('/user/shop/product') && !route.path.startsWith('/user/shop/product-variants')
+                ? 'bg-gray-200'
+                : 'hover:bg-gray-200',
             ]"
           >
             <Package width="18" />
@@ -24,10 +26,15 @@
         </RouterLink>
       </div>
       <div>
-        <RouterLink to="/user/shop/profile" v-slot="{ isActive }">
-          <div :class="['py-1 px-2 flex items-center gap-2 rounded', isActive ? 'bg-gray-200 ' : 'hover:bg-gray-200']">
-            <Info width="18" />
-            Nhập hàng sản phẩm
+        <RouterLink to="/user/shop/product-variants/index">
+          <div
+            :class="[
+              'py-1 px-2 flex items-center gap-2 rounded',
+              route.path.startsWith('/user/shop/product-variants') ? 'bg-gray-200' : 'hover:bg-gray-200',
+            ]"
+          >
+            <Package width="18" />
+            Quản lý SP biến thể
           </div>
         </RouterLink>
       </div>

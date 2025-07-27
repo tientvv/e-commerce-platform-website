@@ -30,6 +30,10 @@ const router = createRouter({
           path: 'shop',
           component: () => import('~/views/UserView/ShopView.vue'),
           children: [
+            {
+              path: 'product-variants/index',
+              component: () => import('~/views/ProductVariants/ProductVariantsView.vue'),
+            },
             { path: 'profile', component: () => import('~/views/ShopView/ProfileShopView.vue') },
             {
               path: 'product',

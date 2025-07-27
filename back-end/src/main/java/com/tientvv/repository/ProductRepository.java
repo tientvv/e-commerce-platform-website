@@ -24,4 +24,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
       """)
   List<ProductDto> findByShopIdAndIsActive(@Param("shopId") UUID shopId, @Param("isActive") Boolean isActive);
 
+  @Query("SELECT p FROM Product p WHERE p.shop.id = :shopId AND p.isActive = true")
+  List<Product> findAllByShopIdAndIsActiveTrue(@Param("shopId") UUID shopId);
 }
