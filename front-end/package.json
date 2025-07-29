@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.11",
-    "ant-design-vue": "^4.2.6",
     "axios": "^1.10.0",
     "lucide-vue-next": "^0.525.0",
+    "naive-ui": "^2.42.0",
     "tailwindcss": "^4.1.11",
     "vue": "^3.5.17",
     "vue-router": "^4.5.1"

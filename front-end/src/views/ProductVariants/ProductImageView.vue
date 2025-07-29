@@ -1,240 +1,279 @@
 <template>
-  <div class="mt-2">
+  <n-space vertical :size="24">
     <!-- Form tạo ảnh mới -->
-    <div class="mb-6">
-      <h2 class="text-lg font-semibold mb-4">Thêm Ảnh Mới</h2>
-      <form @submit.prevent="createImage">
-        <div v-if="successMessage" class="mt-4 border border-green-500 text-green-500 py-3 px-4 rounded">
-          {{ successMessage }}
-        </div>
-        <div v-if="errorMessage" class="mt-4 border border-red-500 text-red-500 py-3 px-4 rounded">
-          {{ errorMessage }}
-        </div>
+    <n-card title="Thêm Ảnh Mới" size="small">
+      <n-form ref="formRef" :model="newImage" :rules="formRules" label-placement="top" @submit.prevent="createImage">
+        <n-grid :cols="2" :x-gap="16" :y-gap="16">
+          <n-form-item-gi label="Sản phẩm" path="productId">
+            <n-select
+              v-model:value="newImage.productId"
+              placeholder="Chọn sản phẩm"
+              :options="productOptions"
+              @update:value="loadVariantsForProduct"
+              filterable
+            />
+          </n-form-item-gi>
 
-        <div class="mt-4 flex gap-4">
-          <div class="w-[50%]">
-            <label class="block mb-2">Sản phẩm:</label>
-            <select
-              v-model="newImage.productId"
-              @change="loadVariantsForProduct"
-              class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-              required
-            >
-              <option value="">Chọn sản phẩm</option>
-              <option v-for="product in products" :key="product.id" :value="product.id">
-                {{ product.name }}
-              </option>
-            </select>
-          </div>
-          <div class="w-[50%]">
-            <label class="block mb-2">Biến thể (Tùy chọn):</label>
-            <select
-              v-model="newImage.productVariantId"
-              class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-            >
-              <option value="">Không có biến thể</option>
-              <option v-for="variant in productVariants" :key="variant.id" :value="variant.id">
-                {{ variant.variantName }}: {{ variant.variantValue }}
-              </option>
-            </select>
-          </div>
-        </div>
+          <n-form-item-gi label="Biến thể (Tùy chọn)" path="productVariantId">
+            <n-select
+              v-model:value="newImage.productVariantId"
+              placeholder="Không có biến thể"
+              :options="variantOptions"
+              clearable
+              filterable
+              :disabled="!newImage.productId"
+            />
+          </n-form-item-gi>
 
-        <div class="mt-4">
-          <label class="block mb-2">Chọn file ảnh:</label>
-          <input
-            type="file"
-            @change="handleImageChange"
-            accept="image/*"
-            class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-            required
-          />
-        </div>
+          <n-form-item-gi label="Chọn file ảnh" path="file" :span="2">
+            <div class="upload-container">
+              <n-space vertical :size="12">
+                <n-upload
+                  ref="uploadRef"
+                  :max="1"
+                  :default-upload="false"
+                  accept="image/*"
+                  @change="handleFileChange"
+                  :show-file-list="false"
+                  :disabled="isLoading"
+                >
+                  <n-button type="primary" ghost :loading="isLoading" style="width: 100%; height: 40px">
+                    <template #icon>
+                      <n-icon><Upload /></n-icon>
+                    </template>
+                    {{ isLoading ? 'Đang tải lên...' : 'Tải lên' }}
+                  </n-button>
+                </n-upload>
 
-        <!-- Preview selected file -->
-        <div v-if="selectedFile" class="mt-4">
-          <label class="block mb-2 text-sm font-medium">File đã chọn:</label>
-          <div class="bg-gray-50 p-3 rounded border">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-700">{{ selectedFile.name }}</span>
-              <button type="button" @click="clearFile" class="text-red-500 hover:text-red-700 text-sm">×</button>
+                <!-- Preview selected file -->
+                <div v-if="selectedFile" class="file-preview">
+                  <div class="preview-card">
+                    <div class="file-info">
+                      <n-avatar
+                        :size="40"
+                        :src="selectedFilePreview"
+                        fallback-src="/default-image.png"
+                        class="file-avatar"
+                      />
+                      <div class="file-details">
+                        <n-text strong class="file-name">{{ selectedFile.name }}</n-text>
+                        <n-text depth="3" class="file-size">{{ formatFileSize(selectedFile.size) }}</n-text>
+                      </div>
+                      <n-button
+                        size="small"
+                        text
+                        type="error"
+                        @click="clearSelectedFile"
+                        class="remove-btn"
+                        :disabled="isLoading"
+                      >
+                        <template #icon>
+                          <n-icon><X /></n-icon>
+                        </template>
+                      </n-button>
+                    </div>
+                  </div>
+                </div>
+              </n-space>
             </div>
-          </div>
-        </div>
+          </n-form-item-gi>
+        </n-grid>
 
-        <div class="mt-8">
-          <button
-            type="submit"
-            :disabled="isLoading || !selectedFile"
-            class="w-full py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600 disabled:opacity-50"
+        <n-space class="mt-6">
+          <n-button
+            type="primary"
+            attr-type="submit"
+            :loading="isLoading"
+            :disabled="!selectedFile || !newImage.productId"
           >
-            <span v-if="isLoading">Đang tạo...</span>
-            <span v-else>Thêm Ảnh</span>
-          </button>
-        </div>
-      </form>
-    </div>
+            <template #icon>
+              <n-icon><Plus /></n-icon>
+            </template>
+            Thêm Ảnh
+          </n-button>
+          <n-button @click="resetForm">
+            <template #icon>
+              <n-icon><RotateCcw /></n-icon>
+            </template>
+            Đặt lại
+          </n-button>
+        </n-space>
+      </n-form>
+    </n-card>
 
-    <!-- Filter và danh sách ảnh -->
-    <div>
-      <div class="flex justify-between items-center mb-4">
-        <h2 class="text-lg font-semibold">Danh sách Ảnh Sản phẩm</h2>
-        <div class="text-sm text-gray-600">
-          Tổng số: <span class="font-semibold text-blue-600">{{ images.length }}</span> ảnh
-        </div>
-      </div>
+    <!-- Danh sách ảnh -->
+    <n-card title="Danh sách Ảnh Sản phẩm" size="small">
+      <template #header-extra>
+        <n-space>
+          <n-text depth="3">Tổng: {{ images.length }} ảnh</n-text>
+        </n-space>
+      </template>
 
       <!-- Filter -->
-      <div class="mb-4 flex gap-4">
-        <div class="w-[50%]">
-          <label class="block mb-2">Lọc theo sản phẩm:</label>
-          <select
-            v-model="selectedProductId"
-            @change="loadImages"
-            class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-          >
-            <option value="">Tất cả sản phẩm</option>
-            <option v-for="product in products" :key="product.id" :value="product.id">
-              {{ product.name }}
-            </option>
-          </select>
-        </div>
-        <div class="w-[50%]">
-          <label class="block mb-2">Loại ảnh:</label>
-          <select
-            v-model="imageType"
-            @change="loadImages"
-            class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-          >
-            <option value="all">Tất cả ảnh</option>
-            <option value="main">Ảnh chính sản phẩm</option>
-            <option value="variant">Ảnh biến thể</option>
-          </select>
-        </div>
-      </div>
+      <n-space class="mb-6">
+        <n-select
+          v-model:value="selectedProductId"
+          placeholder="Lọc theo sản phẩm"
+          :options="[{ label: 'Tất cả sản phẩm', value: '' }, ...productOptions]"
+          @update:value="loadImages"
+          class="w-60"
+          clearable
+        />
+        <n-select
+          v-model:value="imageType"
+          placeholder="Loại ảnh"
+          :options="imageTypeOptions"
+          @update:value="loadImages"
+          class="w-40"
+        />
+      </n-space>
 
-      <!-- Grid ảnh -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <div v-for="image in images" :key="image.id" class="border border-gray-200 rounded p-4">
-          <div class="relative">
-            <img
-              :src="image.imageUrl"
-              :alt="`Ảnh sản phẩm ${image.id}`"
-              class="w-full h-48 object-cover rounded mb-3"
-            />
-            <div class="absolute top-2 right-2 flex gap-1">
-              <button
-                @click="startEditImage(image)"
-                class="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-blue-600"
-                title="Chỉnh sửa"
-              >
-                ✏️
-              </button>
-              <button
-                @click="deleteImage(image.id)"
-                class="bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                title="Xóa"
-              >
-                ×
-              </button>
+      <n-spin :show="loading">
+        <!-- Grid ảnh -->
+        <div v-if="!loading && images.length > 0" class="image-grid">
+          <n-card v-for="image in images" :key="image.id" size="small" class="image-card">
+            <template #cover>
+              <div class="image-container">
+                <n-image
+                  :src="image.imageUrl"
+                  :alt="`Ảnh sản phẩm ${image.id}`"
+                  object-fit="cover"
+                  class="product-image"
+                />
+                <div class="image-actions">
+                  <n-button-group>
+                    <n-button size="small" type="primary" @click="startEditImage(image)">
+                      <template #icon>
+                        <n-icon><Edit /></n-icon>
+                      </template>
+                    </n-button>
+                    <n-button size="small" type="error" @click="confirmDelete(image.id, image.productId)">
+                      <template #icon>
+                        <n-icon><Trash2 /></n-icon>
+                      </template>
+                    </n-button>
+                  </n-button-group>
+                </div>
+              </div>
+            </template>
+
+            <div class="image-info">
+              <n-text strong class="product-name">
+                {{ getProductName(image.productId) }}
+              </n-text>
+              <div class="mt-2">
+                <n-tag v-if="image.productVariantId" size="small" type="info">
+                  {{ getVariantName(image.productVariantId) }}
+                </n-tag>
+                <n-tag v-else size="small" type="success"> Ảnh chính </n-tag>
+              </div>
+              <n-text depth="3" class="text-xs mt-1"> ID: {{ image.id.substring(0, 8) }}... </n-text>
             </div>
-          </div>
-          <div class="text-sm text-gray-600">
-            <p class="font-medium text-gray-800 mb-1">{{ getProductName(image.productId) }}</p>
-            <p v-if="image.productVariantId" class="text-blue-600 text-xs mb-1">
-              <span class="bg-blue-100 px-2 py-1 rounded">{{ getVariantName(image.productVariantId) }}</span>
-            </p>
-            <p v-else class="text-green-600 text-xs mb-1">
-              <span class="bg-green-100 px-2 py-1 rounded">Ảnh chính</span>
-            </p>
-            <p class="text-xs text-gray-400">ID: {{ image.id.substring(0, 8) }}...</p>
-          </div>
+          </n-card>
         </div>
-      </div>
 
-      <!-- Empty state -->
-      <div v-if="images.length === 0" class="text-center py-8">
-        <p class="text-gray-500">Chưa có ảnh nào được thêm</p>
-      </div>
-    </div>
+        <!-- Empty state -->
+        <n-empty v-else-if="!loading && images.length === 0" description="Chưa có ảnh nào được thêm">
+          <template #icon>
+            <n-icon size="48" color="#d1d5db">
+              <ImageIcon />
+            </n-icon>
+          </template>
+        </n-empty>
+      </n-spin>
+    </n-card>
 
-    <!-- Modal chỉnh sửa ảnh -->
-    <div v-if="isEditModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h3 class="text-lg font-semibold mb-4">Chỉnh sửa thông tin ảnh</h3>
+    <!-- Edit Modal -->
+    <n-modal v-model:show="isEditModalOpen" preset="card" title="Chỉnh sửa thông tin ảnh" :style="{ width: '450px' }">
+      <n-form
+        ref="editFormRef"
+        :model="editingImage"
+        :rules="editFormRules"
+        label-placement="top"
+        @submit.prevent="updateImage"
+      >
+        <!-- Preview ảnh -->
+        <n-form-item label="Ảnh hiện tại">
+          <n-image
+            :src="editingImage.imageUrl"
+            :alt="editingImage.id"
+            width="100%"
+            height="150"
+            object-fit="cover"
+            class="rounded"
+          />
+        </n-form-item>
 
-        <form @submit.prevent="updateImage">
-          <div v-if="editSuccessMessage" class="mb-4 border border-green-500 text-green-500 py-3 px-4 rounded">
-            {{ editSuccessMessage }}
-          </div>
-          <div v-if="editErrorMessage" class="mb-4 border border-red-500 text-red-500 py-3 px-4 rounded">
-            {{ editErrorMessage }}
-          </div>
+        <!-- Chọn sản phẩm -->
+        <n-form-item label="Sản phẩm" path="productId">
+          <n-select
+            v-model:value="editingImage.productId"
+            placeholder="Chọn sản phẩm"
+            :options="productOptions"
+            @update:value="loadVariantsForEdit"
+            filterable
+          />
+        </n-form-item>
 
-          <!-- Preview ảnh -->
-          <div class="mb-4">
-            <img :src="editingImage.imageUrl" :alt="editingImage.id" class="w-full h-48 object-cover rounded border" />
-          </div>
+        <!-- Chọn biến thể -->
+        <n-form-item label="Biến thể (Tùy chọn)" path="productVariantId">
+          <n-select
+            v-model:value="editingImage.productVariantId"
+            placeholder="Không có biến thể"
+            :options="editVariantOptions"
+            clearable
+            filterable
+            :disabled="!editingImage.productId"
+          />
+        </n-form-item>
+      </n-form>
 
-          <!-- Chọn sản phẩm -->
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium">Sản phẩm:</label>
-            <select
-              v-model="editingImage.productId"
-              @change="loadVariantsForEdit"
-              class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-              required
-            >
-              <option value="">Chọn sản phẩm</option>
-              <option v-for="product in products" :key="product.id" :value="product.id">
-                {{ product.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Chọn biến thể -->
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium">Biến thể (Tùy chọn):</label>
-            <select
-              v-model="editingImage.productVariantId"
-              class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-            >
-              <option value="">Không có biến thể</option>
-              <option v-for="variant in editVariants" :key="variant.id" :value="variant.id">
-                {{ variant.variantName }}: {{ variant.variantValue }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Buttons -->
-          <div class="flex gap-3">
-            <button
-              type="submit"
-              :disabled="isEditLoading"
-              class="flex-1 py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              <span v-if="isEditLoading">Đang lưu...</span>
-              <span v-else>Lưu thay đổi</span>
-            </button>
-            <button
-              type="button"
-              @click="cancelEdit"
-              :disabled="isEditLoading"
-              class="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 disabled:opacity-50"
-            >
-              Hủy
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+      <template #footer>
+        <n-space justify="end">
+          <n-button @click="cancelEdit"> Hủy </n-button>
+          <n-button type="primary" :loading="isEditLoading" @click="updateImage"> Lưu thay đổi </n-button>
+        </n-space>
+      </template>
+    </n-modal>
+  </n-space>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import axios from '../../utils/axios'
+import { Plus, RotateCcw, Upload, Edit, Trash2, Image as ImageIcon, X } from 'lucide-vue-next'
+import {
+  NSpace,
+  NCard,
+  NForm,
+  NFormItem,
+  NFormItemGi,
+  NGrid,
+  NSelect,
+  NUpload,
+  NButton,
+  NIcon,
+  NSpin,
+  NEmpty,
+  NModal,
+  NImage,
+  NText,
+  NTag,
+  NButtonGroup,
+  NAvatar,
+  useMessage,
+  useDialog,
+} from 'naive-ui'
 
+const message = useMessage()
+const dialog = useDialog()
+
+// Refs
+const formRef = ref(null)
+const editFormRef = ref(null)
+const uploadRef = ref(null)
+
+// State
 const products = ref([])
 const productVariants = ref([])
 const editVariants = ref([])
@@ -243,37 +282,76 @@ const selectedProductId = ref('')
 const imageType = ref('all')
 const selectedFile = ref(null)
 const isLoading = ref(false)
+const loading = ref(false)
 
-// Edit modal refs
+// Edit modal state
 const isEditModalOpen = ref(false)
 const isEditLoading = ref(false)
-const editSuccessMessage = ref('')
-const editErrorMessage = ref('')
 const editingImage = ref({
   id: null,
   imageUrl: '',
   productId: '',
   productVariantId: '',
 })
-const successMessage = ref('')
-const errorMessage = ref('')
 
 const newImage = ref({
   productId: '',
   productVariantId: '',
 })
 
-onMounted(() => {
-  loadProducts()
-  loadImages()
+// Form validation rules
+const formRules = {
+  productId: {
+    required: true,
+    message: 'Vui lòng chọn sản phẩm',
+    trigger: ['blur', 'change'],
+  },
+}
+
+const editFormRules = {
+  productId: {
+    required: true,
+    message: 'Vui lòng chọn sản phẩm',
+    trigger: ['blur', 'change'],
+  },
+}
+
+// Computed
+const productOptions = computed(() => {
+  return products.value.map((product) => ({
+    label: product.name,
+    value: product.id,
+  }))
 })
 
+const variantOptions = computed(() => {
+  return productVariants.value.map((variant) => ({
+    label: `${variant.variantName}: ${variant.variantValue}`,
+    value: variant.id,
+  }))
+})
+
+const editVariantOptions = computed(() => {
+  return editVariants.value.map((variant) => ({
+    label: `${variant.variantName}: ${variant.variantValue}`,
+    value: variant.id,
+  }))
+})
+
+const imageTypeOptions = [
+  { label: 'Tất cả ảnh', value: 'all' },
+  { label: 'Ảnh chính sản phẩm', value: 'main' },
+  { label: 'Ảnh biến thể', value: 'variant' },
+]
+
+// Methods
 const loadProducts = async () => {
   try {
-    const response = await axios.get('/api/products/all')
+    const response = await axios.get('/api/products/user')
     products.value = response.data.products || []
   } catch (error) {
-    console.error('Lỗi khi tải danh sách sản phẩm:', error)
+    message.error('Không thể tải danh sách sản phẩm')
+    console.error('Error:', error)
   }
 }
 
@@ -286,13 +364,15 @@ const loadVariantsForProduct = async () => {
     const response = await axios.get(`/api/product-variants/product/${newImage.value.productId}`)
     productVariants.value = response.data.variants || []
   } catch (error) {
-    console.error('Lỗi khi tải biến thể:', error)
+    message.error('Không thể tải danh sách biến thể')
+    console.error('Error:', error)
   }
 }
 
 const loadImages = async () => {
+  loading.value = true
   try {
-    let url = '/api/product-images/all' // Lấy tất cả ảnh của shop
+    let url = '/api/product-images/all'
 
     if (selectedProductId.value) {
       if (imageType.value === 'main') {
@@ -303,17 +383,12 @@ const loadImages = async () => {
         url = `/api/product-images/product/${selectedProductId.value}`
       }
     } else {
-      // Khi không chọn sản phẩm cụ thể, vẫn có thể lọc theo loại ảnh
       if (imageType.value === 'main' || imageType.value === 'variant') {
-        // Cần lọc ở frontend vì không có endpoint lấy tất cả ảnh main/variant của shop
         url = '/api/product-images/all'
       }
     }
 
-    console.log('Loading images from:', url)
     const response = await axios.get(url)
-    console.log('Images response:', response.data)
-
     let allImages = response.data.images || []
 
     // Lọc theo loại ảnh nếu không chọn sản phẩm cụ thể
@@ -326,27 +401,24 @@ const loadImages = async () => {
     }
 
     images.value = allImages
-    console.log('Loaded images:', images.value.length)
-
-    // Load variants cho tất cả sản phẩm có trong danh sách ảnh
     await loadAllVariantsForImages()
   } catch (error) {
-    console.error('Lỗi khi tải danh sách ảnh:', error)
+    message.error('Không thể tải danh sách ảnh')
+    console.error('Error:', error)
     images.value = []
+  } finally {
+    loading.value = false
   }
 }
 
 const loadAllVariantsForImages = async () => {
-  // Lấy danh sách productId unique từ images
   const uniqueProductIds = [...new Set(images.value.map((img) => img.productId))]
 
-  // Load variants cho từng sản phẩm
   for (const productId of uniqueProductIds) {
     try {
       const response = await axios.get(`/api/product-variants/product/${productId}`)
       const variants = response.data.variants || []
 
-      // Merge variants vào editVariants (để getVariantName có thể tìm thấy)
       variants.forEach((variant) => {
         if (!editVariants.value.find((v) => v.id === variant.id)) {
           editVariants.value.push(variant)
@@ -358,25 +430,61 @@ const loadAllVariantsForImages = async () => {
   }
 }
 
-const handleImageChange = (event) => {
-  selectedFile.value = event.target.files[0] || null
-}
+const handleFileChange = ({ fileList }) => {
+  const file = fileList.length > 0 ? fileList[0].file : null
 
-const clearFile = () => {
-  selectedFile.value = null
-}
-
-const createImage = async () => {
-  if (!selectedFile.value) {
-    errorMessage.value = 'Vui lòng chọn file ảnh!'
-    return
+  if (file) {
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    if (file.size > maxSize) {
+      message.error('Kích thước file không được vượt quá 5MB!')
+      return
+    }
   }
 
-  isLoading.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
+  selectedFile.value = file
+}
+
+const clearSelectedFile = () => {
+  // Cleanup preview URL if exists
+  if (selectedFilePreview.value) {
+    URL.revokeObjectURL(selectedFilePreview.value)
+  }
+
+  selectedFile.value = null
+  if (uploadRef.value) {
+    uploadRef.value.clear()
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const selectedFilePreview = computed(() => {
+  if (!selectedFile.value) {
+    return null
+  }
+  return URL.createObjectURL(selectedFile.value)
+})
+
+const createImage = async () => {
+  if (!formRef.value) return
 
   try {
+    await formRef.value.validate()
+
+    if (!selectedFile.value) {
+      message.error('Vui lòng chọn file ảnh!')
+      return
+    }
+
+    isLoading.value = true
+
     // Upload ảnh lên Cloudinary
     const formData = new FormData()
     formData.append('file', selectedFile.value)
@@ -392,51 +500,62 @@ const createImage = async () => {
       imageUrl: uploadResponse.data.imageUrl,
     }
 
-    console.log('Creating product image with data:', imageData)
-
     await axios.post('/api/product-images/create', imageData)
 
-    successMessage.value = 'Thêm ảnh thành công!'
+    message.success('Thêm ảnh thành công!')
     resetForm()
-    loadImages()
+    await loadImages()
   } catch (error) {
-    errorMessage.value = error.response?.data?.message || 'Có lỗi xảy ra khi upload ảnh!'
-    console.error(error)
+    if (error.errors) {
+      message.error('Vui lòng kiểm tra lại thông tin')
+    } else {
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi upload ảnh!')
+    }
   } finally {
     isLoading.value = false
   }
 }
 
+const confirmDelete = (id, productId) => {
+  const productName = getProductName(productId)
+  dialog.warning({
+    title: 'Xác nhận xóa',
+    content: `Bạn có chắc chắn muốn xóa ảnh của sản phẩm "${productName}" không?`,
+    positiveText: 'Xóa',
+    negativeText: 'Hủy',
+    onPositiveClick: () => deleteImage(id),
+  })
+}
+
 const deleteImage = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa ảnh này?')) {
-    try {
-      await axios.delete(`/api/product-images/delete/${id}`)
-      successMessage.value = 'Xóa ảnh thành công!'
-      loadImages()
-    } catch (error) {
-      errorMessage.value = error.response?.data?.message || 'Có lỗi xảy ra!'
-    }
+  try {
+    await axios.delete(`/api/product-images/delete/${id}`)
+    message.success('Xóa ảnh thành công!')
+    await loadImages()
+  } catch (error) {
+    message.error(error.response?.data?.message || 'Có lỗi xảy ra!')
   }
 }
 
 const resetForm = () => {
+  // Cleanup previous preview URL if exists
+  if (selectedFilePreview.value) {
+    URL.revokeObjectURL(selectedFilePreview.value)
+  }
+
   newImage.value = {
     productId: '',
     productVariantId: '',
   }
   selectedFile.value = null
   productVariants.value = []
-}
 
-const getProductName = (productId) => {
-  const product = products.value.find((p) => p.id === productId)
-  return product ? product.name : `Sản phẩm (${productId.substring(0, 8)}...)`
-}
-
-const getVariantName = (variantId) => {
-  const allVariants = [...productVariants.value, ...editVariants.value]
-  const variant = allVariants.find((v) => v.id === variantId)
-  return variant ? `${variant.variantName}: ${variant.variantValue}` : `Biến thể (${variantId.substring(0, 8)}...)`
+  if (uploadRef.value) {
+    uploadRef.value.clear()
+  }
+  if (formRef.value) {
+    formRef.value.restoreValidation()
+  }
 }
 
 // Edit functions
@@ -448,14 +567,11 @@ const startEditImage = (image) => {
     productVariantId: image.productVariantId || '',
   }
 
-  // Load variants for the selected product
   if (image.productId) {
     loadVariantsForEdit()
   }
 
   isEditModalOpen.value = true
-  editSuccessMessage.value = ''
-  editErrorMessage.value = ''
 }
 
 const loadVariantsForEdit = async () => {
@@ -468,22 +584,20 @@ const loadVariantsForEdit = async () => {
     const response = await axios.get(`/api/product-variants/product/${editingImage.value.productId}`)
     editVariants.value = response.data.variants || []
   } catch (error) {
-    console.error('Lỗi khi tải biến thể cho edit:', error)
+    message.error('Không thể tải danh sách biến thể')
+    console.error('Error:', error)
     editVariants.value = []
   }
 }
 
 const updateImage = async () => {
-  if (!editingImage.value.productId) {
-    editErrorMessage.value = 'Vui lòng chọn sản phẩm!'
-    return
-  }
-
-  isEditLoading.value = true
-  editErrorMessage.value = ''
-  editSuccessMessage.value = ''
+  if (!editFormRef.value) return
 
   try {
+    await editFormRef.value.validate()
+
+    isEditLoading.value = true
+
     const updateData = {
       productId: editingImage.value.productId,
       productVariantId: editingImage.value.productVariantId || null,
@@ -491,16 +605,15 @@ const updateImage = async () => {
 
     await axios.put(`/api/product-images/update/${editingImage.value.id}`, updateData)
 
-    editSuccessMessage.value = 'Cập nhật thông tin ảnh thành công!'
-
-    // Reload images list
-    setTimeout(() => {
-      loadImages()
-      cancelEdit()
-    }, 1500)
+    message.success('Cập nhật thông tin ảnh thành công!')
+    await loadImages()
+    cancelEdit()
   } catch (error) {
-    editErrorMessage.value = error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật!'
-    console.error('Update image error:', error)
+    if (error.errors) {
+      message.error('Vui lòng kiểm tra lại thông tin')
+    } else {
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật!')
+    }
   } finally {
     isEditLoading.value = false
   }
@@ -508,8 +621,6 @@ const updateImage = async () => {
 
 const cancelEdit = () => {
   isEditModalOpen.value = false
-  editSuccessMessage.value = ''
-  editErrorMessage.value = ''
   editingImage.value = {
     id: null,
     imageUrl: '',
@@ -518,13 +629,196 @@ const cancelEdit = () => {
   }
   editVariants.value = []
 }
+
+// Helper functions
+const getProductName = (productId) => {
+  const product = products.value.find((p) => p.id === productId)
+  return product ? product.name : `Sản phẩm (${productId.substring(0, 8)}...)`
+}
+
+const getVariantName = (variantId) => {
+  const allVariants = [...productVariants.value, ...editVariants.value]
+  const variant = allVariants.find((v) => v.id === variantId)
+  return variant ? `${variant.variantName}: ${variant.variantValue}` : `Biến thể (${variantId.substring(0, 8)}...)`
+}
+
+// Load data on mount
+onMounted(() => {
+  loadProducts()
+  loadImages()
+})
+
+onBeforeUnmount(() => {
+  // Cleanup preview URL objects
+  if (selectedFilePreview.value) {
+    URL.revokeObjectURL(selectedFilePreview.value)
+  }
+})
 </script>
 
 <style scoped>
-button {
-  color: #155dfc;
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
 }
-button:hover {
-  color: white;
+
+.image-card {
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.product-image {
+  width: 100%;
+  height: 200px;
+  transition: transform 0.3s;
+}
+
+.image-container:hover .product-image {
+  transform: scale(1.05);
+}
+
+.image-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.image-container:hover .image-actions {
+  opacity: 1;
+}
+
+.image-info {
+  padding: 8px 0;
+  line-height: 1.4;
+}
+
+.product-name {
+  display: block;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.upload-container .n-button {
+  transition: all 0.3s ease !important;
+}
+
+.upload-container .n-button:hover {
+  border-color: #4f46e5 !important;
+  background-color: #f8faff !important;
+}
+
+.file-preview {
+  margin-top: 16px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.preview-card {
+  background-color: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.preview-card:hover {
+  border-color: #d0d0d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.file-avatar {
+  flex-shrink: 0;
+}
+
+.file-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #333;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.2;
+}
+
+.remove-btn {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.remove-btn:hover {
+  opacity: 1;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .upload-container .n-button {
+    height: 44px !important;
+    font-size: 14px;
+  }
+
+  .preview-card {
+    padding: 12px;
+  }
+
+  .file-name {
+    font-size: 13px;
+  }
+
+  .file-size {
+    font-size: 11px;
+  }
 }
 </style>

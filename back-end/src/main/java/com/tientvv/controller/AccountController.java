@@ -44,8 +44,10 @@ public class AccountController {
     Account updatedAccount = accountService.updateAccount(dto);
     session.setAttribute("account", updatedAccount);
     response.put("message", "Cập nhật tài khoản thành công!");
-    response.put("account", new InfoAccountDto(updatedAccount.getUsername(), updatedAccount.getName(),
-        updatedAccount.getEmail(), updatedAccount.getPhone(), updatedAccount.getRole()));
+    response.put("account",
+        new InfoAccountDto(updatedAccount.getId().toString(), updatedAccount.getUsername(), updatedAccount.getName(),
+            updatedAccount.getEmail(), updatedAccount.getPhone(), updatedAccount.getRole(),
+            updatedAccount.getAddress()));
     return response;
   }
 
@@ -57,8 +59,9 @@ public class AccountController {
       response.put("message", "Bạn chưa đăng nhập!");
       return response;
     }
-    response.put("account", new InfoAccountDto(account.getUsername(), account.getName(), account.getEmail(),
-        account.getPhone(), account.getRole()));
+    response.put("account",
+        new InfoAccountDto(account.getId().toString(), account.getUsername(), account.getName(), account.getEmail(),
+            account.getPhone(), account.getRole(), account.getAddress()));
     return response;
   }
 
@@ -115,6 +118,109 @@ public class AccountController {
     accountService.registerAccount(dto);
     response.put("message", "Đăng ký tài khoản thành công!");
     response.put("account", dto);
+    return response;
+  }
+
+  // Admin endpoints
+  @GetMapping("/admin/users")
+  public Map<String, Object> getAllUsersForAdmin(HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+
+    if (account == null || !"ADMIN".equals(account.getRole())) {
+      response.put("message", "Bạn không có quyền truy cập!");
+      return response;
+    }
+
+    try {
+      List<Account> users = accountRepository.findAll();
+      List<Map<String, Object>> userList = new ArrayList<>();
+
+      for (Account user : users) {
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", user.getId());
+        userData.put("username", user.getUsername());
+        userData.put("name", user.getName());
+        userData.put("email", user.getEmail());
+        userData.put("phone", user.getPhone());
+        userData.put("role", user.getRole());
+        userData.put("isActive", user.getIsActive());
+        userData.put("createdAt", user.getCreatedAt());
+        userData.put("lastLogin", user.getLastLogin());
+        userList.add(userData);
+      }
+
+      response.put("users", userList);
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi tải danh sách người dùng: " + e.getMessage());
+    }
+
+    return response;
+  }
+
+  @PutMapping("/admin/users/{userId}/role")
+  public Map<String, Object> updateUserRole(@PathVariable String userId, @RequestBody Map<String, String> requestBody,
+      HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+
+    if (account == null || !"ADMIN".equals(account.getRole())) {
+      response.put("message", "Bạn không có quyền truy cập!");
+      return response;
+    }
+
+    try {
+      UUID uuid = UUID.fromString(userId);
+      String newRole = requestBody.get("role");
+
+      Optional<Account> userOptional = accountRepository.findById(uuid);
+      if (!userOptional.isPresent()) {
+        response.put("message", "Không tìm thấy người dùng!");
+        return response;
+      }
+
+      Account user = userOptional.get();
+      user.setRole(newRole);
+      accountRepository.save(user);
+
+      response.put("message", "Cập nhật vai trò thành công!");
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi cập nhật vai trò: " + e.getMessage());
+    }
+
+    return response;
+  }
+
+  @PutMapping("/admin/users/{userId}/status")
+  public Map<String, Object> updateUserStatus(@PathVariable String userId,
+      @RequestBody Map<String, Boolean> requestBody, HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+
+    if (account == null || !"ADMIN".equals(account.getRole())) {
+      response.put("message", "Bạn không có quyền truy cập!");
+      return response;
+    }
+
+    try {
+      UUID uuid = UUID.fromString(userId);
+      Boolean isActive = requestBody.get("isActive");
+
+      Optional<Account> userOptional = accountRepository.findById(uuid);
+      if (!userOptional.isPresent()) {
+        response.put("message", "Không tìm thấy người dùng!");
+        return response;
+      }
+
+      Account user = userOptional.get();
+      user.setIsActive(isActive);
+      accountRepository.save(user);
+
+      response.put("message", "Cập nhật trạng thái thành công!");
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi cập nhật trạng thái: " + e.getMessage());
+    }
+
     return response;
   }
 }

@@ -1,54 +1,52 @@
 <template>
-  <form @submit.prevent="login" class="w-full">
-    <div class="text-xl">Đăng nhập</div>
-    <div class="mt-4">
-      Bạn chưa có tài khoản đăng nhập? <RouterLink to="/register" class="underline text-blue-600">Đăng ký</RouterLink>
-    </div>
-    <div v-if="errorMessage" class="mt-8 border border-red-500 text-red-500 py-3 px-4 rounded">
+  <n-form ref="formRef" :model="form" @submit.prevent="login">
+    <n-h2 class="mb-4">Đăng nhập</n-h2>
+    <n-text class="mb-4 block">
+      Bạn chưa có tài khoản đăng nhập?
+      <n-button text type="info" @click="$router.push('/register')">Đăng ký</n-button>
+    </n-text>
+
+    <n-alert v-if="errorMessage" type="error" class="mb-4" closable @close="errorMessage = ''">
       {{ errorMessage }}
-    </div>
-    <div class="mt-4">
-      <label for="username" class="mb-2 block">Username:</label>
-      <input
-        id="username"
-        v-model="form.username"
-        type="text"
-        class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-        placeholder="Nhập username"
-        autocomplete="username"
-      />
-    </div>
-    <div class="mt-4">
-      <label for="password" class="mb-2 block">Password:</label>
-      <input
-        id="password"
-        v-model="form.password"
+    </n-alert>
+
+    <n-form-item label="Username" path="username">
+      <n-input v-model:value="form.username" placeholder="Nhập username" :input-props="{ autocomplete: 'username' }" />
+    </n-form-item>
+
+    <n-form-item label="Password" path="password">
+      <n-input
+        v-model:value="form.password"
         type="password"
-        class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
         placeholder="Nhập password"
-        autocomplete="current-password"
+        show-password-on="click"
+        :input-props="{ autocomplete: 'current-password' }"
       />
-    </div>
-    <div class="mt-8">
-      <button class="w-full py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600">
-        Đăng nhập
-      </button>
-    </div>
-    <div class="flex items-center my-4">
-      <hr class="flex-grow border-t border-gray-300" />
-      <span class="mx-4 text-gray-500">hoặc</span>
-      <hr class="flex-grow border-t border-gray-300" />
-    </div>
-    <div>Đăng nhập Google (Chưa phát triển)</div>
-  </form>
+    </n-form-item>
+
+    <n-form-item>
+      <n-button type="primary" block attr-type="submit" :loading="loading"> Đăng nhập </n-button>
+    </n-form-item>
+
+    <n-divider>hoặc</n-divider>
+
+    <n-button block disabled>
+      <template #icon>
+        <img src="/icon-google.svg" width="20" />
+      </template>
+      Đăng nhập Google (Chưa phát triển)
+    </n-button>
+  </n-form>
 </template>
 
 <script setup>
 import axios from 'axios'
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { NForm, NFormItem, NInput, NButton, NAlert, NH2, NText, NDivider } from 'naive-ui'
 
 const errorMessage = ref('')
+const loading = ref(false)
+const formRef = ref(null)
 
 const form = ref({
   username: 'tientvv',
@@ -56,6 +54,7 @@ const form = ref({
 })
 
 const login = async () => {
+  loading.value = true
   try {
     const res = await axios.post('/api/login', form.value)
     if (res.data.message) {
@@ -65,18 +64,8 @@ const login = async () => {
     window.location.reload()
   } catch {
     errorMessage.value = 'Đã xảy ra lỗi! Vui lòng thử lại sau!'
+  } finally {
+    loading.value = false
   }
 }
 </script>
-
-<style scoped>
-button {
-  color: #155dfc;
-}
-button {
-  transition: all 0.3s ease;
-}
-button:hover {
-  color: white;
-}
-</style>

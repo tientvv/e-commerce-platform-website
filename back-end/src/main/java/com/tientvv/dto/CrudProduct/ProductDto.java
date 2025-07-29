@@ -21,6 +21,8 @@ public interface ProductDto {
 
   UUID getCategoryId();
 
+  UUID getShopId();
+
   static ProductDto fromEntity(Product product) {
     return new ProductDto() {
       @Override
@@ -61,6 +63,11 @@ public interface ProductDto {
       @Override
       public UUID getCategoryId() {
         return product.getCategory() != null ? product.getCategory().getId() : null;
+      }
+
+      @Override
+      public UUID getShopId() {
+        return product.getShop() != null ? product.getShop().getId() : null;
       }
     };
   }

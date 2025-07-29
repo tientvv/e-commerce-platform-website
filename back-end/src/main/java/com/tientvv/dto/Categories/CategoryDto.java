@@ -10,4 +10,5 @@ import lombok.Data;
 public class CategoryDto {
   private UUID id;
   private String name;
+  private String categoryImage;
 }

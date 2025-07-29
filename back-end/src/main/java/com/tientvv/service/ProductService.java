@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import com.tientvv.dto.CrudProduct.CreateProductDto;
 import com.tientvv.dto.CrudProduct.ProductDto;
+import com.tientvv.dto.CrudProduct.ProductDisplayDto;
+import com.tientvv.dto.CrudProduct.ProductDetailDto;
 import com.tientvv.dto.CrudProduct.UpdateProductDto;
 import com.tientvv.model.Category;
 import com.tientvv.model.Product;
@@ -80,20 +82,50 @@ public class ProductService {
   public void deleteProduct(UUID productId) {
     Product product = productRepository.findById(productId)
         .orElseThrow(() -> new RuntimeException("Product not found"));
-    product.setIsActive(false);
-    productRepository.save(product);
+
+    // Check if product has variants or images
+    if (!product.getProductVariants().isEmpty()) {
+      throw new RuntimeException("Không thể xóa sản phẩm có biến thể. Vui lòng xóa biến thể trước.");
+    }
+
+    if (!product.getProductImages().isEmpty()) {
+      throw new RuntimeException("Không thể xóa sản phẩm có hình ảnh. Vui lòng xóa hình ảnh trước.");
+    }
+
+    // Hard delete the product
+    productRepository.delete(product);
   }
 
   public List<ProductDto> getProductByShopIdAndIsActive(UUID shopId, Boolean isActive) {
     return productRepository.findByShopIdAndIsActive(shopId, isActive);
   }
 
+  public List<Product> findAllByShopId(UUID shopId) {
+    return productRepository.findAllByShopIdAndIsActiveTrue(shopId);
+  }
+
+  public List<Product> findAllByShopIdIncludingInactive(UUID shopId) {
+    return productRepository.findAllByShopId(shopId);
+  }
+
   public List<Product> findAllByShopIdAndIsActiveTrue(UUID shopId) {
     return productRepository.findAllByShopIdAndIsActiveTrue(shopId);
   }
 
+  public List<Product> findAllByCategoryIdAndIsActiveTrue(UUID categoryId) {
+    return productRepository.findAllByCategoryIdAndIsActiveTrue(categoryId);
+  }
+
   public List<Product> findAllActiveProducts() {
     return productRepository.findByIsActiveTrue();
+  }
+
+  public List<ProductDisplayDto> findActiveProductsWithPricing() {
+    return productRepository.findActiveProductsWithPricing();
+  }
+
+  public List<ProductDisplayDto> findActiveProductsWithPricingByCategoryId(UUID categoryId) {
+    return productRepository.findActiveProductsWithPricingByCategoryId(categoryId);
   }
 
   public ProductDto getProductDtoById(UUID id) {
@@ -102,5 +134,9 @@ public class ProductService {
       return null;
     }
     return ProductDto.fromEntity(product);
+  }
+
+  public ProductDetailDto getProductDetailById(UUID id) {
+    return productRepository.findProductDetailById(id);
   }
 }

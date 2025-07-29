@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.tientvv.repository.ShopRepository;
 import com.tientvv.service.ShopService;
 import jakarta.servlet.http.HttpSession;
+import java.util.stream.Collectors;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/api")
@@ -133,6 +135,108 @@ public class ShopController {
     if (!canUpdate) {
       response.put("message", "Bạn chỉ có thể cập nhật thông tin cửa hàng 1 lần trong 24 giờ. " +
           "Vui lòng đợi thêm " + hoursUntilNextUpdate + " giờ nữa.");
+    }
+
+    return response;
+  }
+
+  @GetMapping("/shops")
+  public ResponseEntity<List<ShopDto>> getAllShops() {
+    try {
+      List<Shop> shops = shopService.getAllShops();
+      List<ShopDto> shopDtos = shops.stream()
+          .map(shopService::convertToDto)
+          .collect(Collectors.toList());
+      return ResponseEntity.ok(shopDtos);
+    } catch (Exception e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
+
+  @PostMapping("/shops/create-demo")
+  public ResponseEntity<ShopDto> createDemoShop() {
+    try {
+      Shop shop = shopService.createDemoShop();
+      ShopDto shopDto = shopService.convertToDto(shop);
+      return ResponseEntity.ok(shopDto);
+    } catch (Exception e) {
+      System.err.println("Error creating demo shop: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.badRequest().body(null);
+    }
+  }
+
+  // Admin endpoints
+  @GetMapping("/admin/shops")
+  public Map<String, Object> getAllShopsForAdmin(HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+
+    if (account == null || !"ADMIN".equals(account.getRole())) {
+      response.put("message", "Bạn không có quyền truy cập!");
+      return response;
+    }
+
+    try {
+      List<Shop> shops = shopRepository.findAll();
+      List<Map<String, Object>> shopList = new ArrayList<>();
+
+      for (Shop shop : shops) {
+        Map<String, Object> shopData = new HashMap<>();
+        shopData.put("id", shop.getId());
+        shopData.put("name", shop.getShopName());
+        shopData.put("description", shop.getDescription());
+        shopData.put("ownerName", shop.getUser().getName());
+        shopData.put("ownerEmail", shop.getUser().getEmail());
+        // Chỉ hiển thị ACTIVE hoặc BLOCKED
+        shopData.put("status", shop.getIsActive() ? "ACTIVE" : "BLOCKED");
+        shopData.put("createdAt", shop.getCreatedAt());
+        shopList.add(shopData);
+      }
+
+      response.put("shops", shopList);
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi tải danh sách cửa hàng: " + e.getMessage());
+    }
+
+    return response;
+  }
+
+  @PutMapping("/admin/shops/{shopId}/status")
+  public Map<String, Object> updateShopStatus(@PathVariable String shopId, @RequestBody Map<String, String> requestBody,
+      HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+
+    if (account == null || !"ADMIN".equals(account.getRole())) {
+      response.put("message", "Bạn không có quyền truy cập!");
+      return response;
+    }
+
+    try {
+      UUID uuid = UUID.fromString(shopId);
+      String status = requestBody.get("status");
+
+      // Chỉ cho phép ACTIVE hoặc BLOCKED
+      if (!"ACTIVE".equals(status) && !"BLOCKED".equals(status)) {
+        response.put("message", "Trạng thái không hợp lệ!");
+        return response;
+      }
+
+      Optional<Shop> shopOptional = shopRepository.findById(uuid);
+      if (!shopOptional.isPresent()) {
+        response.put("message", "Không tìm thấy cửa hàng!");
+        return response;
+      }
+
+      Shop shop = shopOptional.get();
+      boolean isActive = "ACTIVE".equals(status);
+      shop.setIsActive(isActive);
+      shopRepository.save(shop);
+
+      response.put("message", "Cập nhật trạng thái cửa hàng thành công!");
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi cập nhật trạng thái: " + e.getMessage());
     }
 
     return response;

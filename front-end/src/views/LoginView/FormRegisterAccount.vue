@@ -1,91 +1,71 @@
 <template>
-  <form @submit.prevent="registerAccount">
-    <div class="text-xl">Tạo tài khoản</div>
-    <div class="mt-4">
-      Bạn có tài khoản rồi? <RouterLink to="/login" class="underline text-blue-600">Đăng nhập</RouterLink>
-    </div>
-    <div v-if="successMessage" class="mt-8 border border-green-500 text-green-500 py-3 px-4 rounded">
+  <n-form ref="formRef" :model="form" @submit.prevent="registerAccount">
+    <n-h2 class="mb-4">Tạo tài khoản</n-h2>
+    <n-text class="mb-4 block">
+      Bạn có tài khoản rồi?
+      <n-button text type="info" @click="$router.push('/login')">Đăng nhập</n-button>
+    </n-text>
+
+    <n-alert v-if="successMessage" type="success" class="mb-4" closable @close="successMessage = ''">
       {{ successMessage }}
-    </div>
-    <div v-if="errorMessage" class="mt-8 border border-red-500 text-red-500 py-3 px-4 rounded">
+    </n-alert>
+    <n-alert v-if="errorMessage" type="error" class="mb-4" closable @close="errorMessage = ''">
       {{ errorMessage }}
-    </div>
-    <div class="mt-4 flex gap-4">
-      <div class="w-[50%]">
-        <label for="name" class="mb-2 block">Họ và tên:</label>
-        <input
-          id="name"
-          v-model="form.name"
-          type="text"
-          class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-          placeholder="Nhập họ và tên"
-          autocomplete="name"
-        />
-      </div>
-      <div class="w-[50%]">
-        <label for="username" class="mb-2 block">Username:</label>
-        <input
-          id="username"
-          v-model="form.username"
-          type="text"
-          class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-          placeholder="Nhập username"
-          autocomplete="username"
-        />
-      </div>
-    </div>
-    <div class="mt-4">
-      <label for="email" class="mb-2 block">Email:</label>
-      <input
-        id="email"
-        v-model="form.email"
-        type="text"
-        class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-        placeholder="Nhập email"
-        autocomplete="email"
-      />
-    </div>
-    <div class="mt-4">
-      <label for="password" class="mb-2 block">Mật khẩu:</label>
-      <input
-        id="password"
-        v-model="form.password"
-        type="password"
-        class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-        placeholder="Nhập mật khẩu"
-      />
-    </div>
-    <div class="mt-4">
-      <label for="phone" class="mb-2 block">Số điện thoại:</label>
-      <input
-        id="phone"
-        v-model="form.phone"
-        type="text"
-        class="w-full py-2 px-3 border rounded focus:outline-blue-600 border-gray-400"
-        placeholder="Nhập số điện thoại"
-        autocomplete="tel"
-      />
-    </div>
-    <div class="mt-8">
-      <button class="w-full py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600">
-        Đăng ký
-      </button>
-    </div>
-    <div class="flex items-center my-4">
-      <hr class="flex-grow border-t border-gray-300" />
-      <span class="mx-4 text-gray-500">hoặc</span>
-      <hr class="flex-grow border-t border-gray-300" />
-    </div>
-    <div>Đăng ký Google (Chưa phát triển)</div>
-  </form>
+    </n-alert>
+
+    <n-grid :cols="2" :x-gap="12">
+      <n-grid-item>
+        <n-form-item label="Họ và tên" path="name">
+          <n-input v-model:value="form.name" placeholder="Nhập họ và tên" :input-props="{ autocomplete: 'name' }" />
+        </n-form-item>
+      </n-grid-item>
+      <n-grid-item>
+        <n-form-item label="Username" path="username">
+          <n-input
+            v-model:value="form.username"
+            placeholder="Nhập username"
+            :input-props="{ autocomplete: 'username' }"
+          />
+        </n-form-item>
+      </n-grid-item>
+    </n-grid>
+
+    <n-form-item label="Email" path="email">
+      <n-input v-model:value="form.email" placeholder="Nhập email" :input-props="{ autocomplete: 'email' }" />
+    </n-form-item>
+
+    <n-form-item label="Mật khẩu" path="password">
+      <n-input v-model:value="form.password" type="password" placeholder="Nhập mật khẩu" show-password-on="click" />
+    </n-form-item>
+
+    <n-form-item label="Số điện thoại" path="phone">
+      <n-input v-model:value="form.phone" placeholder="Nhập số điện thoại" :input-props="{ autocomplete: 'tel' }" />
+    </n-form-item>
+
+    <n-form-item>
+      <n-button type="primary" block attr-type="submit" :loading="loading"> Đăng ký </n-button>
+    </n-form-item>
+
+    <n-divider>hoặc</n-divider>
+
+    <n-button block disabled>
+      <template #icon>
+        <img src="/icon-google.svg" width="20" />
+      </template>
+      Đăng ký Google (Chưa phát triển)
+    </n-button>
+  </n-form>
 </template>
 
 <script setup>
 import axios from 'axios'
 import { ref } from 'vue'
+import { NForm, NFormItem, NInput, NButton, NAlert, NH2, NText, NDivider, NGrid, NGridItem } from 'naive-ui'
 
 const errorMessage = ref('')
 const successMessage = ref('')
+const loading = ref(false)
+const formRef = ref(null)
 
 const form = ref({
   name: '',
@@ -106,6 +86,7 @@ const resetForm = () => {
 }
 
 const registerAccount = async () => {
+  loading.value = true
   try {
     const res = await axios.post('/api/register', form.value)
     if (res.data.message === 'Đăng ký tài khoản thành công!') {
@@ -119,18 +100,8 @@ const registerAccount = async () => {
     errorMessage.value = 'Đã xảy ra lỗi! Vui lòng thử lại sau!'
     successMessage.value = ''
     resetForm()
+  } finally {
+    loading.value = false
   }
 }
 </script>
-
-<style scoped>
-button {
-  color: #155dfc;
-}
-button {
-  transition: all 0.3s ease;
-}
-button:hover {
-  color: white;
-}
-</style>

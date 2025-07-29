@@ -1,94 +1,192 @@
 <template>
-  <div class="mt-2">
-    <div class="overflow-hidden rounded border border-gray-200">
-      <table class="w-full text-left">
-        <thead class="bg-gray-200">
-          <tr>
-            <th class="p-2 border-r border-gray-200">Tên</th>
-            <th class="p-2 border-r border-gray-200">Thương hiệu</th>
-            <th class="p-2 border-r border-gray-200">Danh mục</th>
-            <th class="p-2 border-r border-gray-200">Mô tả</th>
-            <th class="p-2 border-gray-200">Ảnh</th>
-            <th class="p-2 border-gray-200 w-24">Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="product in products" :key="product.id">
-            <td class="p-2 border-t border-r border-gray-200">{{ product.name }}</td>
-            <td class="p-2 border-t border-r border-gray-200">{{ product.brand }}</td>
-            <td class="p-2 border-t border-r border-gray-200">{{ product.categoryName }}</td>
-            <td class="p-2 border-t border-r border-gray-200">{{ product.description }}</td>
-            <td class="p-2 border-t border-r border-gray-200">
-              <img :src="product.productImage" alt="Ảnh" class="w-16 h-16 object-cover" />
-            </td>
-            <td class="p-2 border-t border-gray-200 flex flex-col gap-2 w-24">
-              <RouterLink
-                :to="`/user/shop/product/edit/${product.id}`"
-                class="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-center"
-              >
-                Sửa
-              </RouterLink>
-              <button
-                @click="deleteProduct(product.id)"
-                class="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-center"
-              >
-                Xóa
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+  <n-space vertical :size="16">
+    <n-card title="Danh sách sản phẩm" size="small">
+      <n-spin :show="loading">
+        <n-data-table
+          v-if="!loading && products.length > 0"
+          :columns="columns"
+          :data="products"
+          :row-key="(row) => row.id"
+          :pagination="pagination"
+        />
+
+        <!-- Empty State -->
+        <n-empty v-else-if="!loading && products.length === 0" description="Chưa có sản phẩm nào">
+          <template #icon>
+            <n-icon size="48" color="#d1d5db">
+              <Package />
+            </n-icon>
+          </template>
+        </n-empty>
+      </n-spin>
+    </n-card>
+  </n-space>
 </template>
 
 <script setup>
-import axios from 'axios'
-import { onMounted, ref } from 'vue'
+import { ref, reactive, onMounted, h } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from '../../utils/axios'
+import { Package, Edit, Trash2 } from 'lucide-vue-next'
+import { NSpace, NCard, NSpin, NDataTable, NEmpty, NIcon, NButton, NImage, useMessage, useDialog } from 'naive-ui'
+
+const router = useRouter()
+const message = useMessage()
+const dialog = useDialog()
 
 const products = ref([])
+const loading = ref(true)
 
-const loadProducts = async () => {
+// Table columns
+const columns = [
+  {
+    title: 'Tên sản phẩm',
+    key: 'name',
+    render(row) {
+      return h('div', { style: { fontWeight: '500' } }, row.name)
+    },
+  },
+  {
+    title: 'Thương hiệu',
+    key: 'brand',
+  },
+  {
+    title: 'Danh mục',
+    key: 'categoryName',
+  },
+  {
+    title: 'Mô tả',
+    key: 'description',
+    render(row) {
+      return h(
+        'div',
+        {
+          style: {
+            maxWidth: '200px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          },
+        },
+        row.description || 'Không có mô tả',
+      )
+    },
+  },
+  {
+    title: 'Hình ảnh',
+    key: 'productImage',
+    width: 100,
+    render(row) {
+      return h(NImage, {
+        width: 60,
+        height: 60,
+        src: row.productImage,
+        fallbackSrc: '/default-product.png',
+        objectFit: 'cover',
+        style: { borderRadius: '4px' },
+      })
+    },
+  },
+  {
+    title: 'Thao tác',
+    key: 'actions',
+    width: 150,
+    render(row) {
+      return h('div', { style: { display: 'flex', gap: '8px' } }, [
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'primary',
+            onClick: () => editProduct(row.id),
+          },
+          {
+            icon: () => h(NIcon, null, { default: () => h(Edit) }),
+            default: () => 'Sửa',
+          },
+        ),
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'error',
+            onClick: () => confirmDelete(row.id, row.name),
+          },
+          {
+            icon: () => h(NIcon, null, { default: () => h(Trash2) }),
+            default: () => 'Xóa',
+          },
+        ),
+      ])
+    },
+  },
+]
+
+// Pagination
+const pagination = reactive({
+  page: 1,
+  pageSize: 10,
+  showSizePicker: true,
+  pageSizes: [10, 20, 50],
+  onChange: (page) => {
+    pagination.page = page
+  },
+  onUpdatePageSize: (pageSize) => {
+    pagination.pageSize = pageSize
+    pagination.page = 1
+  },
+})
+
+// Methods
+const fetchProducts = async () => {
+  loading.value = true
   try {
-    console.log('🔍 Loading products...')
-    const response = await axios.get('/api/user/shop')
-    console.log('📦 Shop response:', response.data)
-
-    const shop = response.data.shop
-    if (!shop || !shop.id) {
-      console.warn('⚠️ Không tìm thấy shop')
-      return
-    }
-
-    console.log('🏪 Shop ID:', shop.id)
-
-    // Sử dụng endpoint /api/products/all với shopId parameter
-    const productRes = await axios.get('/api/products/all', {
-      params: {
-        shopId: shop.id,
-      },
-    })
-
-    console.log('📋 Products response:', productRes.data)
-    products.value = productRes.data.products || []
-    console.log('✅ Loaded products count:', products.value.length)
-  } catch (err) {
-    console.error('❌ Lỗi khi tải sản phẩm:', err.response?.data || err.message)
-    products.value = []
+    const response = await axios.get('/api/products/user')
+    products.value = response.data.products || []
+  } catch (error) {
+    message.error('Không thể tải danh sách sản phẩm')
+    console.error('Error:', error)
+  } finally {
+    loading.value = false
   }
+}
+
+const editProduct = (productId) => {
+  router.push(`/user/shop/product/edit/${productId}`)
+}
+
+const confirmDelete = (productId, productName) => {
+  dialog.warning({
+    title: 'Xác nhận xóa',
+    content: `Bạn có chắc chắn muốn xóa sản phẩm "${productName}" không?`,
+    positiveText: 'Xóa',
+    negativeText: 'Hủy',
+    onPositiveClick: () => deleteProduct(productId),
+  })
 }
 
 const deleteProduct = async (productId) => {
   try {
-    await axios.put(`/api/products/delete/${productId}`)
-    window.location.reload()
-  } catch (err) {
-    console.error('Lỗi khi xóa sản phẩm:', err)
+    const response = await axios.delete(`/api/products/${productId}`)
+    if (response.data.message) {
+      message.success(response.data.message)
+    } else {
+      message.success('Xóa sản phẩm thành công')
+    }
+    await fetchProducts()
+  } catch (error) {
+    console.error('Delete error:', error)
+    if (error.response?.data?.message) {
+      message.error(error.response.data.message)
+    } else {
+      message.error('Không thể xóa sản phẩm')
+    }
   }
 }
 
+// Load data on mount
 onMounted(() => {
-  loadProducts()
+  fetchProducts()
 })
 </script>
 

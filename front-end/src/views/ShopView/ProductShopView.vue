@@ -1,7 +1,35 @@
 <template>
-  <div class="flex gap-2">
-    <RouterLink to="/user/shop/product/list" class="py-2 px-3 bg-gray-200 block rounded"> Danh sách </RouterLink>
-    <RouterLink to="/user/shop/product/add" class="py-2 px-3 bg-gray-200 block rounded"> Thêm</RouterLink>
-  </div>
-  <div><RouterView /></div>
+  <n-space vertical :size="16">
+    <n-tabs :value="activeTab" type="segment" @update:value="handleTabChange">
+      <n-tab-pane name="list" tab="Danh sách sản phẩm" />
+      <n-tab-pane name="add" tab="Thêm sản phẩm" />
+    </n-tabs>
+
+    <RouterView />
+  </n-space>
 </template>
+
+<script setup>
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { NSpace, NTabs, NTabPane } from 'naive-ui'
+
+const route = useRoute()
+const router = useRouter()
+
+// Computed để xác định tab hiện tại dựa trên route
+const activeTab = computed(() => {
+  if (route.path.includes('/add')) return 'add'
+  if (route.path.includes('/edit/')) return 'add' // Edit cũng sử dụng tab "add"
+  return 'list'
+})
+
+// Handle tab change
+const handleTabChange = (value) => {
+  if (value === 'list') {
+    router.push('/user/shop/product/list')
+  } else if (value === 'add') {
+    router.push('/user/shop/product/add')
+  }
+}
+</script>

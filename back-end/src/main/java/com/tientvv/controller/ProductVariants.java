@@ -31,6 +31,18 @@ public class ProductVariants {
   @Autowired
   private ProductVariantService productVariantService;
 
+  @GetMapping
+  public Map<String, Object> getProductVariants() {
+    Map<String, Object> response = new HashMap<>();
+    try {
+      List<ProductVariantDto> variants = productVariantService.getAllProductVariants();
+      response.put("variants", variants);
+    } catch (Exception e) {
+      response.put("message", e.getMessage());
+    }
+    return response;
+  }
+
   @PostMapping("/create")
   public Map<String, Object> createProductVariant(@RequestBody CreateProductVariantDto dto, HttpSession session) {
     Map<String, Object> response = new HashMap<>();

@@ -4,6 +4,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.tientvv.dto.CrudProduct.CreateProductDto;
 import com.tientvv.dto.CrudProduct.ProductDto;
+import com.tientvv.dto.CrudProduct.ProductDetailDto;
+import com.tientvv.dto.CrudProduct.ProductDisplayDto;
 import com.tientvv.dto.CrudProduct.UpdateProductDto;
 import com.tientvv.model.Account;
 import com.tientvv.model.Product;
@@ -40,25 +42,76 @@ public class ProductController {
   @Autowired
   private com.tientvv.service.ShopService shopService;
 
-  @GetMapping("/all")
-  public Map<String, Object> getAllProducts(@RequestParam(required = false) String shopId) {
+  @GetMapping("/user")
+  public Map<String, Object> getUserProducts(HttpSession session) {
     Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+
+    if (account == null) {
+      response.put("message", "Bạn chưa đăng nhập!");
+      return response;
+    }
+
     try {
-      List<Product> products;
-      if (shopId == null || "your-shop-id".equals(shopId)) {
-        // Trả về tất cả sản phẩm nếu không có shopId hoặc là placeholder
-        products = productService.findAllActiveProducts();
-      } else {
-        UUID uuid = UUID.fromString(shopId);
-        products = productService.findAllByShopIdAndIsActiveTrue(uuid);
+      // Lấy thông tin shop của user
+      com.tientvv.dto.shop.ShopDto shopDto = shopService.getShopByUserId(account.getId());
+      if (shopDto == null) {
+        response.put("message", "Bạn chưa đăng ký cửa hàng!");
+        response.put("products", List.of()); // Trả về danh sách rỗng
+        return response;
       }
 
-      // Convert to DTOs to avoid circular reference
+      // Lấy tất cả sản phẩm của shop (bao gồm cả active và inactive)
+      List<Product> products = productService.findAllByShopId(shopDto.getId());
+
+      // Convert to DTOs
       List<ProductDto> productDtos = products.stream()
           .map(ProductDto::fromEntity)
           .collect(Collectors.toList());
 
       response.put("products", productDtos);
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi tải danh sách sản phẩm: " + e.getMessage());
+      response.put("products", List.of());
+    }
+
+    return response;
+  }
+
+  @GetMapping
+  public Map<String, Object> getProducts() {
+    Map<String, Object> response = new HashMap<>();
+    try {
+      List<ProductDisplayDto> products = productService.findActiveProductsWithPricing();
+
+      response.put("products", products);
+    } catch (Exception e) {
+      response.put("message", e.getMessage());
+    }
+    return response;
+  }
+
+  @GetMapping("/all")
+  public Map<String, Object> getAllProducts(
+      @RequestParam(required = false) String shopId,
+      @RequestParam(required = false) String categoryId) {
+    Map<String, Object> response = new HashMap<>();
+    try {
+      if (categoryId != null && !categoryId.isEmpty()) {
+        UUID categoryUuid = UUID.fromString(categoryId);
+        List<ProductDisplayDto> products = productService.findActiveProductsWithPricingByCategoryId(categoryUuid);
+        response.put("products", products);
+      } else if (shopId != null && !"your-shop-id".equals(shopId)) {
+        UUID uuid = UUID.fromString(shopId);
+        List<Product> products = productService.findAllByShopIdAndIsActiveTrue(uuid);
+        List<ProductDto> productDtos = products.stream()
+            .map(ProductDto::fromEntity)
+            .collect(Collectors.toList());
+        response.put("products", productDtos);
+      } else {
+        List<ProductDisplayDto> products = productService.findActiveProductsWithPricing();
+        response.put("products", products);
+      }
     } catch (Exception e) {
       response.put("message", e.getMessage());
     }
@@ -148,13 +201,13 @@ public class ProductController {
 
   @GetMapping("/{id}")
   public ResponseEntity<?> getProductById(@PathVariable UUID id) {
-    ProductDto productDto = productService.getProductDtoById(id);
-    if (productDto == null) {
+    ProductDetailDto productDetail = productService.getProductDetailById(id);
+    if (productDetail == null) {
       Map<String, String> response = new HashMap<>();
       response.put("message", "Không tìm thấy sản phẩm!");
       return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
-    return ResponseEntity.ok(productDto);
+    return ResponseEntity.ok(productDetail);
   }
 
   @PutMapping("/update/{id}")
@@ -189,7 +242,24 @@ public class ProductController {
       return response;
     }
     productService.deleteProduct(id);
-    response.put("message", "Sản phẩm đã được xóa thành công!");
+    response.put("message", "Xóa sản phẩm thành công!");
+    return response;
+  }
+
+  @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+  public Map<String, Object> deleteProductREST(@PathVariable UUID id, HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+    if (account == null) {
+      response.put("message", "Bạn chưa đăng nhập!");
+      return response;
+    }
+    if (id == null) {
+      response.put("message", "ID sản phẩm không hợp lệ!");
+      return response;
+    }
+    productService.deleteProduct(id);
+    response.put("message", "Xóa sản phẩm thành công!");
     return response;
   }
 }

@@ -3,7 +3,10 @@ import HomeView from '~/views/HomeView.vue'
 import LoginAccountView from '~/views/LoginAccountView.vue'
 import WishlistView from '~/views/WishlistView.vue'
 import RegisterAccountView from '~/views/RegisterAccountView.vue'
-import axios from 'axios'
+import CategoryView from '~/views/CategoryView.vue'
+import ProductDetailView from '~/views/ProductDetailView.vue'
+import CartView from '~/views/CartView.vue'
+import axios from '../utils/axios'
 import UserView from '~/views/UserView/UserView.vue'
 
 const router = createRouter({
@@ -11,6 +14,13 @@ const router = createRouter({
   routes: [
     { path: '/', component: HomeView },
     { path: '/login', component: LoginAccountView },
+    { path: '/category/:id', component: CategoryView },
+    { path: '/product/:id', component: ProductDetailView },
+    { path: '/cart', component: CartView },
+    { path: '/order/:id', component: () => import('~/views/OrderDetailView.vue') },
+    { path: '/payment-success', component: () => import('~/views/PaymentSuccessView.vue') },
+    { path: '/payment-cancel', component: () => import('~/views/PaymentCancelView.vue') },
+
     {
       path: '/wishlist',
       component: WishlistView,
@@ -46,11 +56,7 @@ const router = createRouter({
               component: () => import('~/views/ShopView/ProfileShopView.vue'),
               meta: { requiresShop: true },
             },
-            {
-              path: 'statistics',
-              component: () => import('~/views/ShopView/StatisticsShopView.vue'),
-              meta: { requiresShop: true },
-            },
+
             {
               path: 'product',
               component: () => import('~/views/ShopView/ProductShopView.vue'),
@@ -73,6 +79,11 @@ const router = createRouter({
                 },
               ],
             },
+            {
+              path: 'orders',
+              component: () => import('~/views/ShopView/ShopOrderView.vue'),
+              meta: { requiresShop: true },
+            },
           ],
         },
         { path: 'order', component: () => import('~/views/UserView/OrderView.vue') },
@@ -82,6 +93,43 @@ const router = createRouter({
       path: '/register-shop',
       component: () => import('~/views/ShopView/RegisterShopView.vue'),
       meta: { requiresAuth: true, roles: ['USER', 'ADMIN'] },
+    },
+    // Admin Routes
+    {
+      path: '/admin',
+      component: () => import('~/views/AdminView/AdminView.vue'),
+      meta: { requiresAuth: true, roles: ['ADMIN'] },
+      children: [
+        {
+          path: '',
+          component: () => import('~/views/AdminView/AdminDashboard.vue'),
+        },
+        {
+          path: 'categories',
+          component: () => import('~/views/AdminView/AdminCategoryView.vue'),
+        },
+        {
+          path: 'discounts',
+          component: () => import('~/views/AdminView/AdminDiscountView.vue'),
+        },
+        {
+          path: 'shippings',
+          component: () => import('~/views/AdminView/AdminShippingView.vue'),
+        },
+        {
+          path: 'payments',
+          component: () => import('~/views/AdminView/AdminPaymentView.vue'),
+        },
+
+        {
+          path: 'shops',
+          component: () => import('~/views/AdminView/AdminShopView.vue'),
+        },
+        {
+          path: 'users',
+          component: () => import('~/views/AdminView/AdminUserView.vue'),
+        },
+      ],
     },
   ],
 })
@@ -106,12 +154,18 @@ router.beforeEach(async (to) => {
     const res = await axios.get('/api/info-account')
     const user = res.data.account
     if (!user) return '/login'
+
+    // Check role permissions
     if (to.meta.roles && !to.meta.roles.includes(user.role)) {
+      // If user tries to access admin but is not admin, redirect to home
+      if (to.path.startsWith('/admin') && user.role !== 'ADMIN') {
+        return '/'
+      }
       return '/'
     }
 
-    // Kiểm tra xem route có yêu cầu shop không
-    if (to.meta.requiresShop || to.matched.some((record) => record.meta.requiresShop)) {
+    // Kiểm tra xem route có yêu cầu shop không (only for USER routes, not ADMIN)
+    if ((to.meta.requiresShop || to.matched.some((record) => record.meta.requiresShop)) && user.role !== 'ADMIN') {
       try {
         const shopRes = await axios.get('/api/user/shop')
         if (!shopRes.data.shop) {
