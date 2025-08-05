@@ -1,5 +1,5 @@
 <template>
-  <div class="p-6">
+  <div>
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-800 mb-4">Quản lý đơn hàng</h1>
@@ -53,6 +53,16 @@
           <div class="flex-1">
             <div class="text-xl font-bold text-gray-900">{{ statistics.cancelledOrders || 0 }}</div>
             <div class="text-sm text-gray-600">Đã hủy</div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-lg flex items-center gap-3 bg-orange-50 border border-orange-200">
+          <div class="p-2 rounded-lg bg-orange-500">
+            <RotateCcw class="w-5 h-5 text-white" />
+          </div>
+          <div class="flex-1">
+            <div class="text-xl font-bold text-gray-900">{{ statistics.refundedOrders || 0 }}</div>
+            <div class="text-sm text-gray-600">Đã hoàn tiền</div>
           </div>
         </div>
 
@@ -148,8 +158,13 @@
             </div>
             <div class="flex flex-col space-y-1">
               <label class="text-sm font-medium text-gray-700">Trạng thái:</label>
-              <n-tag :type="getStatusType(selectedOrder.orderStatus)">
-                {{ getStatusLabel(selectedOrder.orderStatus) }}
+              <n-tag :type="getStatusType(selectedOrder.orderStatus)" size="medium" round>
+                <template #default>
+                  <div class="flex items-center gap-2">
+                    <component :is="getStatusIcon(selectedOrder.orderStatus)" class="w-4 h-4" />
+                    <span class="font-medium">{{ getStatusLabel(selectedOrder.orderStatus) }}</span>
+                  </div>
+                </template>
               </n-tag>
             </div>
             <div class="flex flex-col space-y-1">
@@ -243,7 +258,7 @@
 <script setup>
 import { ref, reactive, onMounted, h } from 'vue'
 import { useMessage, NTag, NButton } from 'naive-ui'
-import { Package, Clock, CheckCircle, Truck, XCircle, DollarSign, RefreshCw, Eye } from 'lucide-vue-next'
+import { Package, Clock, CheckCircle, Truck, XCircle, DollarSign, RefreshCw, Eye, RotateCcw, ArrowLeft } from 'lucide-vue-next'
 import axios from '~/utils/axios'
 
 const message = useMessage()
@@ -286,6 +301,8 @@ const statusOptions = [
   { label: 'Đang giao hàng', value: 'SHIPPING' },
   { label: 'Đã giao hàng', value: 'DELIVERED' },
   { label: 'Đã hủy', value: 'CANCELLED' },
+  { label: 'Đã hoàn tiền', value: 'REFUNDED' },
+  { label: 'Đã trả hàng', value: 'RETURNED' },
 ]
 
 const paymentOptions = [
@@ -324,15 +341,24 @@ const columns = [
     title: 'Trạng thái',
     key: 'orderStatus',
     render: (row) => {
+      const StatusIcon = getStatusIcon(row.orderStatus)
       return h(
         NTag,
         {
           type: getStatusType(row.orderStatus),
+          size: 'medium',
+          round: true,
         },
-        { default: () => getStatusLabel(row.orderStatus) },
+        {
+          default: () => h('div', { class: 'flex items-center gap-2' }, [
+            h(StatusIcon, { class: 'w-4 h-4' }),
+            h('span', { class: 'font-medium' }, getStatusLabel(row.orderStatus)),
+          ]),
+        },
       )
     },
   },
+
   {
     title: 'Phương thức thanh toán',
     key: 'payment',
@@ -451,6 +477,8 @@ const getStatusLabel = (status) => {
     SHIPPING: 'Đang giao hàng',
     DELIVERED: 'Đã giao hàng',
     CANCELLED: 'Đã hủy',
+    REFUNDED: 'Đã hoàn tiền',
+    RETURNED: 'Đã trả hàng',
   }
   return statusMap[status] || status
 }
@@ -458,13 +486,29 @@ const getStatusLabel = (status) => {
 const getStatusType = (status) => {
   const typeMap = {
     PENDING: 'warning',
-    PROCESSED: 'success',
+    PROCESSED: 'info',
     PAID: 'success',
     SHIPPING: 'info',
     DELIVERED: 'success',
     CANCELLED: 'error',
+    REFUNDED: 'error',
+    RETURNED: 'error',
   }
   return typeMap[status] || 'default'
+}
+
+const getStatusIcon = (status) => {
+  const iconMap = {
+    PENDING: Clock,
+    PROCESSED: CheckCircle,
+    PAID: DollarSign,
+    SHIPPING: Truck,
+    DELIVERED: Package,
+    CANCELLED: XCircle,
+    REFUNDED: RotateCcw,
+    RETURNED: ArrowLeft,
+  }
+  return iconMap[status] || Package
 }
 
 // Load data on mount

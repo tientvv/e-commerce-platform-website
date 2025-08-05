@@ -134,7 +134,7 @@ onMounted(async () => {
         paymentMethod: 'PayOS',
       }
 
-      // Clear pending order code từ localStorage
+      // Clear pending order code và zpTransToken từ localStorage
       localStorage.removeItem('pendingOrderCode')
 
       // Clear cart sau khi thanh toán thành công

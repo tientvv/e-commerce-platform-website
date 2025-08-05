@@ -21,7 +21,7 @@
             <div class="text-sm text-gray-600 space-y-1">
               <p><strong>Mã đơn hàng:</strong> {{ orderInfo.orderCode }}</p>
               <p><strong>Tổng tiền:</strong> {{ formatPrice(orderInfo.amount) }}</p>
-              <p class="text-yellow-600"><em>Đơn hàng chưa được tạo vì thanh toán chưa hoàn tất</em></p>
+                            <p class="text-yellow-600"><em>Đơn hàng chưa được tạo vì thanh toán chưa hoàn tất</em></p>
             </div>
           </div>
 
@@ -32,12 +32,6 @@
               class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Thử thanh toán lại
-            </button>
-            <button
-              @click="viewOrder"
-              class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Xem chi tiết đơn hàng
             </button>
             <button
               @click="goHome"
@@ -56,6 +50,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
+import axios from '../utils/axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -63,33 +58,91 @@ const message = useMessage()
 
 const orderInfo = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   // Lấy thông tin từ URL parameters
   const orderCode = route.query.orderCode
   const amount = route.query.amount
+  const status = route.query.status
+  const cancel = route.query.cancel
+
+  console.log('Payment cancel page - URL params:', {
+    orderCode,
+    amount,
+    status,
+    cancel
+  })
 
   if (orderCode) {
+    // Tạm thời sử dụng amount từ URL hoặc localStorage
+    let orderAmount = 0
+
+    // Thử lấy từ URL parameter
+    if (amount) {
+      orderAmount = parseFloat(amount)
+    } else {
+      // Thử lấy từ localStorage (nếu đã lưu khi tạo payment)
+      const savedAmount = localStorage.getItem('pendingOrderAmount')
+      if (savedAmount) {
+        orderAmount = parseFloat(savedAmount)
+      }
+    }
+
     orderInfo.value = {
       orderCode: orderCode,
-      amount: amount ? parseFloat(amount) : 0,
+      amount: orderAmount,
     }
+
+    // Chỉ gọi forceCancelOrder một lần duy nhất
+    console.log('Cancelling pending orders...')
+    await forceCancelOrder()
   }
 
-  // Clear pending order code từ localStorage
+    // Clear pending order code từ localStorage
   localStorage.removeItem('pendingOrderCode')
-
-  message.warning('Thanh toán đã bị hủy. Bạn có thể thử lại sau.')
 })
+
+
+
+const forceCancelOrder = async () => {
+  try {
+    const orderCode = route.query.orderCode
+    console.log('🔍 Attempting to cancel order with orderCode:', orderCode)
+
+    if (!orderCode) {
+      console.error('❌ No orderCode found in URL parameters')
+      message.error('Không tìm thấy mã đơn hàng')
+      return
+    }
+
+    console.log('📞 Calling cancel API with orderCode:', orderCode)
+
+    // Cancel đơn hàng hiện tại
+    const response = await axios.post('/api/payos/cancel-current-order', null, {
+      params: { orderCode: orderCode }
+    })
+
+    console.log('📥 API Response:', response.data)
+
+    if (response.data.success) {
+      console.log(`✅ Đã hủy đơn hàng: ${orderCode}`)
+      message.success('Đã hủy đơn hàng thành công')
+    } else {
+      console.error('❌ API Error:', response.data.message)
+      message.error(response.data.message || 'Lỗi khi hủy đơn hàng')
+    }
+  } catch (error) {
+    console.error('💥 Error cancelling order:', error)
+    console.error('💥 Error response:', error.response?.data)
+    message.error('Lỗi khi hủy đơn hàng: ' + (error.response?.data?.message || error.message))
+  }
+}
 
 const retryPayment = () => {
   // Redirect back to cart to retry payment
   router.push('/cart')
 }
 
-const viewOrder = () => {
-  // Không có đơn hàng thật để xem vì chưa thanh toán thành công
-  router.push('/cart')
-}
+
 
 const goHome = () => {
   router.push('/')
@@ -101,4 +154,6 @@ const formatPrice = (price) => {
     currency: 'VND',
   }).format(price)
 }
+
+
 </script>

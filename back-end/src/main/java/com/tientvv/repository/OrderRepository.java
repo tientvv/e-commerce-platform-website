@@ -14,38 +14,41 @@ import java.util.UUID;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
-        @Query("SELECT o FROM Order o WHERE o.account.id = :accountId ORDER BY o.orderDate DESC")
-        List<Order> findByAccountIdOrderByOrderDateDesc(@Param("accountId") UUID accountId);
+  @Query("SELECT o FROM Order o WHERE o.account.id = :accountId ORDER BY o.orderDate DESC")
+  List<Order> findByAccountIdOrderByOrderDateDesc(@Param("accountId") UUID accountId);
 
-        @Query("SELECT o FROM Order o WHERE o.shop.id = :shopId ORDER BY o.orderDate DESC")
-        List<Order> findByShopIdOrderByOrderDateDesc(@Param("shopId") UUID shopId);
+  @Query("SELECT o FROM Order o WHERE o.shop.id = :shopId ORDER BY o.orderDate DESC")
+  List<Order> findByShopIdOrderByOrderDateDesc(@Param("shopId") UUID shopId);
 
-        @Query("SELECT o FROM Order o ORDER BY o.orderDate DESC")
-        List<Order> findAllOrderByOrderDateDesc();
+  @Query("SELECT o FROM Order o ORDER BY o.orderDate DESC")
+  List<Order> findAllOrderByOrderDateDesc();
 
-        // Shop Order Management Methods
-        @Query("SELECT o FROM Order o WHERE o.shop.id = :shopId AND " +
-                        "(:status IS NULL OR o.orderStatus = :status) AND " +
-                        "(:paymentMethod IS NULL OR o.payment.paymentCode = :paymentMethod) AND " +
-                        "(:startDate IS NULL OR CAST(o.orderDate AS date) >= :startDate) AND " +
-                        "(:endDate IS NULL OR CAST(o.orderDate AS date) <= :endDate) " +
-                        "ORDER BY o.orderDate DESC")
-        List<Order> findByShopIdWithFilters(
-                        @Param("shopId") UUID shopId,
-                        @Param("status") String status,
-                        @Param("paymentMethod") String paymentMethod,
-                        @Param("startDate") LocalDate startDate,
-                        @Param("endDate") LocalDate endDate);
+  // Shop Order Management Methods
+  @Query("SELECT o FROM Order o WHERE o.shop.id = :shopId AND " +
+      "(:status IS NULL OR o.orderStatus = :status) AND " +
+      "(:paymentMethod IS NULL OR o.payment.paymentCode = :paymentMethod) AND " +
+      "(:startDate IS NULL OR CAST(o.orderDate AS date) >= :startDate) AND " +
+      "(:endDate IS NULL OR CAST(o.orderDate AS date) <= :endDate) " +
+      "ORDER BY o.orderDate DESC")
+  List<Order> findByShopIdWithFilters(
+      @Param("shopId") UUID shopId,
+      @Param("status") String status,
+      @Param("paymentMethod") String paymentMethod,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate);
 
-        @Query("SELECT o FROM Order o WHERE o.id = :orderId AND o.shop.id = :shopId")
-        Optional<Order> findByIdAndShopId(@Param("orderId") UUID orderId, @Param("shopId") UUID shopId);
+  @Query("SELECT o FROM Order o WHERE o.id = :orderId AND o.shop.id = :shopId")
+  Optional<Order> findByIdAndShopId(@Param("orderId") UUID orderId, @Param("shopId") UUID shopId);
 
-        @Query("SELECT COUNT(o) FROM Order o WHERE o.shop.id = :shopId")
-        long countByShopId(@Param("shopId") UUID shopId);
+  @Query("SELECT COUNT(o) FROM Order o WHERE o.shop.id = :shopId")
+  long countByShopId(@Param("shopId") UUID shopId);
 
-        @Query("SELECT COUNT(o) FROM Order o WHERE o.shop.id = :shopId AND o.orderStatus = :status")
-        long countByShopIdAndOrderStatus(@Param("shopId") UUID shopId, @Param("status") String status);
+  @Query("SELECT COUNT(o) FROM Order o WHERE o.shop.id = :shopId AND o.orderStatus = :status")
+  long countByShopIdAndOrderStatus(@Param("shopId") UUID shopId, @Param("status") String status);
 
-        @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.shop.id = :shopId AND o.orderStatus = 'PAID'")
-        BigDecimal getTotalRevenueByShopId(@Param("shopId") UUID shopId);
+  @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.shop.id = :shopId AND o.orderStatus = 'PAID'")
+  BigDecimal getTotalRevenueByShopId(@Param("shopId") UUID shopId);
+
+  // Payment sync methods
+  List<Order> findByOrderStatus(String orderStatus);
 }

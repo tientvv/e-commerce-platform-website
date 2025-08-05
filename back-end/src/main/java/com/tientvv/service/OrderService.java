@@ -48,9 +48,7 @@ public class OrderService {
   @Autowired
   private ShopService shopService;
 
-  @SuppressWarnings("unused")
-  @Autowired
-  private PayOSService payOSService;
+
 
   @Autowired
   private AccountService accountService;

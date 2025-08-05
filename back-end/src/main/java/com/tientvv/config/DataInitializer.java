@@ -61,12 +61,6 @@ public class DataInitializer implements CommandLineRunner {
   public void run(String... args) throws Exception {
     checkDatabaseConnection();
     initializeAdminAccount();
-    // Comment out sample data initialization to use real data from SQL script
-    // initializeSampleCategories();
-    // initializeSampleShippings();
-    // initializeSamplePayments();
-    // initializeSampleDiscounts();
-    // initializeSampleProducts();
   }
 
   private void checkDatabaseConnection() {
@@ -471,16 +465,16 @@ public class DataInitializer implements CommandLineRunner {
       paymentRepository.save(payment1);
       System.out.println("   ✅ Created payment: COD - Thanh toán khi nhận hàng");
 
-      // Create sample payment 2 - PayOS (Bank payment)
-      Payment payment2 = new Payment();
-      payment2.setPaymentCode("PAYOS");
-      payment2.setPaymentType("BANK");
-      payment2.setPaymentName("Thanh toán qua ngân hàng");
-      payment2.setIcon("https://example.com/payos-icon.png");
-      payment2.setDescription("Thanh toán trực tuyến an toàn qua PayOS");
-      payment2.setIsActive(true);
-      paymentRepository.save(payment2);
-      System.out.println("   ✅ Created payment: PAYOS - Thanh toán qua ngân hàng");
+             // Create sample payment 2 - PayOS (Bank payment)
+        Payment payment2 = new Payment();
+        payment2.setPaymentCode("PAYOS");
+        payment2.setPaymentType("BANK");
+        payment2.setPaymentName("Thanh toán qua ngân hàng");
+        payment2.setIcon("https://example.com/payos-icon.png");
+        payment2.setDescription("Thanh toán trực tuyến an toàn qua PayOS");
+        payment2.setIsActive(true);
+        paymentRepository.save(payment2);
+        System.out.println("   ✅ Created payment: PAYOS - Thanh toán qua ngân hàng");
 
       // Create sample payment 3 - Credit card
       Payment payment3 = new Payment();

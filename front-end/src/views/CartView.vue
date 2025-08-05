@@ -145,9 +145,9 @@
               </div>
 
               <!-- Shipping Cost -->
-              <div v-if="selectedShipping" class="flex justify-between text-sm text-gray-600">
+              <div v-if="selectedShippingObject" class="flex justify-between text-sm text-gray-600">
                 <p>Phí vận chuyển</p>
-                <p>{{ formatPrice(selectedShipping.price) }}</p>
+                <p>{{ formatPrice(selectedShippingObject.price) }}</p>
               </div>
 
               <!-- Payment Method -->
@@ -251,7 +251,7 @@ const subtotal = computed(() => {
 })
 
 const shippingCost = computed(() => {
-  return selectedShipping.value ? selectedShipping.value.price : 0
+  return selectedShippingObject.value ? selectedShippingObject.value.price : 0
 })
 
 const discountAmount = computed(() => {
@@ -269,18 +269,29 @@ const finalTotal = computed(() => {
   return Math.max(0, subtotal.value + shippingCost.value - discountAmount.value)
 })
 
+// Computed để tìm object từ ID
+const selectedShippingObject = computed(() => {
+  if (!selectedShipping.value) return null
+  return shippings.value.find(s => s.id === selectedShipping.value)
+})
+
+const selectedPaymentObject = computed(() => {
+  if (!selectedPayment.value) return null
+  return payments.value.find(p => p.id === selectedPayment.value)
+})
+
 // Computed options for selects
 const shippingOptions = computed(() => {
   return shippings.value.map((shipping) => ({
     label: `${shipping.shippingMethod} - ${formatPrice(shipping.price)}`,
-    value: shipping,
+    value: shipping.id, // Sử dụng ID thay vì object
   }))
 })
 
 const paymentOptions = computed(() => {
   return payments.value.map((payment) => ({
     label: payment.paymentName,
-    value: payment,
+    value: payment.id, // Sử dụng ID thay vì object
   }))
 })
 
@@ -299,7 +310,7 @@ const fetchShippings = async () => {
 
     // Mặc định chọn phương thức vận chuyển đầu tiên
     if (shippings.value.length > 0) {
-      selectedShipping.value = shippings.value[0]
+      selectedShipping.value = shippings.value[0].id
     }
   } catch (error) {
     console.error('Error fetching shippings:', error)
@@ -315,10 +326,10 @@ const fetchPayments = async () => {
     const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
 
     if (codPayment) {
-      selectedPayment.value = codPayment
+      selectedPayment.value = codPayment.id
     } else if (payments.value.length > 0) {
       // Nếu không có COD, chọn payment đầu tiên
-      selectedPayment.value = payments.value[0]
+      selectedPayment.value = payments.value[0].id
     }
   } catch (error) {
     console.error('Error fetching payments:', error)
@@ -461,12 +472,12 @@ const processCODPayment = async (orderData) => {
 }
 
 const handleCheckout = async () => {
-  if (!selectedShipping.value) {
+  if (!selectedShippingObject.value) {
     message.error('Vui lòng chọn phương thức vận chuyển')
     return
   }
 
-  if (!selectedPayment.value) {
+  if (!selectedPaymentObject.value) {
     message.error('Vui lòng chọn phương thức thanh toán')
     return
   }
@@ -523,12 +534,12 @@ const handleCheckout = async () => {
       return
     }
 
-    if (!selectedShipping.value?.id) {
+    if (!selectedShippingObject.value?.id) {
       message.error('Vui lòng chọn phương thức vận chuyển.')
       return
     }
 
-    if (!selectedPayment.value?.id) {
+    if (!selectedPaymentObject.value?.id) {
       message.error('Vui lòng chọn phương thức thanh toán.')
       return
     }
@@ -537,8 +548,8 @@ const handleCheckout = async () => {
     const orderData = {
       accountId: userResponse.data.account.id,
       shopId: shopId,
-      shippingId: selectedShipping.value.id,
-      paymentId: selectedPayment.value.id,
+      shippingId: selectedShippingObject.value.id,
+      paymentId: selectedPaymentObject.value.id,
       totalAmount: finalTotal.value,
       discountAmount: discountAmount.value,
       orderStatus: 'PENDING',
@@ -555,39 +566,44 @@ const handleCheckout = async () => {
     // Log để debug
     console.log('User ID:', userResponse.data.account.id)
     console.log('Shop ID:', shopId)
-    console.log('Shipping ID:', selectedShipping.value.id)
-    console.log('Payment ID:', selectedPayment.value.id)
+    console.log('Shipping ID:', selectedShippingObject.value.id)
+    console.log('Payment ID:', selectedPaymentObject.value.id)
     console.log('Cart items:', cartItems.value)
 
     console.log('Order data to send:', JSON.stringify(orderData, null, 2))
+    console.log('=== DEBUG CART VALUES ===')
+    console.log('total.value:', total.value)
+    console.log('subtotal.value:', subtotal.value)
+    console.log('shippingCost.value:', shippingCost.value)
+    console.log('discountAmount.value:', discountAmount.value)
+    console.log('finalTotal.value:', finalTotal.value)
+    console.log('cartItems.value:', cartItems.value)
+    console.log('=== END DEBUG ===')
 
     // Xử lý thanh toán dựa trên phương thức thanh toán
-    if (
-      selectedPayment.value.paymentCode === 'PAYOS' ||
-      selectedPayment.value.paymentName?.includes('ngân hàng') ||
-      selectedPayment.value.paymentType === 'BANK'
-    ) {
+    if (selectedPaymentObject.value.paymentCode === 'PAYOS') {
       // PayOS - Tạo payment URL trước, không tạo đơn hàng
       try {
         const payosResponse = await axios.post('/api/payos/create-payment', orderData)
 
         if (payosResponse.data.success) {
-          // Lưu orderCode để verify sau này
+          // Lưu orderCode và amount để verify sau này
           localStorage.setItem('pendingOrderCode', payosResponse.data.orderCode)
+          localStorage.setItem('pendingOrderAmount', finalTotal.value.toString())
 
           // Hiển thị thông báo chuyển hướng thanh toán
-          message.info('Đang chuyển hướng đến trang thanh toán...')
+          message.info('Đang chuyển hướng đến trang thanh toán PayOS...')
 
           // Redirect to PayOS payment page
           window.location.href = payosResponse.data.paymentUrl
         } else {
           // Kiểm tra xem có phải lỗi cấu hình PayOS không
-          if (payosResponse.data.errorCode === 'PAYOS_NOT_CONFIGURED') {
+          if (payosResponse.data.errorCode === 'PAYOS_ERROR') {
             message.warning('PayOS chưa được cấu hình. Vui lòng chọn phương thức thanh toán khác.')
             // Tự động chuyển về COD
             const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
             if (codPayment) {
-              selectedPayment.value = codPayment
+              selectedPayment.value = codPayment.id
               message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
               // Tiếp tục xử lý với COD
               await processCODPayment(orderData)
@@ -602,7 +618,52 @@ const handleCheckout = async () => {
         // Fallback về COD nếu có lỗi
         const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
         if (codPayment) {
-          selectedPayment.value = codPayment
+          selectedPayment.value = codPayment.id
+          message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
+          await processCODPayment(orderData)
+        }
+      }
+    } else if (
+      selectedPaymentObject.value.paymentCode === 'VNPAY' ||
+      selectedPaymentObject.value.paymentName?.includes('ngân hàng') ||
+      selectedPaymentObject.value.paymentType === 'BANK'
+    ) {
+      // VNPay - Tạo payment URL trước, không tạo đơn hàng
+      try {
+        const vnpayResponse = await axios.post('/api/vnpay/create-payment', orderData)
+
+        if (vnpayResponse.data.success) {
+          // Lưu orderCode để verify sau này
+          localStorage.setItem('pendingOrderCode', vnpayResponse.data.orderCode)
+
+          // Hiển thị thông báo chuyển hướng thanh toán
+          message.info('Đang chuyển hướng đến trang thanh toán VNPay...')
+
+          // Redirect to VNPay payment page
+          window.location.href = vnpayResponse.data.paymentUrl
+        } else {
+          // Kiểm tra xem có phải lỗi cấu hình VNPay không
+          if (vnpayResponse.data.errorCode === 'VNPAY_NOT_CONFIGURED') {
+            message.warning('VNPay chưa được cấu hình. Vui lòng chọn phương thức thanh toán khác.')
+            // Tự động chuyển về COD
+            const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
+            if (codPayment) {
+              selectedPayment.value = codPayment.id
+              message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
+              // Tiếp tục xử lý với COD
+              await processCODPayment(orderData)
+            }
+          } else {
+            message.error('Lỗi tạo URL thanh toán: ' + vnpayResponse.data.message)
+          }
+        }
+      } catch (error) {
+        console.error('Error creating VNPay payment:', error)
+        message.error('Lỗi khi tạo thanh toán VNPay: ' + (error.response?.data?.message || error.message))
+        // Fallback về COD nếu có lỗi
+        const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
+        if (codPayment) {
+          selectedPayment.value = codPayment.id
           message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
           await processCODPayment(orderData)
         }
