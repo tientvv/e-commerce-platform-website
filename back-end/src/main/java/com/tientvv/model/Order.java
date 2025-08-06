@@ -53,6 +53,10 @@ public class Order {
     @Column(name = "order_status", length = 50)
     private String orderStatus;
 
+    @Size(max = 100)
+    @Column(name = "order_code", length = 100)
+    private String orderCode;
+
     @Column(name = "order_date")
     private OffsetDateTime orderDate;
 

@@ -6,14 +6,7 @@
           <!-- Loading State -->
           <div v-if="loading" class="text-center">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
-              <svg class="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
+              <Loader2 class="animate-spin h-6 w-6 text-blue-600" />
             </div>
             <h2 class="mt-4 text-lg font-medium text-gray-900">Đang xác minh thanh toán...</h2>
             <p class="mt-2 text-sm text-gray-600">Vui lòng chờ trong giây lát.</p>
@@ -22,9 +15,7 @@
           <!-- Success State -->
           <div v-else-if="paymentSuccess" class="text-center">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-              </svg>
+              <Check class="h-6 w-6 text-green-600" />
             </div>
             <h2 class="mt-4 text-lg font-medium text-gray-900">Thanh toán thành công!</h2>
             <p class="mt-2 text-sm text-gray-600">
@@ -61,9 +52,7 @@
           <!-- Error State -->
           <div v-else class="text-center">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-              <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X class="h-6 w-6 text-red-600" />
             </div>
             <h2 class="mt-4 text-lg font-medium text-gray-900">Thanh toán thất bại</h2>
             <p class="mt-2 text-sm text-gray-600">{{ errorMessage || 'Có lỗi xảy ra trong quá trình thanh toán.' }}</p>
@@ -94,12 +83,14 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
-import { clearCart } from '../utils/cart.js'
+import { useCart } from '../composables/useCart.js'
 import axios from '../utils/axios'
+import { Loader2, Check, X } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const message = useMessage()
+const { clear } = useCart()
 
 const loading = ref(true)
 const paymentSuccess = ref(false)
@@ -109,44 +100,73 @@ const errorMessage = ref('')
 onMounted(async () => {
   try {
     // Lấy thông tin từ URL parameters
+    const code = route.query.code
+    const status = route.query.status
     const orderCode = route.query.orderCode
-    const transactionCode = route.query.transactionCode
-    const amount = route.query.amount
+    const cancel = route.query.cancel
 
-    if (!orderCode) {
-      errorMessage.value = 'Không tìm thấy thông tin đơn hàng'
+    console.log('Payment Success URL params:', route.query)
+
+    // Kiểm tra nếu user hủy thanh toán
+    if (cancel === 'true') {
+      errorMessage.value = 'Bạn đã hủy thanh toán'
       loading.value = false
       return
     }
 
-    // Verify payment với backend
-    const response = await axios.post('/api/payos/verify-payment', {
-      orderCode: orderCode,
-      transactionCode: transactionCode || 'TEST_TRANSACTION',
-    })
-
-    if (response.data.success) {
-      // Thanh toán thành công, tạo đơn hàng thật
+    // Kiểm tra status từ PayOS
+    if (status === 'PAID' && code === '00') {
+      // Thanh toán thành công
       paymentSuccess.value = true
       orderInfo.value = {
-        orderId: response.data.orderId,
-        amount: amount ? parseFloat(amount) : 0,
+        orderId: orderCode,
+        amount: 0, // Sẽ lấy từ order thật
         paymentMethod: 'PayOS',
       }
 
-      // Clear pending order code và zpTransToken từ localStorage
+      // Verify payment với backend để cập nhật trạng thái
+      try {
+        const response = await axios.post('/api/payos/verify-payment', {
+          orderCode: orderCode,
+          transactionCode: 'PAYOS_SUCCESS',
+        })
+
+        if (response.data.success) {
+          orderInfo.value.orderId = response.data.orderId
+
+          // Lấy thông tin đơn hàng thật từ backend
+          try {
+            const orderResponse = await axios.get(`/api/orders/${response.data.orderId}`)
+            if (orderResponse.data.success) {
+              const order = orderResponse.data.data
+              orderInfo.value.amount = order.totalAmount
+              orderInfo.value.paymentMethod = order.paymentName || 'PayOS'
+            }
+          } catch (orderError) {
+            console.error('Error fetching order details:', orderError)
+            // Vẫn hiển thị thông tin cơ bản
+          }
+
+          message.success('Thanh toán thành công!')
+        }
+      } catch (verifyError) {
+        console.error('Verify payment error:', verifyError)
+        // Vẫn hiển thị thành công vì PayOS đã confirm
+      }
+
+      // Clear pending order code từ localStorage
       localStorage.removeItem('pendingOrderCode')
 
       // Clear cart sau khi thanh toán thành công
-      clearCart()
+      clear()
 
-      message.success('Thanh toán thành công!')
     } else {
-      errorMessage.value = response.data.message || 'Thanh toán thất bại'
+      // Thanh toán thất bại
+      errorMessage.value = 'Thanh toán thất bại hoặc chưa hoàn tất'
     }
   } catch (error) {
-    console.error('Error verifying payment:', error)
-    errorMessage.value = error.response?.data?.message || 'Lỗi xác minh thanh toán'
+    console.error('Error processing payment result:', error)
+    errorMessage.value = 'Lỗi xử lý kết quả thanh toán'
   } finally {
     loading.value = false
   }

@@ -234,14 +234,10 @@
     >
       <div class="flex items-center space-x-2">
         <div v-if="toastType === 'success'" class="w-5 h-5">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
+          <Check class="w-5 h-5" />
         </div>
         <div v-else class="w-5 h-5">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-          </svg>
+          <X class="w-5 h-5" />
         </div>
         <span class="font-medium">{{ toastMessage }}</span>
       </div>
@@ -255,7 +251,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import axios from 'axios'
-import { Package, AlertCircle, ChevronRight, Star, Store, Eye, ShoppingCart, Heart, Plus, Minus } from 'lucide-vue-next'
+import { Package, AlertCircle, ChevronRight, Star, Store, Eye, ShoppingCart, Heart, Plus, Minus, Check, X } from 'lucide-vue-next'
 import NavbarView from './components/NavbarView.vue'
 import FooterView from './components/FooterView.vue'
 import { useCart } from '../composables/useCart'
@@ -319,9 +315,7 @@ const handleImageError = (event) => {
   event.target.style.display = 'none'
   event.target.parentElement.innerHTML = `
     <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-      <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-      </svg>
+      <Package class="w-16 h-16 text-gray-400" />
     </div>
   `
 }

@@ -51,4 +51,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
   // Payment sync methods
   List<Order> findByOrderStatus(String orderStatus);
+
+  // Find by orderCode
+  List<Order> findByOrderCode(String orderCode);
 }

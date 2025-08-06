@@ -242,7 +242,7 @@ public class ProductController {
       return response;
     }
     productService.deleteProduct(id);
-    response.put("message", "Xóa sản phẩm thành công!");
+    response.put("message", "Đã ẩn sản phẩm thành công!");
     return response;
   }
 
@@ -259,7 +259,24 @@ public class ProductController {
       return response;
     }
     productService.deleteProduct(id);
-    response.put("message", "Xóa sản phẩm thành công!");
+    response.put("message", "Đã ẩn sản phẩm thành công!");
+    return response;
+  }
+
+  @PutMapping("/restore/{id}")
+  public Map<String, Object> restoreProduct(@PathVariable UUID id, HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+    if (account == null) {
+      response.put("message", "Bạn chưa đăng nhập!");
+      return response;
+    }
+    if (id == null) {
+      response.put("message", "ID sản phẩm không hợp lệ!");
+      return response;
+    }
+    productService.restoreProduct(id);
+    response.put("message", "Đã khôi phục sản phẩm thành công!");
     return response;
   }
 }

@@ -93,9 +93,9 @@ public class OrderService {
 
     // Set order status based on payment method
     if ("PAYOS".equals(payment.getPaymentCode())) {
-      order.setOrderStatus("PENDING_PAYMENT");
+      order.setOrderStatus("PENDING_PROCESSING");
     } else {
-      order.setOrderStatus("PENDING");
+      order.setOrderStatus("PENDING_PROCESSING");
     }
 
     order.setOrderDate(OffsetDateTime.now());
@@ -103,6 +103,17 @@ public class OrderService {
 
     // Save order
     Order savedOrder = orderRepository.save(order);
+
+    // Set orderCode sau khi đã có ID
+    if ("PAYOS".equals(payment.getPaymentCode())) {
+      // Tạo orderCode cho PayOS (sử dụng hashCode của UUID)
+      String orderCode = String.valueOf(Math.abs(savedOrder.getId().hashCode()));
+      savedOrder.setOrderCode(orderCode);
+      orderRepository.save(savedOrder);
+    } else {
+      savedOrder.setOrderCode(savedOrder.getId().toString());
+      orderRepository.save(savedOrder);
+    }
 
     // Create order items
     List<OrderItem> orderItems = createOrderDto.getOrderItems().stream()
@@ -182,6 +193,17 @@ public class OrderService {
         .collect(Collectors.toList());
   }
 
+  public List<OrderDto> getAllOrders() {
+    List<Order> orders = orderRepository.findAll();
+    return orders.stream()
+        .map(order -> {
+          List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+          List<Transaction> transactions = transactionRepository.findByOrderId(order.getId());
+          return convertToDto(order, orderItems, transactions);
+        })
+        .collect(Collectors.toList());
+  }
+
   @Transactional
   public OrderDto updateOrderStatus(UUID orderId, String status) {
     Order order = orderRepository.findById(orderId)
@@ -204,17 +226,30 @@ public class OrderService {
   }
 
   @Transactional
-  public Transaction updateTransactionStatus(UUID transactionId, String status, String bankResponseCode) {
-    Transaction transaction = transactionRepository.findById(transactionId)
-        .orElseThrow(() -> new RuntimeException("Transaction not found"));
+  public OrderDto updateTransactionStatus(UUID orderId, String transactionStatus) {
+    Order order = orderRepository.findById(orderId)
+        .orElseThrow(() -> new RuntimeException("Order not found"));
 
-    transaction.setTransactionStatus(status);
-    if (bankResponseCode != null) {
-      transaction.setVnpayResponseCode(bankResponseCode);
+    // Cập nhật trạng thái transaction
+    List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+    System.out.println("Updating transactions for order " + orderId + ", found " + transactions.size() + " transactions");
+    
+    for (Transaction transaction : transactions) {
+      String oldStatus = transaction.getTransactionStatus();
+      System.out.println("Transaction " + transaction.getId() + " current status: " + oldStatus);
+      
+      // Cập nhật transaction status
+      transaction.setTransactionStatus(transactionStatus);
+      transaction.setTransactionDate(OffsetDateTime.now());
+      transactionRepository.save(transaction);
+      
+      System.out.println("Updated transaction " + transaction.getId() + " from " + oldStatus + " to " + transactionStatus);
     }
-    transaction.setTransactionDate(OffsetDateTime.now());
 
-    return transactionRepository.save(transaction);
+    List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+    List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
+
+    return convertToDto(order, orderItems, updatedTransactions);
   }
 
   // Shop Order Management Methods
@@ -292,20 +327,23 @@ public class OrderService {
 
     Map<String, Object> statistics = new HashMap<>();
 
-    // Tổng số đơn hàng của shop
-    long totalOrders = orderRepository.countByShopId(shopId);
-    statistics.put("totalOrders", totalOrders);
-
     // Đơn hàng theo trạng thái
-    long pendingOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "PENDING");
-    long pendingPaymentOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "PENDING_PAYMENT");
-    long paidOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "PAID");
+    long pendingProcessingOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "PENDING_PROCESSING");
+    long processedOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "PROCESSED");
+    long readyForPickupOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "READY_FOR_PICKUP");
+    long inTransitOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "IN_TRANSIT");
     long deliveredOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "DELIVERED");
     long cancelledOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "CANCELLED");
-
-    statistics.put("pendingOrders", pendingOrders);
-    statistics.put("pendingPaymentOrders", pendingPaymentOrders);
-    statistics.put("paidOrders", paidOrders);
+    
+    // Tính tổng đơn hàng
+    long totalOrders = pendingProcessingOrders + processedOrders + readyForPickupOrders + 
+                      inTransitOrders + deliveredOrders + cancelledOrders;
+    
+    statistics.put("totalOrders", totalOrders);
+    statistics.put("pendingProcessingOrders", pendingProcessingOrders);
+    statistics.put("processedOrders", processedOrders);
+    statistics.put("readyForPickupOrders", readyForPickupOrders);
+    statistics.put("inTransitOrders", inTransitOrders);
     statistics.put("deliveredOrders", deliveredOrders);
     statistics.put("cancelledOrders", cancelledOrders);
 
@@ -406,6 +444,7 @@ public class OrderService {
     dto.setTotalAmount(order.getTotalAmount());
     dto.setDiscountAmount(order.getDiscountAmount());
     dto.setOrderStatus(order.getOrderStatus());
+    dto.setOrderCode(order.getOrderCode());
     dto.setOrderDate(order.getOrderDate());
     dto.setDeliveredDate(order.getDeliveredDate());
     dto.setCancelledDate(order.getCancelledDate());

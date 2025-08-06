@@ -24,6 +24,7 @@ public class OrderDto {
   private BigDecimal totalAmount;
   private BigDecimal discountAmount;
   private String orderStatus;
+  private String orderCode;
   private OffsetDateTime orderDate;
   private OffsetDateTime deliveredDate;
   private OffsetDateTime cancelledDate;

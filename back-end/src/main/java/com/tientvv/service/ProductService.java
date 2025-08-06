@@ -83,17 +83,18 @@ public class ProductService {
     Product product = productRepository.findById(productId)
         .orElseThrow(() -> new RuntimeException("Product not found"));
 
-    // Check if product has variants or images
-    if (!product.getProductVariants().isEmpty()) {
-      throw new RuntimeException("Không thể xóa sản phẩm có biến thể. Vui lòng xóa biến thể trước.");
-    }
+    // Soft delete - set isActive to false instead of hard delete
+    product.setIsActive(false);
+    productRepository.save(product);
+  }
 
-    if (!product.getProductImages().isEmpty()) {
-      throw new RuntimeException("Không thể xóa sản phẩm có hình ảnh. Vui lòng xóa hình ảnh trước.");
-    }
+  public void restoreProduct(UUID productId) {
+    Product product = productRepository.findById(productId)
+        .orElseThrow(() -> new RuntimeException("Product not found"));
 
-    // Hard delete the product
-    productRepository.delete(product);
+    // Restore product - set isActive to true
+    product.setIsActive(true);
+    productRepository.save(product);
   }
 
   public List<ProductDto> getProductByShopIdAndIsActive(UUID shopId, Boolean isActive) {
@@ -101,7 +102,7 @@ public class ProductService {
   }
 
   public List<Product> findAllByShopId(UUID shopId) {
-    return productRepository.findAllByShopIdAndIsActiveTrue(shopId);
+    return productRepository.findAllByShopId(shopId);
   }
 
   public List<Product> findAllByShopIdIncludingInactive(UUID shopId) {

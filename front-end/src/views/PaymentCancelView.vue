@@ -5,9 +5,7 @@
         <div class="text-center">
           <!-- Cancel Icon -->
           <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-            <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X class="h-6 w-6 text-red-600" />
           </div>
 
           <h2 class="mt-4 text-lg font-medium text-gray-900">Thanh toán bị hủy</h2>
@@ -51,6 +49,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMessage } from 'naive-ui'
 import axios from '../utils/axios'
+import { X } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -114,26 +113,27 @@ const forceCancelOrder = async () => {
       return
     }
 
-    console.log('📞 Calling cancel API with orderCode:', orderCode)
+    console.log('📞 Calling verify-payment API with orderCode:', orderCode)
 
-    // Cancel đơn hàng hiện tại
-    const response = await axios.post('/api/payos/cancel-current-order', null, {
-      params: { orderCode: orderCode }
+    // Gọi verify-payment với transactionCode CANCELLED để cập nhật trạng thái
+    const response = await axios.post('/api/payos/verify-payment', {
+      orderCode: orderCode,
+      transactionCode: 'PAYOS_CANCELLED'
     })
 
     console.log('📥 API Response:', response.data)
 
     if (response.data.success) {
-      console.log(`✅ Đã hủy đơn hàng: ${orderCode}`)
-      message.success('Đã hủy đơn hàng thành công')
+      console.log(`✅ Đã cập nhật trạng thái đơn hàng: ${orderCode}`)
+      // Bỏ thông báo success
     } else {
       console.error('❌ API Error:', response.data.message)
-      message.error(response.data.message || 'Lỗi khi hủy đơn hàng')
+      message.error(response.data.message || 'Lỗi khi cập nhật trạng thái đơn hàng')
     }
   } catch (error) {
-    console.error('💥 Error cancelling order:', error)
+    console.error('💥 Error updating order status:', error)
     console.error('💥 Error response:', error.response?.data)
-    message.error('Lỗi khi hủy đơn hàng: ' + (error.response?.data?.message || error.message))
+    message.error('Lỗi khi cập nhật trạng thái đơn hàng: ' + (error.response?.data?.message || error.message))
   }
 }
 

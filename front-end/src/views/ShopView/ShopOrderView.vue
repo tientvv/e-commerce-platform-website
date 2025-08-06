@@ -471,12 +471,15 @@ const formatDate = (date) => {
 
 const getStatusLabel = (status) => {
   const statusMap = {
-    PENDING: 'Chờ xử lý',
+    PENDING_PROCESSING: 'Chờ xử lý',
     PROCESSED: 'Đã xử lý',
-    PAID: 'Đã thanh toán',
-    SHIPPING: 'Đang giao hàng',
+    READY_FOR_PICKUP: 'Chờ lấy hàng',
+    IN_TRANSIT: 'Đang giao hàng',
     DELIVERED: 'Đã giao hàng',
     CANCELLED: 'Đã hủy',
+    PENDING: 'Chờ thanh toán',
+    PAID: 'Đã thanh toán',
+    SHIPPING: 'Đang giao hàng',
     REFUNDED: 'Đã hoàn tiền',
     RETURNED: 'Đã trả hàng',
   }
@@ -485,12 +488,15 @@ const getStatusLabel = (status) => {
 
 const getStatusType = (status) => {
   const typeMap = {
-    PENDING: 'warning',
+    PENDING_PROCESSING: 'warning',
     PROCESSED: 'info',
-    PAID: 'success',
-    SHIPPING: 'info',
+    READY_FOR_PICKUP: 'info',
+    IN_TRANSIT: 'info',
     DELIVERED: 'success',
     CANCELLED: 'error',
+    PENDING: 'warning',
+    PAID: 'success',
+    SHIPPING: 'info',
     REFUNDED: 'error',
     RETURNED: 'error',
   }
@@ -499,12 +505,15 @@ const getStatusType = (status) => {
 
 const getStatusIcon = (status) => {
   const iconMap = {
-    PENDING: Clock,
+    PENDING_PROCESSING: Clock,
     PROCESSED: CheckCircle,
-    PAID: DollarSign,
-    SHIPPING: Truck,
+    READY_FOR_PICKUP: Package,
+    IN_TRANSIT: Truck,
     DELIVERED: Package,
     CANCELLED: XCircle,
+    PENDING: Clock,
+    PAID: DollarSign,
+    SHIPPING: Truck,
     REFUNDED: RotateCcw,
     RETURNED: ArrowLeft,
   }

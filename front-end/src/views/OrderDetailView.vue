@@ -162,18 +162,24 @@ const formatDate = (dateString) => {
 
 const getStatusClass = (status) => {
   switch (status) {
-    case 'PENDING':
+    case 'PENDING_PROCESSING':
       return 'bg-yellow-100 text-yellow-800'
-    case 'PENDING_PAYMENT':
+    case 'PROCESSED':
+      return 'bg-blue-100 text-blue-800'
+    case 'READY_FOR_PICKUP':
+      return 'bg-purple-100 text-purple-800'
+    case 'IN_TRANSIT':
+      return 'bg-indigo-100 text-indigo-800'
+    case 'DELIVERED':
+      return 'bg-green-100 text-green-800'
+    case 'CANCELLED':
+      return 'bg-red-100 text-red-800'
+    case 'PENDING':
       return 'bg-orange-100 text-orange-800'
     case 'PAID':
       return 'bg-green-100 text-green-800'
     case 'SHIPPED':
       return 'bg-blue-100 text-blue-800'
-    case 'DELIVERED':
-      return 'bg-green-100 text-green-800'
-    case 'CANCELLED':
-      return 'bg-red-100 text-red-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }
@@ -181,18 +187,24 @@ const getStatusClass = (status) => {
 
 const getStatusText = (status) => {
   switch (status) {
-    case 'PENDING':
+    case 'PENDING_PROCESSING':
       return 'Chờ xử lý'
-    case 'PENDING_PAYMENT':
-      return 'Chờ thanh toán'
-    case 'PAID':
-      return 'Đã thanh toán'
-    case 'SHIPPED':
+    case 'PROCESSED':
+      return 'Đã xử lý'
+    case 'READY_FOR_PICKUP':
+      return 'Chờ lấy hàng'
+    case 'IN_TRANSIT':
       return 'Đang giao hàng'
     case 'DELIVERED':
       return 'Đã giao hàng'
     case 'CANCELLED':
       return 'Đã hủy'
+    case 'PENDING':
+      return 'Chờ thanh toán'
+    case 'PAID':
+      return 'Đã thanh toán'
+    case 'SHIPPED':
+      return 'Đang giao hàng'
     default:
       return status
   }
@@ -202,8 +214,13 @@ const fetchOrder = async () => {
   try {
     loading.value = true
     const response = await axios.get(`/api/orders/${route.params.id}`)
-    order.value = response.data
-    console.log('Order data:', order.value)
+
+    if (response.data.success) {
+      order.value = response.data.data
+      console.log('Order data:', order.value)
+    } else {
+      error.value = response.data.message || 'Không thể tải thông tin đơn hàng'
+    }
   } catch (err) {
     console.error('Error fetching order:', err)
     error.value = 'Không thể tải thông tin đơn hàng'

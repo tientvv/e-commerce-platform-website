@@ -73,7 +73,7 @@
 
 <script setup>
 import { RouterLink, useRouter } from 'vue-router'
-import Logo from '~/assets/logo.svg'
+import Logo from '../../assets/logo.svg'
 import { LogIn, Heart, User, Settings, Search, ShoppingCart } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import axios from 'axios'

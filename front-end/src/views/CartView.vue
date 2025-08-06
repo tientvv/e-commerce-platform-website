@@ -18,20 +18,12 @@
       <!-- Page Header -->
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">Giỏ hàng</h1>
-        <p class="mt-2 text-gray-600">Quản lý sản phẩm trong giỏ hàng của bạn</p>
       </div>
 
       <!-- Empty Cart -->
       <div v-if="cartItems.length === 0" class="text-center py-12">
-        <div class="mx-auto h-24 w-24 text-gray-400">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 5M7 13l2.5 5m6-5v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01"
-            />
-          </svg>
+        <div class="mx-auto h-24 w-24 text-gray-400 flex items-center justify-center">
+          <ShoppingCart class="w-16 h-16" />
         </div>
         <h3 class="mt-4 text-lg font-medium text-gray-900">Giỏ hàng trống</h3>
         <p class="mt-2 text-gray-500">Bạn chưa có sản phẩm nào trong giỏ hàng.</p>
@@ -96,18 +88,14 @@
                         :disabled="item.quantity <= 1"
                         class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                        </svg>
+                        <Minus class="w-4 h-4" />
                       </button>
                       <span class="text-lg font-medium w-12 text-center">{{ item.quantity }}</span>
                       <button
                         @click="updateQuantity(item.id, item.quantity + 1)"
                         class="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50"
                       >
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
+                        <Plus class="w-4 h-4" />
                       </button>
                     </div>
                     <button @click="removeItem(item.id)" class="text-red-600 hover:text-red-800 text-sm font-medium">
@@ -222,7 +210,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight, ShoppingCart, Minus, Plus } from 'lucide-vue-next'
 import { NSelect, useMessage } from 'naive-ui'
 import { useCart } from '../composables/useCart'
 
@@ -623,53 +611,8 @@ const handleCheckout = async () => {
           await processCODPayment(orderData)
         }
       }
-    } else if (
-      selectedPaymentObject.value.paymentCode === 'VNPAY' ||
-      selectedPaymentObject.value.paymentName?.includes('ngân hàng') ||
-      selectedPaymentObject.value.paymentType === 'BANK'
-    ) {
-      // VNPay - Tạo payment URL trước, không tạo đơn hàng
-      try {
-        const vnpayResponse = await axios.post('/api/vnpay/create-payment', orderData)
-
-        if (vnpayResponse.data.success) {
-          // Lưu orderCode để verify sau này
-          localStorage.setItem('pendingOrderCode', vnpayResponse.data.orderCode)
-
-          // Hiển thị thông báo chuyển hướng thanh toán
-          message.info('Đang chuyển hướng đến trang thanh toán VNPay...')
-
-          // Redirect to VNPay payment page
-          window.location.href = vnpayResponse.data.paymentUrl
-        } else {
-          // Kiểm tra xem có phải lỗi cấu hình VNPay không
-          if (vnpayResponse.data.errorCode === 'VNPAY_NOT_CONFIGURED') {
-            message.warning('VNPay chưa được cấu hình. Vui lòng chọn phương thức thanh toán khác.')
-            // Tự động chuyển về COD
-            const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
-            if (codPayment) {
-              selectedPayment.value = codPayment.id
-              message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
-              // Tiếp tục xử lý với COD
-              await processCODPayment(orderData)
-            }
-          } else {
-            message.error('Lỗi tạo URL thanh toán: ' + vnpayResponse.data.message)
-          }
-        }
-      } catch (error) {
-        console.error('Error creating VNPay payment:', error)
-        message.error('Lỗi khi tạo thanh toán VNPay: ' + (error.response?.data?.message || error.message))
-        // Fallback về COD nếu có lỗi
-        const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
-        if (codPayment) {
-          selectedPayment.value = codPayment.id
-          message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
-          await processCODPayment(orderData)
-        }
-      }
     } else {
-      // COD - Tạo đơn hàng trực tiếp
+      // COD hoặc các phương thức khác - Tạo đơn hàng trực tiếp
       await processCODPayment(orderData)
     }
   } catch (error) {
