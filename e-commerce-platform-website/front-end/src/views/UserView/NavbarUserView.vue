@@ -26,7 +26,7 @@
 
     <RouterLink to="/user/order" class="py-1 px-2 bg-white text-gray-700 rounded-xs border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-transparent transition-colors font-medium flex items-center gap-2">
       <ShoppingBasket width="18" />
-      Đơn hàng (1) (Đang phát triển)
+      Đơn hàng của bạn
     </RouterLink>
   </div>
 </template>
@@ -39,9 +39,11 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
 const hasShop = ref(false)
+const orderCount = ref(0)
 
 onMounted(() => {
   checkShopStatus()
+  fetchOrderCount()
 })
 
 const checkShopStatus = async () => {
@@ -50,6 +52,17 @@ const checkShopStatus = async () => {
     hasShop.value = !!response.data.shop
   } catch {
     hasShop.value = false
+  }
+}
+
+const fetchOrderCount = async () => {
+  try {
+    const response = await axios.get('/api/orders/my-orders')
+    if (response.data.success) {
+      orderCount.value = response.data.orders.length
+    }
+  } catch {
+    orderCount.value = 0
   }
 }
 </script>

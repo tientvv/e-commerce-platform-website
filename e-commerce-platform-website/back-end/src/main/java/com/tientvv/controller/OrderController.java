@@ -2,6 +2,8 @@ package com.tientvv.controller;
 
 import com.tientvv.dto.order.CreateOrderDto;
 import com.tientvv.dto.order.OrderDto;
+import com.tientvv.model.Account;
+import com.tientvv.service.AccountService;
 import com.tientvv.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,9 @@ public class OrderController {
 
   @Autowired
   private OrderService orderService;
+
+  @Autowired
+  private AccountService accountService;
 
   @PostMapping
   public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderDto createOrderDto) {
@@ -60,6 +65,34 @@ public class OrderController {
       return ResponseEntity.ok(orders);
     } catch (Exception e) {
       return ResponseEntity.badRequest().build();
+    }
+  }
+
+  @GetMapping("/my-orders")
+  public ResponseEntity<Map<String, Object>> getMyOrders() {
+    try {
+      // Lấy user hiện tại từ session
+      Account currentUser = accountService.getCurrentUserFromSession();
+      if (currentUser == null) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", "Bạn cần phải đăng nhập để xem đơn hàng");
+        return ResponseEntity.badRequest().body(errorResponse);
+      }
+
+      List<OrderDto> orders = orderService.getOrdersByAccountId(currentUser.getId());
+      
+      Map<String, Object> response = new HashMap<>();
+      response.put("success", true);
+      response.put("orders", orders);
+      response.put("message", "Lấy danh sách đơn hàng thành công");
+      
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      Map<String, Object> errorResponse = new HashMap<>();
+      errorResponse.put("success", false);
+      errorResponse.put("message", "Lỗi lấy danh sách đơn hàng: " + e.getMessage());
+      return ResponseEntity.badRequest().body(errorResponse);
     }
   }
 
@@ -146,4 +179,32 @@ public class OrderController {
     }
   }
 
+  @PostMapping("/create-sample-order")
+  public ResponseEntity<Map<String, Object>> createSampleOrder() {
+    try {
+      // Lấy user hiện tại từ session
+      Account currentUser = accountService.getCurrentUserFromSession();
+      if (currentUser == null) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", "Bạn cần phải đăng nhập để tạo đơn hàng");
+        return ResponseEntity.badRequest().body(errorResponse);
+      }
+
+      // Tạo đơn hàng mẫu
+      OrderDto sampleOrder = orderService.createSampleOrder(currentUser.getId());
+      
+      Map<String, Object> response = new HashMap<>();
+      response.put("success", true);
+      response.put("message", "Tạo đơn hàng mẫu thành công");
+      response.put("order", sampleOrder);
+      
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      Map<String, Object> errorResponse = new HashMap<>();
+      errorResponse.put("success", false);
+      errorResponse.put("message", "Lỗi tạo đơn hàng mẫu: " + e.getMessage());
+      return ResponseEntity.badRequest().body(errorResponse);
+    }
+  }
 }

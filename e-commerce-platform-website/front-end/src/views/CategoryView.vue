@@ -119,7 +119,7 @@
             <div class="flex items-center justify-between">
               <!-- Results Info -->
               <div class="text-sm text-gray-600">
-                Hiển thị {{ startIndex + 1 }}-{{ endIndex }} của {{ totalProducts }} sản phẩm
+                Hiển thị {{ displayedProducts.length }} của {{ totalProducts }} sản phẩm
               </div>
 
               <!-- Sort Options -->
@@ -159,8 +159,8 @@
           </div>
 
           <!-- Loading state -->
-          <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            <div v-for="n in 15" :key="n" class="animate-pulse">
+          <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div v-for="n in 36" :key="n" class="animate-pulse">
               <div class="bg-gray-200 rounded-lg aspect-square mb-4"></div>
               <div class="bg-gray-200 h-4 rounded mb-2"></div>
               <div class="bg-gray-200 h-4 rounded w-2/3"></div>
@@ -171,11 +171,11 @@
           <div
             v-else-if="filteredProducts.length > 0"
             :class="
-              viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6' : 'space-y-4'
+              viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'
             "
           >
             <div
-              v-for="product in paginatedProducts"
+              v-for="product in displayedProducts"
               :key="product.id"
               :class="
                 viewMode === 'grid'
@@ -329,35 +329,14 @@
             </button>
           </div>
 
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="mt-8 flex justify-center">
-            <nav class="flex items-center space-x-2">
-              <button
-                @click="currentPage = Math.max(1, currentPage - 1)"
-                :disabled="currentPage === 1"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Trước
-              </button>
-
-              <button
-                v-for="page in visiblePages"
-                :key="page"
-                @click="currentPage = page"
-                :class="page === currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-md"
-              >
-                {{ page }}
-              </button>
-
-              <button
-                @click="currentPage = Math.min(totalPages, currentPage + 1)"
-                :disabled="currentPage === totalPages"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Sau
-              </button>
-            </nav>
+                    <!-- Load More Button -->
+          <div v-if="hasMoreProducts" class="mt-8 flex justify-center">
+            <button
+              @click="loadMoreProducts"
+              class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
+            >
+              Xem thêm
+            </button>
           </div>
         </div>
       </div>
@@ -396,9 +375,8 @@ const hasDiscount = ref(false)
 const viewMode = ref('grid')
 const sortBy = ref('newest')
 
-// Pagination
-const currentPage = ref(1)
-const itemsPerPage = ref(15)
+// Load More
+const displayedCount = ref(36) // Số sản phẩm hiển thị ban đầu
 
 // Computed
 const totalProducts = computed(() => filteredProducts.value.length)
@@ -478,30 +456,12 @@ const filteredProducts = computed(() => {
   return filtered
 })
 
-const totalPages = computed(() => Math.ceil(totalProducts.value / itemsPerPage.value))
-
-const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value)
-const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage.value, totalProducts.value))
-
-const paginatedProducts = computed(() => {
-  return filteredProducts.value.slice(startIndex.value, endIndex.value)
+const displayedProducts = computed(() => {
+  return filteredProducts.value.slice(0, displayedCount.value)
 })
 
-const visiblePages = computed(() => {
-  const pages = []
-  const maxVisible = 5
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-
-  return pages
+const hasMoreProducts = computed(() => {
+  return displayedCount.value < filteredProducts.value.length
 })
 
 // Methods
@@ -536,7 +496,11 @@ const clearAllFilters = () => {
   selectedRatings.value = []
   inStockOnly.value = false
   hasDiscount.value = false
-  currentPage.value = 1
+  displayedCount.value = 36 // Reset về 36 sản phẩm
+}
+
+const loadMoreProducts = () => {
+  displayedCount.value += 36 // Thêm 36 sản phẩm nữa
 }
 
 const handleProductClick = (product) => {
@@ -630,7 +594,7 @@ const hasProductDiscount = (product) => {
 
 // Watchers
 watch([priceFilter, selectedBrands, selectedRatings, inStockOnly, hasDiscount, sortBy], () => {
-  currentPage.value = 1
+  displayedCount.value = 36 // Reset về 36 sản phẩm khi thay đổi filter
 })
 
 // Lifecycle

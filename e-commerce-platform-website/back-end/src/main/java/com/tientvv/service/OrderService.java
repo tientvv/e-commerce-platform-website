@@ -209,6 +209,13 @@ public class OrderService {
           List<Transaction> transactions = transactionRepository.findByOrderId(order.getId());
           return convertToDto(order, orderItems, transactions);
         })
+        .sorted((a, b) -> {
+          // Sắp xếp theo thời gian đặt hàng mới nhất
+          if (a.getOrderDate() == null && b.getOrderDate() == null) return 0;
+          if (a.getOrderDate() == null) return 1;
+          if (b.getOrderDate() == null) return -1;
+          return b.getOrderDate().compareTo(a.getOrderDate()); // Mới nhất trước
+        })
         .collect(Collectors.toList());
   }
 
@@ -783,5 +790,95 @@ public class OrderService {
       System.err.println("Lỗi khi trừ số lượng sản phẩm cho đơn hàng " + orderId + ": " + e.getMessage());
       e.printStackTrace();
     }
+  }
+
+  public OrderDto createSampleOrder(UUID accountId) {
+    // Tạo đơn hàng mẫu cho testing
+    Account account = accountRepository.findById(accountId)
+        .orElseThrow(() -> new RuntimeException("Account not found"));
+
+    // Tạo shop mẫu nếu chưa có
+    Shop shop = shopRepository.findAll().stream().findFirst()
+        .orElseGet(() -> {
+          Shop demoShop = new Shop();
+          demoShop.setShopName("Shop Demo");
+          demoShop.setDescription("Shop demo cho testing");
+          demoShop.setPhone("0123456789");
+          demoShop.setEmail("demo@shop.com");
+          demoShop.setAddress("123 Đường Demo, Quận 1, TP.HCM");
+          demoShop.setCreatedAt(OffsetDateTime.now());
+          demoShop.setIsActive(true);
+          return shopRepository.save(demoShop);
+        });
+
+    // Tạo shipping mẫu
+    Shipping shipping = shippingRepository.findAll().stream().findFirst()
+        .orElseGet(() -> {
+          Shipping demoShipping = new Shipping();
+          demoShipping.setShippingMethod("Giao hàng tiêu chuẩn");
+          demoShipping.setDescription("Giao hàng trong 2-3 ngày");
+          demoShipping.setPrice(new BigDecimal("30000"));
+          demoShipping.setEstimatedDelivery("2-3 ngày");
+          demoShipping.setIsActive(true);
+          return shippingRepository.save(demoShipping);
+        });
+
+    // Tạo payment mẫu
+    Payment payment = paymentRepository.findAll().stream().findFirst()
+        .orElseGet(() -> {
+          Payment demoPayment = new Payment();
+          demoPayment.setPaymentCode("COD");
+          demoPayment.setPaymentType("CASH");
+          demoPayment.setPaymentName("Thanh toán khi nhận hàng");
+          demoPayment.setDescription("Thanh toán tiền mặt khi nhận hàng");
+          demoPayment.setIsActive(true);
+          return paymentRepository.save(demoPayment);
+        });
+
+    // Tạo order
+    Order order = new Order();
+    order.setAccount(account);
+    order.setShop(shop);
+    order.setShipping(shipping);
+    order.setPayment(payment);
+    order.setTotalAmount(new BigDecimal("150000"));
+    order.setDiscountAmount(new BigDecimal("10000"));
+    order.setOrderStatus("PENDING_PROCESSING");
+    order.setOrderDate(OffsetDateTime.now());
+    order.setShippingAddress("456 Đường Test, Quận 2, TP.HCM");
+    order.setOrderCode("ORDER" + System.currentTimeMillis());
+
+    Order savedOrder = orderRepository.save(order);
+
+    // Tạo order items mẫu
+    List<OrderItem> orderItems = new ArrayList<>();
+    
+    // Order item 1
+    OrderItem item1 = new OrderItem();
+    item1.setOrder(savedOrder);
+    item1.setQuantity(2);
+    item1.setProductPrice(new BigDecimal("50000"));
+    item1.setDiscountApplied(new BigDecimal("5000"));
+    orderItems.add(orderItemRepository.save(item1));
+
+    // Order item 2
+    OrderItem item2 = new OrderItem();
+    item2.setOrder(savedOrder);
+    item2.setQuantity(1);
+    item2.setProductPrice(new BigDecimal("80000"));
+    item2.setDiscountApplied(new BigDecimal("5000"));
+    orderItems.add(orderItemRepository.save(item2));
+
+    // Tạo transaction mẫu
+    Transaction transaction = new Transaction();
+    transaction.setOrder(savedOrder);
+    transaction.setPayment(payment);
+    transaction.setTransactionCode("TXN" + System.currentTimeMillis());
+    transaction.setTransactionAmount(new BigDecimal("140000"));
+    transaction.setTransactionStatus("PENDING");
+    transaction.setTransactionDate(OffsetDateTime.now());
+    transactionRepository.save(transaction);
+
+    return convertToDto(savedOrder, orderItems, List.of(transaction));
   }
 }

@@ -12,127 +12,155 @@ import UserView from '~/views/UserView/UserView.vue'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-    { path: '/', component: HomeView },
-    { path: '/login', component: LoginAccountView },
-    { path: '/category/:id', component: CategoryView },
-    { path: '/product/:id', component: ProductDetailView },
-    { path: '/cart', component: CartView },
-    { path: '/search', component: () => import('~/views/SearchView.vue') },
-    { path: '/order/:id', component: () => import('~/views/OrderDetailView.vue') },
-    { path: '/payment-success', component: () => import('~/views/PaymentSuccessView.vue') },
-    { path: '/payment-cancel', component: () => import('~/views/PaymentCancelView.vue') },
+    { path: '/', component: HomeView, name: 'home', meta: { title: 'Trang chủ' } },
+    { path: '/login', component: LoginAccountView, name: 'login', meta: { title: 'Đăng nhập' } },
+    { path: '/category/:id', component: CategoryView, name: 'category', meta: { title: 'Danh mục sản phẩm' } },
+    { path: '/product/:id', component: ProductDetailView, name: 'product', meta: { title: 'Chi tiết sản phẩm' } },
+    { path: '/cart', component: CartView, name: 'cart', meta: { title: 'Giỏ hàng' } },
+    { path: '/search', component: () => import('~/views/SearchView.vue'), name: 'search', meta: { title: 'Tìm kiếm' } },
+    { path: '/order/:id', component: () => import('~/views/OrderDetailView.vue'), name: 'order-detail', meta: { title: 'Chi tiết đơn hàng' } },
+    { path: '/payment-success', component: () => import('~/views/PaymentSuccessView.vue'), name: 'payment-success', meta: { title: 'Thanh toán thành công' } },
+    { path: '/payment-cancel', component: () => import('~/views/PaymentCancelView.vue'), name: 'payment-cancel', meta: { title: 'Thanh toán thất bại' } },
 
     {
       path: '/wishlist',
       component: WishlistView,
+      name: 'wishlist',
       meta: {
         requiresAuth: true,
         roles: ['USER', 'ADMIN'],
+        title: 'Danh sách yêu thích'
       },
     },
-    { path: '/register', component: RegisterAccountView },
+    { path: '/register', component: RegisterAccountView, name: 'register', meta: { title: 'Đăng ký' } },
     {
       path: '/user',
       component: UserView,
-      meta: { requiresAuth: true, roles: ['USER', 'ADMIN'] },
+      name: 'user',
+      meta: { requiresAuth: true, roles: ['USER', 'ADMIN'], title: 'Tài khoản' },
       children: [
-        { path: 'profile', component: () => import('~/views/UserView/ProfileView.vue') },
+        { path: 'profile', component: () => import('~/views/UserView/ProfileView.vue'), name: 'user-profile', meta: { title: 'Thông tin cá nhân' } },
         {
           path: 'shop',
           component: () => import('~/views/UserView/ShopView.vue'),
-          meta: { requiresShop: true },
+          name: 'user-shop',
+          meta: { requiresShop: true, title: 'Kênh bán hàng' },
           children: [
             {
               path: 'product-variants/index',
               component: () => import('~/views/ProductVariants/ProductVariantsView.vue'),
-              meta: { requiresShop: true },
+              name: 'shop-product-variants',
+              meta: { requiresShop: true, title: 'Biến thể sản phẩm' },
             },
             {
               path: 'product-images/index',
               component: () => import('~/views/ProductVariants/ProductImageView.vue'),
-              meta: { requiresShop: true },
+              name: 'shop-product-images',
+              meta: { requiresShop: true, title: 'Hình ảnh sản phẩm' },
             },
             {
               path: 'profile',
               component: () => import('~/views/ShopView/ProfileShopView.vue'),
-              meta: { requiresShop: true },
+              name: 'shop-profile',
+              meta: { requiresShop: true, title: 'Thông tin cửa hàng' },
             },
             {
               path: 'product',
               component: () => import('~/views/ShopView/ProductShopView.vue'),
-              meta: { requiresShop: true },
+              name: 'shop-product',
+              meta: { requiresShop: true, title: 'Quản lý sản phẩm' },
               children: [
                 {
                   path: 'list',
                   component: () => import('~/views/ShopView/ListProductView.vue'),
-                  meta: { requiresShop: true },
+                  name: 'shop-product-list',
+                  meta: { requiresShop: true, title: 'Danh sách sản phẩm' },
                 },
                 {
                   path: 'add',
                   component: () => import('~/views/ShopView/CRUDProduct/CreateProductShopView.vue'),
-                  meta: { requiresShop: true },
+                  name: 'shop-product-add',
+                  meta: { requiresShop: true, title: 'Thêm sản phẩm' },
                 },
                 {
                   path: 'edit/:id',
                   component: () => import('~/views/ShopView/CRUDProduct/EditProductShopView.vue'),
-                  meta: { requiresShop: true },
+                  name: 'shop-product-edit',
+                  meta: { requiresShop: true, title: 'Chỉnh sửa sản phẩm' },
                 },
               ],
             },
             {
               path: 'orders',
               component: () => import('~/views/ShopView/ShopOrderView.vue'),
-              meta: { requiresShop: true },
+              name: 'shop-orders',
+              meta: { requiresShop: true, title: 'Quản lý đơn hàng' },
             },
             {
               path: 'revenue',
               component: () => import('~/views/ShopView/ShopRevenueView.vue'),
-              meta: { requiresShop: true },
+              name: 'shop-revenue',
+              meta: { requiresShop: true, title: 'Thống kê doanh thu' },
             },
           ],
         },
-        { path: 'order', component: () => import('~/views/UserView/OrderView.vue') },
+        { path: 'order', component: () => import('~/views/UserView/OrderView.vue'), name: 'user-order', meta: { title: 'Đơn hàng của bạn' } },
       ],
     },
     {
       path: '/register-shop',
       component: () => import('~/views/ShopView/RegisterShopView.vue'),
-      meta: { requiresAuth: true, roles: ['USER', 'ADMIN'] },
+      name: 'register-shop',
+      meta: { requiresAuth: true, roles: ['USER', 'ADMIN'], title: 'Đăng ký cửa hàng' },
     },
     // Admin Routes
     {
       path: '/admin',
       component: () => import('~/views/AdminView/AdminView.vue'),
-      meta: { requiresAuth: true, roles: ['ADMIN'] },
+      name: 'admin',
+      meta: { requiresAuth: true, roles: ['ADMIN'], title: 'Quản trị' },
       children: [
         {
           path: '',
           component: () => import('~/views/AdminView/AdminDashboard.vue'),
+          name: 'admin-dashboard',
+          meta: { title: 'Bảng điều khiển' },
         },
         {
           path: 'categories',
           component: () => import('~/views/AdminView/AdminCategoryView.vue'),
+          name: 'admin-categories',
+          meta: { title: 'Quản lý danh mục' },
         },
         {
           path: 'discounts',
           component: () => import('~/views/AdminView/AdminDiscountView.vue'),
+          name: 'admin-discounts',
+          meta: { title: 'Quản lý khuyến mãi' },
         },
         {
           path: 'shippings',
           component: () => import('~/views/AdminView/AdminShippingView.vue'),
+          name: 'admin-shippings',
+          meta: { title: 'Quản lý vận chuyển' },
         },
         {
           path: 'payments',
           component: () => import('~/views/AdminView/AdminPaymentView.vue'),
+          name: 'admin-payments',
+          meta: { title: 'Quản lý thanh toán' },
         },
-
         {
           path: 'shops',
           component: () => import('~/views/AdminView/AdminShopView.vue'),
+          name: 'admin-shops',
+          meta: { title: 'Quản lý cửa hàng' },
         },
         {
           path: 'users',
           component: () => import('~/views/AdminView/AdminUserView.vue'),
+          name: 'admin-users',
+          meta: { title: 'Quản lý người dùng' },
         },
       ],
     },
@@ -141,6 +169,13 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   console.log('Router guard - navigating to:', to.path)
+
+  // Cập nhật title của trang
+  if (to.meta && to.meta.title) {
+    document.title = to.meta.title + ' - E-Commerce Platform'
+  } else {
+    document.title = 'E-Commerce Platform'
+  }
 
   // Kiểm tra đăng nhập trước
   let user = null
