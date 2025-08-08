@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .result {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        input {
+            padding: 10px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Search Function</h1>
+    
+    <div class="section">
+        <h2>1. Kiểm tra dữ liệu trong database</h2>
+        <button onclick="debugProducts()">Kiểm tra tất cả sản phẩm</button>
+        <div id="debugResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. Test Search API</h2>
+        <input type="text" id="searchInput" placeholder="Nhập từ khóa..." value="iPhone" />
+        <button onclick="testSearch()">Tìm kiếm</button>
+        <div id="searchResult"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. Test các từ khóa khác nhau</h2>
+        <button onclick="testKeyword('iPhone')">iPhone</button>
+        <button onclick="testKeyword('Apple')">Apple</button>
+        <button onclick="testKeyword('MacBook')">MacBook</button>
+        <button onclick="testKeyword('test')">test</button>
+        <button onclick="testKeyword('')">Empty</button>
+        <div id="keywordResult"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        async function debugProducts() {
+            const resultDiv = document.getElementById('debugResult');
+            resultDiv.innerHTML = 'Đang kiểm tra dữ liệu...';
+            
+            try {
+                const response = await fetch(`${API_BASE}/products/debug/products`);
+                const data = await response.json();
+                
+                let html = `<div class="result success">
+                    <strong>Tổng số sản phẩm:</strong> ${data.totalProducts}<br>
+                    <strong>Sản phẩm active:</strong> ${data.activeProducts}<br><br>
+                    <strong>Chi tiết sản phẩm:</strong><br>
+                `;
+                
+                data.products.forEach(product => {
+                    html += `- ${product.name} | Brand: ${product.brand} | Active: ${product.isActive} | Category: ${product.category} | Shop: ${product.shop} | Variants: ${product.variantsCount}<br>`;
+                });
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Lỗi: ${error.message}</div>`;
+            }
+        }
+
+        async function testSearch() {
+            const query = document.getElementById('searchInput').value;
+            await performSearch(query, 'searchResult');
+        }
+
+        async function testKeyword(keyword) {
+            await performSearch(keyword, 'keywordResult');
+        }
+
+        async function performSearch(query, resultDivId) {
+            const resultDiv = document.getElementById(resultDivId);
+            resultDiv.innerHTML = `Đang tìm kiếm "${query}"...`;
+            
+            try {
+                const response = await fetch(`${API_BASE}/products/search?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                let html = `<div class="result">
+                    <strong>Query:</strong> "${data.query}"<br>
+                    <strong>Số kết quả:</strong> ${data.count}<br><br>
+                `;
+                
+                if (data.products && data.products.length > 0) {
+                    html += '<strong>Kết quả:</strong><br>';
+                    data.products.forEach(product => {
+                        html += `- ${product.name} | Brand: ${product.brand} | Price: ${product.minPrice} | Category: ${product.categoryName}<br>`;
+                    });
+                } else {
+                    html += '<strong>Không tìm thấy sản phẩm nào</strong>';
+                }
+                
+                html += '</div>';
+                resultDiv.innerHTML = html;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Lỗi: ${error.message}</div>`;
+            }
+        }
+
+        // Auto debug khi load trang
+        window.onload = function() {
+            console.log('Debug page loaded');
+            debugProducts();
+        };
+    </script>
+</body>
+</html>

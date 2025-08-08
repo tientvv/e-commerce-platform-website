@@ -42,7 +42,10 @@
 <script setup>
 import axios from 'axios'
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { NForm, NFormItem, NInput, NButton, NAlert, NH2, NText, NDivider } from 'naive-ui'
+
+const router = useRouter()
 
 const errorMessage = ref('')
 const loading = ref(false)
@@ -61,7 +64,37 @@ const login = async () => {
       errorMessage.value = res.data.message
       return
     }
-    window.location.reload()
+
+    // Sau khi đăng nhập thành công, kiểm tra thông tin profile
+    try {
+      const userRes = await axios.get('/api/info-account')
+      const user = userRes.data.account
+
+      // Kiểm tra xem thông tin có đầy đủ không (tất cả trường bắt buộc trừ google_id)
+      const isProfileComplete = (
+        user.username &&
+        user.name &&
+        user.email &&
+        user.phone &&
+        user.address &&
+        user.username.trim() !== '' &&
+        user.name.trim() !== '' &&
+        user.email.trim() !== '' &&
+        user.phone.trim() !== '' &&
+        user.address.trim() !== ''
+      )
+
+      if (!isProfileComplete && user.role === 'USER') {
+        // Nếu thông tin chưa đầy đủ và là USER, chuyển hướng đến trang profile
+        router.push('/user/profile')
+      } else {
+        // Nếu thông tin đầy đủ hoặc là ADMIN, chuyển về trang chủ
+        router.push('/')
+      }
+    } catch {
+      // Nếu không thể kiểm tra profile, chuyển về trang chủ
+      router.push('/')
+    }
   } catch {
     errorMessage.value = 'Đã xảy ra lỗi! Vui lòng thử lại sau!'
   } finally {

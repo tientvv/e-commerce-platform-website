@@ -1,78 +1,88 @@
 <template>
-  <div>
+  <div class="h-full flex flex-col overflow-hidden">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-800 mb-4">Quản lý đơn hàng</h1>
 
       <!-- Statistics Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-blue-50 border border-blue-200">
-          <div class="p-2 rounded-lg bg-blue-500">
-            <Package class="w-5 h-5 text-white" />
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+        <!-- Hàng 1: Tổng đơn hàng, Chờ xử lý, Đã thanh toán -->
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-lg">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-white bg-opacity-20 backdrop-blur-sm">
+              <component :is="Package" class="w-6 h-6 text-blue-600" />
           </div>
           <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ statistics.totalOrders || 0 }}</div>
-            <div class="text-sm text-gray-600">Tổng đơn hàng</div>
+              <div class="text-3xl font-bold">{{ statistics.totalOrders || 0 }}</div>
+              <div class="text-blue-100 font-medium">Tổng đơn hàng</div>
+            </div>
           </div>
         </div>
 
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-yellow-50 border border-yellow-200">
-          <div class="p-2 rounded-lg bg-yellow-500">
-            <Clock class="w-5 h-5 text-white" />
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 p-6 text-white shadow-lg">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-white bg-opacity-20 backdrop-blur-sm">
+              <component :is="Clock" class="w-6 h-6 text-amber-600" />
           </div>
           <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ statistics.pendingOrders || 0 }}</div>
-            <div class="text-sm text-gray-600">Chờ xử lý</div>
+              <div class="text-3xl font-bold">{{ statistics.pendingOrders || 0 }}</div>
+              <div class="text-amber-100 font-medium">Chờ xử lý</div>
+            </div>
           </div>
         </div>
 
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-green-50 border border-green-200">
-          <div class="p-2 rounded-lg bg-green-500">
-            <CheckCircle class="w-5 h-5 text-white" />
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 p-6 text-white shadow-lg">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-white bg-opacity-20 backdrop-blur-sm">
+              <component :is="CheckCircle" class="w-6 h-6 text-emerald-600" />
           </div>
           <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ statistics.paidOrders || 0 }}</div>
-            <div class="text-sm text-gray-600">Đã thanh toán</div>
+              <div class="text-3xl font-bold">{{ statistics.paidOrders || 0 }}</div>
+              <div class="text-emerald-100 font-medium">Đã thanh toán</div>
+            </div>
           </div>
         </div>
 
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-purple-50 border border-purple-200">
-          <div class="p-2 rounded-lg bg-purple-500">
-            <Truck class="w-5 h-5 text-white" />
+        <!-- Hàng 2: Đã giao hàng, Đã hủy, Đã hoàn tiền -->
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 p-6 text-white shadow-lg">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-white bg-opacity-20 backdrop-blur-sm">
+              <Truck class="w-6 h-6 text-purple-600" />
           </div>
           <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ statistics.deliveredOrders || 0 }}</div>
-            <div class="text-sm text-gray-600">Đã giao hàng</div>
+              <div class="text-3xl font-bold">{{ statistics.deliveredOrders || 0 }}</div>
+              <div class="text-purple-100 font-medium">Đã giao hàng</div>
+            </div>
           </div>
         </div>
 
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-red-50 border border-red-200">
-          <div class="p-2 rounded-lg bg-red-500">
-            <XCircle class="w-5 h-5 text-white" />
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-pink-600 p-6 text-white shadow-lg">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-white bg-opacity-20 backdrop-blur-sm">
+              <XCircle class="w-6 h-6 text-red-600" />
           </div>
           <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ statistics.cancelledOrders || 0 }}</div>
-            <div class="text-sm text-gray-600">Đã hủy</div>
+              <div class="text-3xl font-bold">{{ statistics.cancelledOrders || 0 }}</div>
+              <div class="text-red-100 font-medium">Đã hủy</div>
+            </div>
           </div>
         </div>
 
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-orange-50 border border-orange-200">
-          <div class="p-2 rounded-lg bg-orange-500">
-            <RotateCcw class="w-5 h-5 text-white" />
+        <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 p-6 text-white shadow-lg">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-16 translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="p-3 rounded-lg bg-white bg-opacity-20 backdrop-blur-sm">
+              <RotateCcw class="w-6 h-6 text-cyan-600" />
           </div>
           <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ statistics.refundedOrders || 0 }}</div>
-            <div class="text-sm text-gray-600">Đã hoàn tiền</div>
+              <div class="text-3xl font-bold">{{ statistics.refundedOrders || 0 }}</div>
+              <div class="text-cyan-100 font-medium">Đã hoàn tiền</div>
           </div>
-        </div>
-
-        <div class="p-4 rounded-lg flex items-center gap-3 bg-emerald-50 border border-emerald-200">
-          <div class="p-2 rounded-lg bg-emerald-500">
-            <DollarSign class="w-5 h-5 text-white" />
-          </div>
-          <div class="flex-1">
-            <div class="text-xl font-bold text-gray-900">{{ formatCurrency(statistics.totalRevenue) }}</div>
-            <div class="text-sm text-gray-600">Tổng doanh thu</div>
           </div>
         </div>
       </div>
@@ -81,7 +91,7 @@
     <!-- Filters -->
     <div class="mb-6">
       <n-card title="Bộ lọc" class="mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <div class="space-y-2">
             <label class="block text-sm font-medium text-gray-700">Trạng thái</label>
             <n-select
@@ -103,22 +113,68 @@
               @update:value="loadOrders"
             />
           </div>
+
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Thời gian</label>
+            <n-select
+              v-model:value="filters.timeFilter"
+              :options="timeOptions"
+              placeholder="Chọn thời gian"
+              @update:value="loadOrders"
+            />
+          </div>
         </div>
 
-        <div class="flex justify-end">
-          <n-button @click="clearFilters" secondary>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Từ ngày</label>
+            <n-date-picker
+              v-model:value="filters.startDate"
+              type="date"
+              placeholder="Chọn ngày bắt đầu"
+              clearable
+              format="dd/MM/yyyy"
+              value-format="yyyy-MM-dd"
+              @update:value="(value) => {
+                console.log('Start date changed:', value)
+                filters.startDate = value
+                loadOrders()
+              }"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Đến ngày</label>
+            <n-date-picker
+              v-model:value="filters.endDate"
+              type="date"
+              placeholder="Chọn ngày kết thúc"
+              clearable
+              format="dd/MM/yyyy"
+              value-format="yyyy-MM-dd"
+              @update:value="(value) => {
+                console.log('End date changed:', value)
+                filters.endDate = value
+                loadOrders()
+              }"
+            />
+          </div>
+
+          <div class="flex items-end">
+            <n-button @click="clearFilters" secondary class="w-full">
             <template #icon>
               <RefreshCw class="w-4 h-4" />
             </template>
             Xóa bộ lọc
           </n-button>
+          </div>
         </div>
       </n-card>
     </div>
 
     <!-- Orders Table -->
-    <div class="mb-6">
-      <n-card title="Danh sách đơn hàng" class="mb-6">
+    <div class="flex-1 overflow-hidden">
+      <n-card title="Danh sách đơn hàng" class="h-full flex flex-col">
         <template #header-extra>
           <div class="flex items-center gap-2">
             <span class="text-sm text-gray-600">Tổng: {{ orders.length }} đơn hàng</span>
@@ -131,14 +187,95 @@
           </div>
         </template>
 
-        <n-data-table
-          :columns="columns"
-          :data="orders"
-          :pagination="pagination"
-          :loading="loading"
-          :row-key="(row) => row.id"
-          class="min-h-[400px]"
-        />
+                <div class="flex-1">
+          <div class="w-full h-full">
+            <div class="w-full h-full">
+              <div class="w-full">
+                                <div class="swiper-table-container" ref="swiperContainer">
+                  <!-- Loading State -->
+                  <div v-if="loading" class="flex items-center justify-center py-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <span class="ml-2 text-gray-600">Đang tải...</span>
+                  </div>
+
+                  <!-- Swiper Table -->
+                  <div v-else class="swiper swiper-table">
+                    <div class="swiper-wrapper">
+                      <div class="swiper-slide">
+                        <div class="custom-table">
+                          <!-- Table Header -->
+                          <div class="table-header">
+                            <div class="header-cell">Mã đơn hàng</div>
+                            <div class="header-cell">Khách hàng</div>
+                            <div class="header-cell">Tổng tiền</div>
+                            <div class="header-cell">Trạng thái đơn hàng</div>
+                            <div class="header-cell">Trạng thái thanh toán</div>
+                            <div class="header-cell">Phương thức thanh toán</div>
+                            <div class="header-cell">Ngày đặt</div>
+                            <div class="header-cell">Thao tác</div>
+                          </div>
+
+                          <!-- Table Body -->
+                          <div class="table-body">
+                            <div v-for="order in orders" :key="order.id" class="table-row">
+                              <div class="table-cell text-center">{{ order.id.substring(0, 8).toUpperCase() }}</div>
+                                                      <div class="table-cell text-center">
+                          <div class="font-medium whitespace-nowrap overflow-hidden text-ellipsis">{{ order.accountName || 'N/A' }}</div>
+                        </div>
+                              <div class="table-cell font-semibold">{{ formatCurrency(order.totalAmount) }}</div>
+                              <div class="table-cell">
+                                <span :class="getStatusBadgeClass(order.orderStatus)">
+                                  {{ getStatusLabel(order.orderStatus) }}
+                                </span>
+                              </div>
+                              <div class="table-cell">
+                                <span :class="getPaymentStatusBadgeClass(order.transactionStatus || 'PENDING')">
+                                  {{ getPaymentStatusLabel(order.transactionStatus || 'PENDING') }}
+                                </span>
+                              </div>
+                              <div class="table-cell whitespace-nowrap overflow-hidden text-ellipsis">{{ order.paymentName || 'N/A' }}</div>
+                              <div class="table-cell">{{ formatDate(order.orderDate) }}</div>
+                              <div class="table-cell">
+                                <button @click="viewOrderDetail(order)" class="action-btn">
+                                  <Eye class="w-4 h-4" />
+                                  Xem
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pagination -->
+                  <div class="pagination-container">
+                    <div class="pagination-info">
+                      Hiển thị {{ (pagination.page - 1) * pagination.pageSize + 1 }} - {{ Math.min(pagination.page * pagination.pageSize, orders.length) }} của {{ orders.length }} đơn hàng
+                    </div>
+                    <div class="pagination-controls">
+                      <button
+                        @click="pagination.onChange(pagination.page - 1)"
+                        :disabled="pagination.page <= 1"
+                        class="pagination-btn"
+                      >
+                        Trước
+                      </button>
+                      <span class="pagination-page">{{ pagination.page }}</span>
+                      <button
+                        @click="pagination.onChange(pagination.page + 1)"
+                        :disabled="pagination.page * pagination.pageSize >= orders.length"
+                        class="pagination-btn"
+                      >
+                        Sau
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </n-card>
     </div>
 
@@ -172,8 +309,23 @@
               <span class="font-semibold text-lg text-gray-900">{{ formatCurrency(selectedOrder.totalAmount) }}</span>
             </div>
             <div class="flex flex-col space-y-1">
+              <label class="text-sm font-medium text-gray-700">Phí ship:</label>
+              <span class="text-gray-900">{{ selectedOrder.shippingPrice ? formatCurrency(selectedOrder.shippingPrice) : 'Miễn phí' }}</span>
+            </div>
+            <div class="flex flex-col space-y-1">
               <label class="text-sm font-medium text-gray-700">Phương thức thanh toán:</label>
               <span class="text-gray-900">{{ selectedOrder.paymentName || 'N/A' }}</span>
+            </div>
+            <div class="flex flex-col space-y-1">
+              <label class="text-sm font-medium text-gray-700">Trạng thái thanh toán:</label>
+              <n-tag :type="getPaymentStatusType(selectedOrder.transactionStatus || 'PENDING')" size="medium" round>
+                <template #default>
+                  <div class="flex items-center gap-2">
+                    <component :is="getPaymentStatusIcon(selectedOrder.transactionStatus || 'PENDING')" class="w-4 h-4" />
+                    <span class="font-medium">{{ getPaymentStatusLabel(selectedOrder.transactionStatus || 'PENDING') }}</span>
+                  </div>
+                </template>
+              </n-tag>
             </div>
           </div>
         </div>
@@ -231,23 +383,47 @@
         </div>
 
         <!-- Status Update -->
+        <div class="space-y-4">
         <div>
-          <h4 class="text-md font-semibold mb-3">Cập nhật trạng thái</h4>
+            <h4 class="text-md font-semibold mb-3">Cập nhật trạng thái đơn hàng</h4>
           <div class="flex gap-3 items-end">
             <n-select
               v-model:value="newStatus"
               :options="statusOptions"
               placeholder="Chọn trạng thái mới"
               class="flex-1"
+                :disabled="selectedOrder.orderStatus === 'CANCELLED'"
             />
             <n-button
               @click="updateOrderStatus"
               :loading="updatingStatus"
-              :disabled="!newStatus || newStatus === selectedOrder.orderStatus"
+                :disabled="!newStatus || newStatus === selectedOrder.orderStatus || selectedOrder.orderStatus === 'CANCELLED'"
+                type="primary"
+              >
+                Cập nhật
+              </n-button>
+            </div>
+          </div>
+
+          <div>
+            <h4 class="text-md font-semibold mb-3">Cập nhật trạng thái thanh toán</h4>
+            <div class="flex gap-3 items-end">
+              <n-select
+                v-model:value="newPaymentStatus"
+                :options="paymentStatusOptions"
+                placeholder="Chọn trạng thái thanh toán mới"
+                class="flex-1"
+                :disabled="selectedOrder.orderStatus === 'CANCELLED' || selectedOrder.paymentName === 'Thanh toán bằng ngân hàng'"
+              />
+              <n-button
+                @click="updatePaymentStatus"
+                :loading="updatingPaymentStatus"
+                :disabled="!newPaymentStatus || newPaymentStatus === selectedOrder.transactionStatus || selectedOrder.orderStatus === 'CANCELLED' || selectedOrder.paymentName === 'Thanh toán bằng ngân hàng'"
               type="primary"
             >
               Cập nhật
             </n-button>
+            </div>
           </div>
         </div>
       </div>
@@ -256,10 +432,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
-import { useMessage, NTag, NButton } from 'naive-ui'
+import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { useMessage, NDatePicker } from 'naive-ui'
 import { Package, Clock, CheckCircle, Truck, XCircle, DollarSign, RefreshCw, Eye, RotateCcw, ArrowLeft } from 'lucide-vue-next'
 import axios from '~/utils/axios'
+import Swiper from 'swiper'
+import 'swiper/css'
 
 const message = useMessage()
 
@@ -271,11 +449,22 @@ const showOrderDetail = ref(false)
 const selectedOrder = ref(null)
 const newStatus = ref('')
 const updatingStatus = ref(false)
+const newPaymentStatus = ref('')
+const updatingPaymentStatus = ref(false)
+
+// Swiper refs
+const swiperContainer = ref(null)
+let swiperInstance = null
+
+
 
 // Filters
 const filters = reactive({
   status: null,
   paymentMethod: null,
+  timeFilter: 'TODAY', // Mặc định là hôm nay
+  startDate: null, // Không mặc định ngày
+  endDate: null, // Không mặc định ngày
 })
 
 // Pagination
@@ -295,14 +484,12 @@ const pagination = reactive({
 
 // Options for filters
 const statusOptions = [
-  { label: 'Chờ xử lý', value: 'PENDING' },
+  { label: 'Chờ xử lý', value: 'PENDING_PROCESSING' },
   { label: 'Đã xử lý', value: 'PROCESSED' },
-  { label: 'Đã thanh toán', value: 'PAID' },
-  { label: 'Đang giao hàng', value: 'SHIPPING' },
+  { label: 'Chờ lấy hàng', value: 'READY_FOR_PICKUP' },
+  { label: 'Đang giao hàng', value: 'IN_TRANSIT' },
   { label: 'Đã giao hàng', value: 'DELIVERED' },
   { label: 'Đã hủy', value: 'CANCELLED' },
-  { label: 'Đã hoàn tiền', value: 'REFUNDED' },
-  { label: 'Đã trả hàng', value: 'RETURNED' },
 ]
 
 const paymentOptions = [
@@ -310,90 +497,23 @@ const paymentOptions = [
   { label: 'Thanh toán bằng ngân hàng', value: 'PAYOS' },
 ]
 
-// Table columns
-const columns = [
-  {
-    title: 'Mã đơn hàng',
-    key: 'id',
-    width: 200,
-    render: (row) => {
-      return h('span', { class: 'font-mono text-sm' }, row.id.substring(0, 8).toUpperCase())
-    },
-  },
-  {
-    title: 'Khách hàng',
-    key: 'customer',
-    render: (row) => {
-      return h('div', [
-        h('div', { class: 'font-medium' }, row.accountName || 'N/A'),
-        h('div', { class: 'text-sm text-gray-500' }, row.accountEmail || 'N/A'),
-      ])
-    },
-  },
-  {
-    title: 'Tổng tiền',
-    key: 'totalAmount',
-    render: (row) => {
-      return h('span', { class: 'font-semibold' }, formatCurrency(row.totalAmount))
-    },
-  },
-  {
-    title: 'Trạng thái',
-    key: 'orderStatus',
-    render: (row) => {
-      const StatusIcon = getStatusIcon(row.orderStatus)
-      return h(
-        NTag,
-        {
-          type: getStatusType(row.orderStatus),
-          size: 'medium',
-          round: true,
-        },
-        {
-          default: () => h('div', { class: 'flex items-center gap-2' }, [
-            h(StatusIcon, { class: 'w-4 h-4' }),
-            h('span', { class: 'font-medium' }, getStatusLabel(row.orderStatus)),
-          ]),
-        },
-      )
-    },
-  },
-
-  {
-    title: 'Phương thức thanh toán',
-    key: 'payment',
-    render: (row) => {
-      return h('span', row.paymentName || 'N/A')
-    },
-  },
-  {
-    title: 'Ngày đặt',
-    key: 'orderDate',
-    render: (row) => {
-      return h('span', formatDate(row.orderDate))
-    },
-  },
-  {
-    title: 'Thao tác',
-    key: 'actions',
-    width: 120,
-    render: (row) => {
-      return h('div', { class: 'flex gap-2' }, [
-        h(
-          NButton,
-          {
-            size: 'small',
-            onClick: () => viewOrderDetail(row),
-          },
-          {
-            icon: () => h(Eye, { class: 'w-4 h-4' }),
-            default: () => 'Xem',
-          },
-        ),
-      ])
-    },
-  },
+const timeOptions = [
+  { label: 'Tất cả', value: 'ALL' },
+  { label: 'Hôm nay', value: 'TODAY' },
+  { label: 'Tuần này', value: 'THIS_WEEK' },
+  { label: 'Tháng này', value: 'THIS_MONTH' },
+  { label: 'Tùy chọn', value: 'CUSTOM' },
 ]
+
+const paymentStatusOptions = [
+  { label: 'Chờ thanh toán', value: 'PENDING' },
+  { label: 'Thanh toán thành công', value: 'SUCCESS' },
+  { label: 'Thanh toán thất bại', value: 'FAILED' },
+  { label: 'Đã hủy thanh toán', value: 'CANCELLED' },
+  { label: 'Đã hoàn tiền', value: 'REFUNDED' },
+]
+
+
 
 // Methods
 const loadOrders = async () => {
@@ -403,17 +523,49 @@ const loadOrders = async () => {
     if (filters.status) params.append('status', filters.status)
     if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod)
 
+        // Xử lý time filter
+    if (filters.timeFilter && filters.timeFilter !== 'ALL') {
+      params.append('timeFilter', filters.timeFilter)
+    }
+
+    // Gửi startDate và endDate nếu có giá trị - xử lý timezone Việt Nam
+    if (filters.startDate) {
+      const startDate = new Date(filters.startDate)
+      // Sử dụng local date thay vì UTC
+      const startDateStr = startDate.getFullYear() + '-' +
+        String(startDate.getMonth() + 1).padStart(2, '0') + '-' +
+        String(startDate.getDate()).padStart(2, '0')
+      params.append('startDate', startDateStr)
+      console.log('DEBUG: Converted startDate from', filters.startDate, 'to', startDateStr, '(Local date)')
+    }
+    if (filters.endDate) {
+      const endDate = new Date(filters.endDate)
+      // Sử dụng local date thay vì UTC
+      const endDateStr = endDate.getFullYear() + '-' +
+        String(endDate.getMonth() + 1).padStart(2, '0') + '-' +
+        String(endDate.getDate()).padStart(2, '0')
+      params.append('endDate', endDateStr)
+      console.log('DEBUG: Converted endDate from', filters.endDate, 'to', endDateStr, '(Local date)')
+    }
+
+    console.log('API Params:', params.toString())
     const response = await axios.get(`/api/shop/orders?${params.toString()}`)
 
     if (response.data.success) {
       orders.value = response.data.orders
       statistics.value = response.data.statistics
+      // Reinitialize swiper after data loads
+      nextTick(() => {
+        initSwiper()
+      })
     } else {
       message.error(response.data.message || 'Lỗi tải danh sách đơn hàng')
     }
   } catch (error) {
     console.error('Error loading orders:', error)
-    message.error('Lỗi tải danh sách đơn hàng')
+    console.error('Error response:', error.response?.data)
+    console.error('Error status:', error.response?.status)
+    message.error(`Lỗi tải danh sách đơn hàng: ${error.response?.data?.message || error.message}`)
   } finally {
     loading.value = false
   }
@@ -422,6 +574,7 @@ const loadOrders = async () => {
 const viewOrderDetail = (order) => {
   selectedOrder.value = order
   newStatus.value = order.orderStatus
+  newPaymentStatus.value = order.transactionStatus || 'PENDING'
   showOrderDetail.value = true
 }
 
@@ -449,11 +602,123 @@ const updateOrderStatus = async () => {
   }
 }
 
+const updatePaymentStatus = async () => {
+  if (!selectedOrder.value || !newPaymentStatus.value) return
+
+  updatingPaymentStatus.value = true
+  try {
+    const response = await axios.put(`/api/shop/orders/${selectedOrder.value.id}/payment-status`, {
+      paymentStatus: newPaymentStatus.value,
+    })
+
+    if (response.data.success) {
+      message.success('Cập nhật trạng thái thanh toán thành công')
+
+      // Cập nhật selectedOrder với dữ liệu mới
+      selectedOrder.value = response.data.order
+
+      // Cập nhật order trong danh sách orders
+      const orderIndex = orders.value.findIndex(order => order.id === selectedOrder.value.id)
+      if (orderIndex !== -1) {
+        orders.value[orderIndex] = { ...orders.value[orderIndex], ...response.data.order }
+      }
+
+      // Reload để cập nhật statistics
+      loadOrders()
+    } else {
+      message.error(response.data.message || 'Lỗi cập nhật trạng thái thanh toán')
+    }
+  } catch (error) {
+    console.error('Error updating payment status:', error)
+    message.error('Lỗi cập nhật trạng thái thanh toán')
+  } finally {
+    updatingPaymentStatus.value = false
+  }
+}
+
 const clearFilters = () => {
+  isClearing.value = true // Bật flag để tránh tự động điền ngày
+
   filters.status = null
   filters.paymentMethod = null
-  loadOrders()
+  filters.timeFilter = 'TODAY' // Reset về hôm nay
+  filters.startDate = null // Không reset về ngày hiện tại
+  filters.endDate = null // Không reset về ngày hiện tại
+
+  // Tắt flag sau khi đã set xong
+  nextTick(() => {
+    isClearing.value = false
+    loadOrders()
+  })
 }
+
+// Swiper initialization
+const initSwiper = () => {
+  if (swiperInstance) {
+    swiperInstance.destroy()
+  }
+
+  nextTick(() => {
+    if (swiperContainer.value) {
+      swiperInstance = new Swiper('.swiper-table', {
+        direction: 'horizontal',
+        grabCursor: true,
+        scrollbar: {
+          hide: true
+        },
+        mousewheel: false,
+        keyboard: false,
+        allowTouchMove: true,
+        resistance: true,
+        resistanceRatio: 0.85,
+        slidesPerView: 'auto',
+        spaceBetween: 0,
+        freeMode: true,
+        freeModeSticky: true,
+        freeModeMomentum: true,
+        freeModeMomentumRatio: 0.25,
+        freeModeMomentumVelocityRatio: 0.2,
+        freeModeMomentumBounce: true,
+        freeModeMomentumBounceRatio: 0.25
+      })
+    }
+  })
+}
+
+// Status badge functions
+const getStatusBadgeClass = (status) => {
+  const classMap = {
+    PENDING_PROCESSING: 'badge-warning',
+    PROCESSED: 'badge-info',
+    READY_FOR_PICKUP: 'badge-info',
+    IN_TRANSIT: 'badge-info',
+    DELIVERED: 'badge-success',
+    CANCELLED: 'badge-error',
+    PENDING: 'badge-warning',
+    PAID: 'badge-success',
+    SHIPPING: 'badge-info',
+    REFUNDED: 'badge-error',
+    RETURNED: 'badge-error',
+  }
+  return `status-badge ${classMap[status] || 'badge-default'}`
+}
+
+const getPaymentStatusBadgeClass = (status) => {
+  const classMap = {
+    PENDING: 'badge-warning',
+    SUCCESS: 'badge-success',
+    FAILED: 'badge-error',
+    CANCELLED: 'badge-error',
+    REFUNDED: 'badge-error',
+  }
+  return `status-badge ${classMap[status] || 'badge-default'}`
+}
+
+
+
+
+
+
 
 // Utility functions
 const formatCurrency = (amount) => {
@@ -520,8 +785,287 @@ const getStatusIcon = (status) => {
   return iconMap[status] || Package
 }
 
+// Payment status functions
+const getPaymentStatusLabel = (status) => {
+  const statusMap = {
+    PENDING: 'Chờ thanh toán',
+    SUCCESS: 'Thanh toán thành công',
+    FAILED: 'Thanh toán thất bại',
+    CANCELLED: 'Đã hủy thanh toán',
+    REFUNDED: 'Đã hoàn tiền',
+  }
+  return statusMap[status] || status
+}
+
+const getPaymentStatusType = (status) => {
+  const typeMap = {
+    PENDING: 'warning',
+    SUCCESS: 'success',
+    FAILED: 'error',
+    CANCELLED: 'error',
+    REFUNDED: 'error',
+  }
+  return typeMap[status] || 'default'
+}
+
+const getPaymentStatusIcon = (status) => {
+  const iconMap = {
+    PENDING: Clock,
+    SUCCESS: CheckCircle,
+    FAILED: XCircle,
+    CANCELLED: XCircle,
+    REFUNDED: RotateCcw,
+  }
+  return iconMap[status] || Clock
+}
+
+
+
+// Flag để kiểm tra xem có đang clear filters hay không
+const isClearing = ref(false)
+
+// Watch timeFilter changes - không tự động điền ngày
+watch(() => filters.timeFilter, (newValue) => {
+  // Không tự động điền ngày khi đang clear filters
+  if (isClearing.value) return
+
+  // Chỉ reset về null khi chọn CUSTOM
+  if (newValue === 'CUSTOM') {
+    filters.startDate = null
+    filters.endDate = null
+  }
+  // Các trường hợp khác (TODAY, THIS_WEEK, THIS_MONTH) không tự động điền ngày
+})
+
 // Load data on mount
 onMounted(() => {
   loadOrders()
+  initSwiper()
 })
 </script>
+
+<style scoped>
+/* Làm cho thanh scroll của Naive UI có thể kéo được */
+:deep(.n-data-table .n-scrollbar) {
+  cursor: grab !important;
+  user-select: none !important;
+}
+
+:deep(.n-data-table .n-scrollbar:hover) {
+  cursor: grabbing !important;
+}
+
+:deep(.n-data-table .n-scrollbar-rail) {
+  cursor: grab !important;
+  user-select: none !important;
+}
+
+:deep(.n-data-table .n-scrollbar-rail:hover) {
+  cursor: grabbing !important;
+}
+
+:deep(.n-data-table .n-scrollbar-content) {
+  cursor: grab !important;
+  user-select: none !important;
+}
+
+:deep(.n-data-table .n-scrollbar-content:hover) {
+  cursor: grabbing !important;
+}
+
+/* Làm cho thanh scroll của pagination có thể kéo được */
+:deep(.n-pagination .n-scrollbar) {
+  cursor: grab !important;
+  user-select: none !important;
+}
+
+:deep(.n-pagination .n-scrollbar:hover) {
+  cursor: grabbing !important;
+}
+
+:deep(.n-pagination .n-scrollbar-rail) {
+  cursor: grab !important;
+  user-select: none !important;
+}
+
+:deep(.n-pagination .n-scrollbar-rail:hover) {
+  cursor: grabbing !important;
+}
+
+/* Swiper Table Styles */
+.swiper-table-container {
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-table {
+  width: 100%;
+  height: 100%;
+}
+
+.swiper-slide {
+  width: auto;
+  height: auto;
+}
+
+.custom-table {
+  min-width: 1300px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 120px;
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.header-cell {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  border-right: 1px solid #e5e7eb;
+}
+
+.header-cell:last-child {
+  border-right: none;
+}
+
+.table-body {
+  background-color: white;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 120px;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
+}
+
+.table-row:hover {
+  background-color: #f9fafb;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-cell {
+  padding: 12px 16px;
+  border-right: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+}
+
+.table-cell:last-child {
+  border-right: none;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.badge-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-info {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-success {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-default {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Action Button */
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #2563eb;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background-color: white;
+}
+
+.pagination-info {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-btn {
+  padding: 6px 12px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-page {
+  padding: 6px 12px;
+  background-color: #3b82f6;
+  color: white;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+</style>

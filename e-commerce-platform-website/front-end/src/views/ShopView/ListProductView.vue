@@ -1,26 +1,26 @@
 <template>
   <n-space vertical :size="16">
     <n-card title="Danh sách sản phẩm" size="small">
-      <n-spin :show="loading">
-        <n-data-table
-          v-if="!loading && products.length > 0"
-          :columns="columns"
-          :data="products"
-          :row-key="(row) => row.id"
-          :pagination="pagination"
-        />
+        <n-spin :show="loading">
+          <n-data-table
+            v-if="!loading && products.length > 0"
+            :columns="columns"
+            :data="products"
+            :row-key="(row) => row.id"
+            :pagination="pagination"
+          />
 
-        <!-- Empty State -->
-        <n-empty v-else-if="!loading && products.length === 0" description="Chưa có sản phẩm nào">
-          <template #icon>
-            <n-icon size="48" color="#d1d5db">
-              <Package />
-            </n-icon>
-          </template>
-        </n-empty>
-      </n-spin>
-    </n-card>
-  </n-space>
+          <!-- Empty State -->
+          <n-empty v-else-if="!loading && products.length === 0" description="Chưa có sản phẩm nào">
+            <template #icon>
+              <n-icon size="48" color="#d1d5db">
+                <Package />
+              </n-icon>
+            </template>
+          </n-empty>
+        </n-spin>
+      </n-card>
+    </n-space>
 </template>
 
 <script setup>

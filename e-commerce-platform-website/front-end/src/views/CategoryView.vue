@@ -159,8 +159,8 @@
           </div>
 
           <!-- Loading state -->
-          <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <div v-for="n in 8" :key="n" class="animate-pulse">
+          <div v-if="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <div v-for="n in 15" :key="n" class="animate-pulse">
               <div class="bg-gray-200 rounded-lg aspect-square mb-4"></div>
               <div class="bg-gray-200 h-4 rounded mb-2"></div>
               <div class="bg-gray-200 h-4 rounded w-2/3"></div>
@@ -171,7 +171,7 @@
           <div
             v-else-if="filteredProducts.length > 0"
             :class="
-              viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'
+              viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6' : 'space-y-4'
             "
           >
             <div
@@ -179,8 +179,8 @@
               :key="product.id"
               :class="
                 viewMode === 'grid'
-                  ? 'bg-white rounded border border-gray-200 hover:shadow-md transition-shadow duration-200 overflow-hidden group cursor-pointer'
-                  : 'bg-white rounded border border-gray-200 hover:shadow-md transition-shadow duration-200 p-4 flex gap-4 cursor-pointer'
+                  ? 'bg-white rounded border border-gray-200 hover:border-blue-300 transition-colors duration-200 overflow-hidden group cursor-pointer'
+                  : 'bg-white rounded border border-gray-200 hover:border-blue-300 transition-colors duration-200 p-4 flex gap-4 cursor-pointer'
               "
               @click="handleProductClick(product)"
             >
@@ -213,6 +213,23 @@
                 >
                   <Package class="w-8 h-8 text-gray-400" />
                 </div>
+
+                <!-- Discount Badge - Top Right -->
+                <div v-if="hasProductDiscount(product)" class="absolute top-2 right-2">
+                  <div class="voucher-badge">
+                    <div class="voucher-badge-content">
+                      <span v-if="product.discountType === 'PERCENTAGE' && product.discountPercentage > 0">
+                        -{{ product.discountPercentage }}%
+                      </span>
+                      <span v-else-if="product.discountType === 'FIXED' && product.discountAmount > 0">
+                        -{{ formatPrice(product.discountAmount) }}
+                      </span>
+                      <span v-else>
+                        GIẢM GIÁ
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Product Info -->
@@ -243,28 +260,40 @@
 
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-2">
-                    <span v-if="product.minPrice && product.minPrice > 0" class="text-lg font-bold text-blue-600">
-                      {{ formatPrice(product.minPrice) }}
-                    </span>
-                    <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
-                    <span
-                      v-if="product.originalPrice && product.originalPrice > product.minPrice"
-                      class="text-sm text-gray-500 line-through"
-                    >
-                      {{ formatPrice(product.originalPrice) }}
-                    </span>
+                    <!-- Price Range for products with variants -->
+                    <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex items-center space-x-2">
+                      <span class="text-lg font-bold text-blue-600">
+                        {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
+                      </span>
+                      <span
+                        v-if="getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
+                        class="text-sm text-gray-500 line-through"
+                      >
+                        {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
+                      </span>
+                    </div>
+
+                    <!-- Single price for products without variants -->
+                    <div v-else class="flex items-center space-x-2">
+                      <span v-if="getDiscountedPrice(product) > 0" class="text-lg font-bold text-blue-600">
+                        {{ formatPrice(getDiscountedPrice(product)) }}
+                      </span>
+                      <span v-else-if="product.minPrice && product.minPrice > 0" class="text-lg font-bold text-blue-600">
+                        {{ formatPrice(product.minPrice) }}
+                      </span>
+                      <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
+                      <span
+                        v-if="getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
+                        class="text-sm text-gray-500 line-through"
+                      >
+                        {{ formatPrice(getOriginalPrice(product)) }}
+                      </span>
+                    </div>
                   </div>
                   <div class="flex items-center text-sm text-gray-500">
                     <Eye class="w-4 h-4 mr-1" />
                     {{ product.viewCount || 0 }}
                   </div>
-                </div>
-
-                <!-- Discount Badge -->
-                <div v-if="product.discountPercentage && product.discountPercentage > 0" class="mt-2">
-                  <span class="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                    -{{ product.discountPercentage }}%
-                  </span>
                 </div>
 
                 <!-- Removed Add to Cart Button - users can click on product to view details -->
@@ -369,7 +398,7 @@ const sortBy = ref('newest')
 
 // Pagination
 const currentPage = ref(1)
-const itemsPerPage = ref(12)
+const itemsPerPage = ref(15)
 
 // Computed
 const totalProducts = computed(() => filteredProducts.value.length)
@@ -425,7 +454,7 @@ const filteredProducts = computed(() => {
 
   // Discount filter
   if (hasDiscount.value) {
-    filtered = filtered.filter((product) => product.discountPercentage > 0)
+    filtered = filtered.filter((product) => hasProductDiscount(product))
   }
 
   // Sort
@@ -533,6 +562,72 @@ const formatPrice = (price) => {
   }).format(price)
 }
 
+const getDiscountedPrice = (product) => {
+  // Kiểm tra điều kiện áp dụng discount
+  if (!hasProductDiscount(product)) {
+    return product.minPrice || 0
+  }
+
+  if (product.discountType === 'PERCENTAGE' && product.discountPercentage > 0) {
+    return product.originalPrice * (1 - product.discountPercentage / 100)
+  } else if (product.discountType === 'FIXED' && product.discountAmount > 0) {
+    return Math.max(0, product.originalPrice - product.discountAmount)
+  } else {
+    return product.minPrice || 0
+  }
+}
+
+const getDiscountedMaxPrice = (product) => {
+  // Kiểm tra điều kiện áp dụng discount
+  if (!hasProductDiscount(product)) {
+    return product.maxPrice || product.minPrice || 0
+  }
+
+  if (product.maxPrice && product.maxPrice > product.minPrice) {
+    if (product.discountType === 'PERCENTAGE' && product.discountPercentage > 0) {
+      return product.maxPrice * (1 - product.discountPercentage / 100)
+    } else if (product.discountType === 'FIXED' && product.discountAmount > 0) {
+      return Math.max(0, product.maxPrice - product.discountAmount)
+    } else {
+      return product.maxPrice
+    }
+  } else {
+    return product.minPrice || 0
+  }
+}
+
+const getOriginalPrice = (product) => {
+  if (product.originalPrice && product.originalPrice > 0) {
+    return product.originalPrice
+  } else {
+    return product.minPrice || 0
+  }
+}
+
+const getOriginalMaxPrice = (product) => {
+  if (product.maxPrice && product.maxPrice > product.minPrice) {
+    return product.maxPrice
+  } else {
+    return product.minPrice || 0
+  }
+}
+
+const hasProductDiscount = (product) => {
+  // Kiểm tra xem có discount không
+  const hasDiscountValue = product.discountType === 'PERCENTAGE' && product.discountPercentage > 0 ||
+                          product.discountType === 'FIXED' && product.discountAmount > 0
+
+  if (!hasDiscountValue) return false
+
+  // Kiểm tra min_order_value nếu có
+  if (product.minOrderValue && product.minOrderValue > 0) {
+    const productPrice = product.minPrice || 0
+    return productPrice >= product.minOrderValue
+  }
+
+  return true
+}
+
 // Watchers
 watch([priceFilter, selectedBrands, selectedRatings, inStockOnly, hasDiscount, sortBy], () => {
   currentPage.value = 1
@@ -584,5 +679,37 @@ onMounted(() => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* Voucher Badge */
+.voucher-badge {
+  position: relative;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+}
+
+.voucher-badge::before {
+  content: '';
+  position: absolute;
+  right: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #f0f0f0;
+}
+
+.voucher-badge-content {
+  color: white;
+  font-size: 11px;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
 }
 </style>

@@ -29,6 +29,7 @@ public class OrderDto {
   private OffsetDateTime deliveredDate;
   private OffsetDateTime cancelledDate;
   private String shippingAddress;
+  private String transactionStatus; // Thêm field này để frontend dễ truy cập
   private List<OrderItemDto> orderItems;
   private List<TransactionDto> transactions;
 

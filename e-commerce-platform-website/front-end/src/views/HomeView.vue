@@ -7,6 +7,14 @@
         <CategoryGrid />
       </section>
 
+      <!-- Discounted Products Section -->
+      <section class="mb-8">
+        <ProductSlider />
+      </section>
+
+      <!-- Today Suggestions -->
+      <TodaySuggestions />
+
       <!-- Other sections can be added here -->
       <!-- <section class="mb-8">
         <h2 class="text-2xl font-bold mb-4">Sản phẩm nổi bật</h2>
@@ -21,4 +29,6 @@
 import NavbarView from './components/NavbarView.vue'
 import FooterView from './components/FooterView.vue'
 import CategoryGrid from './components/CategoryGrid.vue'
+import ProductSlider from './components/ProductSlider.vue'
+import TodaySuggestions from './components/TodaySuggestions.vue'
 </script>

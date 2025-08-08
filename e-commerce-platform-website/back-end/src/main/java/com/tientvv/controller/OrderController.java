@@ -127,4 +127,23 @@ public class OrderController {
     }
   }
 
+  @PostMapping("/check-inventory")
+  public ResponseEntity<Map<String, Object>> checkInventory(@RequestBody CreateOrderDto createOrderDto) {
+    try {
+      // Kiểm tra số lượng tồn kho
+      orderService.validateProductQuantities(createOrderDto.getOrderItems());
+      
+      Map<String, Object> response = new HashMap<>();
+      response.put("success", true);
+      response.put("message", "Số lượng sản phẩm đủ để đặt hàng");
+      return ResponseEntity.ok(response);
+      
+    } catch (Exception e) {
+      Map<String, Object> errorResponse = new HashMap<>();
+      errorResponse.put("success", false);
+      errorResponse.put("message", e.getMessage());
+      return ResponseEntity.badRequest().body(errorResponse);
+    }
+  }
+
 }

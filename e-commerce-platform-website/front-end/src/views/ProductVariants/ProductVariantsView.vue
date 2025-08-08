@@ -2,38 +2,122 @@
   <n-space vertical :size="24">
     <!-- Form tạo biến thể mới -->
     <n-card title="Thêm Biến thể Mới" size="small">
-      <n-form
-        ref="formRef"
-        :model="newVariant"
-        :rules="formRules"
-        label-placement="top"
-        @submit.prevent="createVariant"
-      >
-        <n-grid :cols="2" :x-gap="16" :y-gap="16">
-          <n-form-item-gi label="Sản phẩm" path="productId">
-            <n-select
-              v-model:value="newVariant.productId"
-              placeholder="Chọn sản phẩm"
-              :options="productOptions"
-              filterable
-            />
-          </n-form-item-gi>
+        <n-form
+          ref="formRef"
+          :model="newVariant"
+          :rules="formRules"
+          label-placement="top"
+          @submit.prevent="createVariant"
+        >
+          <n-grid :cols="2" :x-gap="16" :y-gap="16">
+            <n-form-item-gi label="Sản phẩm" path="productId">
+              <n-select
+                v-model:value="newVariant.productId"
+                placeholder="Chọn sản phẩm"
+                :options="productOptions"
+                filterable
+              />
+            </n-form-item-gi>
 
-          <n-form-item-gi label="Tên biến thể" path="variantName">
-            <n-input v-model:value="newVariant.variantName" placeholder="VD: Màu sắc, Kích thước" />
-          </n-form-item-gi>
+            <n-form-item-gi label="Tên biến thể" path="variantName">
+              <n-input v-model:value="newVariant.variantName" placeholder="VD: Màu sắc, Kích thước" />
+            </n-form-item-gi>
 
-          <n-form-item-gi label="Giá trị biến thể" path="variantValue">
-            <n-input v-model:value="newVariant.variantValue" placeholder="VD: Đỏ, XL" />
-          </n-form-item-gi>
+            <n-form-item-gi label="Giá trị biến thể" path="variantValue">
+              <n-input v-model:value="newVariant.variantValue" placeholder="VD: Đỏ, XL" />
+            </n-form-item-gi>
 
-          <n-form-item-gi label="Số lượng" path="quantity">
-            <n-input-number v-model:value="newVariant.quantity" :min="0" placeholder="Nhập số lượng" class="w-full" />
-          </n-form-item-gi>
+            <n-form-item-gi label="Số lượng" path="quantity">
+              <n-input-number v-model:value="newVariant.quantity" :min="0" placeholder="Nhập số lượng" class="w-full" />
+            </n-form-item-gi>
 
-          <n-form-item-gi label="Giá (VNĐ)" path="price" :span="2">
+            <n-form-item-gi label="Giá (VNĐ)" path="price" :span="2">
+              <n-input-number
+                v-model:value="newVariant.price"
+                :min="0"
+                :step="1000"
+                placeholder="Nhập giá sản phẩm"
+                class="w-full"
+                :format="formatPrice"
+                :parse="parsePrice"
+              />
+            </n-form-item-gi>
+          </n-grid>
+
+          <n-space class="mt-6">
+            <n-button type="primary" attr-type="submit" :loading="isLoading" :disabled="!isFormValid">
+              <template #icon>
+                <n-icon><Plus /></n-icon>
+              </template>
+              Thêm Biến thể
+            </n-button>
+            <n-button @click="resetForm">
+              <template #icon>
+                <n-icon><RotateCcw /></n-icon>
+              </template>
+              Đặt lại
+            </n-button>
+          </n-space>
+        </n-form>
+      </n-card>
+
+      <!-- Danh sách biến thể -->
+      <n-card title="Danh sách Biến thể" size="small">
+        <template #header-extra>
+          <n-select
+            v-model:value="selectedProductId"
+            placeholder="Lọc theo sản phẩm"
+            :options="[{ label: 'Tất cả sản phẩm', value: '' }, ...productOptions]"
+            @update:value="loadVariants"
+            class="w-60"
+            clearable
+          />
+        </template>
+
+        <n-spin :show="loading">
+          <n-data-table
+            v-if="!loading && variants.length > 0"
+            :columns="columns"
+            :data="variants"
+            :row-key="(row) => row.id"
+            :pagination="pagination"
+          />
+
+          <!-- Empty State -->
+          <n-empty v-else-if="!loading && variants.length === 0" description="Chưa có biến thể nào được tạo">
+            <template #icon>
+              <n-icon size="48" color="#d1d5db">
+                <Settings />
+              </n-icon>
+            </template>
+          </n-empty>
+        </n-spin>
+      </n-card>
+
+      <!-- Edit Modal -->
+      <n-modal v-model:show="showEditModal" preset="card" title="Sửa Biến thể" :style="{ width: '500px' }">
+        <n-form
+          ref="editFormRef"
+          :model="editingVariant"
+          :rules="editFormRules"
+          label-placement="top"
+          @submit.prevent="updateVariant"
+        >
+          <n-form-item label="Tên biến thể" path="variantName">
+            <n-input v-model:value="editingVariant.variantName" placeholder="VD: Màu sắc, Kích thước" />
+          </n-form-item>
+
+          <n-form-item label="Giá trị biến thể" path="variantValue">
+            <n-input v-model:value="editingVariant.variantValue" placeholder="VD: Đỏ, XL" />
+          </n-form-item>
+
+          <n-form-item label="Số lượng" path="quantity">
+            <n-input-number v-model:value="editingVariant.quantity" :min="0" placeholder="Nhập số lượng" class="w-full" />
+          </n-form-item>
+
+          <n-form-item label="Giá (VNĐ)" path="price">
             <n-input-number
-              v-model:value="newVariant.price"
+              v-model:value="editingVariant.price"
               :min="0"
               :step="1000"
               placeholder="Nhập giá sản phẩm"
@@ -41,106 +125,22 @@
               :format="formatPrice"
               :parse="parsePrice"
             />
-          </n-form-item-gi>
-        </n-grid>
+          </n-form-item>
 
-        <n-space class="mt-6">
-          <n-button type="primary" attr-type="submit" :loading="isLoading" :disabled="!isFormValid">
-            <template #icon>
-              <n-icon><Plus /></n-icon>
-            </template>
-            Thêm Biến thể
-          </n-button>
-          <n-button @click="resetForm">
-            <template #icon>
-              <n-icon><RotateCcw /></n-icon>
-            </template>
-            Đặt lại
-          </n-button>
-        </n-space>
-      </n-form>
-    </n-card>
+          <n-form-item label="Trạng thái">
+            <n-switch v-model:value="editingVariant.isActive" checked-text="Hoạt động" unchecked-text="Không hoạt động" />
+          </n-form-item>
+        </n-form>
 
-    <!-- Danh sách biến thể -->
-    <n-card title="Danh sách Biến thể" size="small">
-      <template #header-extra>
-        <n-select
-          v-model:value="selectedProductId"
-          placeholder="Lọc theo sản phẩm"
-          :options="[{ label: 'Tất cả sản phẩm', value: '' }, ...productOptions]"
-          @update:value="loadVariants"
-          class="w-60"
-          clearable
-        />
-      </template>
-
-      <n-spin :show="loading">
-        <n-data-table
-          v-if="!loading && variants.length > 0"
-          :columns="columns"
-          :data="variants"
-          :row-key="(row) => row.id"
-          :pagination="pagination"
-        />
-
-        <!-- Empty State -->
-        <n-empty v-else-if="!loading && variants.length === 0" description="Chưa có biến thể nào được tạo">
-          <template #icon>
-            <n-icon size="48" color="#d1d5db">
-              <Settings />
-            </n-icon>
-          </template>
-        </n-empty>
-      </n-spin>
-    </n-card>
-
-    <!-- Edit Modal -->
-    <n-modal v-model:show="showEditModal" preset="card" title="Sửa Biến thể" :style="{ width: '500px' }">
-      <n-form
-        ref="editFormRef"
-        :model="editingVariant"
-        :rules="editFormRules"
-        label-placement="top"
-        @submit.prevent="updateVariant"
-      >
-        <n-form-item label="Tên biến thể" path="variantName">
-          <n-input v-model:value="editingVariant.variantName" placeholder="VD: Màu sắc, Kích thước" />
-        </n-form-item>
-
-        <n-form-item label="Giá trị biến thể" path="variantValue">
-          <n-input v-model:value="editingVariant.variantValue" placeholder="VD: Đỏ, XL" />
-        </n-form-item>
-
-        <n-form-item label="Số lượng" path="quantity">
-          <n-input-number v-model:value="editingVariant.quantity" :min="0" placeholder="Nhập số lượng" class="w-full" />
-        </n-form-item>
-
-        <n-form-item label="Giá (VNĐ)" path="price">
-          <n-input-number
-            v-model:value="editingVariant.price"
-            :min="0"
-            :step="1000"
-            placeholder="Nhập giá sản phẩm"
-            class="w-full"
-            :format="formatPrice"
-            :parse="parsePrice"
-          />
-        </n-form-item>
-
-        <n-form-item label="Trạng thái">
-          <n-switch v-model:value="editingVariant.isActive" checked-text="Hoạt động" unchecked-text="Không hoạt động" />
-        </n-form-item>
-      </n-form>
-
-      <template #footer>
-        <n-space justify="end">
-          <n-button @click="showEditModal = false"> Hủy </n-button>
-          <n-button type="primary" @click="updateVariant"> Cập nhật </n-button>
-        </n-space>
-      </template>
-    </n-modal>
-  </n-space>
-</template>
+        <template #footer>
+          <n-space justify="end">
+            <n-button @click="showEditModal = false"> Hủy </n-button>
+            <n-button type="primary" @click="updateVariant"> Cập nhật </n-button>
+          </n-space>
+        </template>
+      </n-modal>
+    </n-space>
+  </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, h } from 'vue'

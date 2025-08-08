@@ -8,7 +8,6 @@ import com.tientvv.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -235,6 +234,14 @@ public class DiscountService {
     }
 
     return dto;
+  }
+
+  public List<Discount> findActiveDiscountsForProduct(UUID productId) {
+    Product product = productRepository.findById(productId)
+        .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+    
+    // Sử dụng method có sẵn trong repository
+    return discountRepository.findApplicableDiscountsForProduct(productId, product.getCategory().getId());
   }
 
   public DiscountDto validateDiscountCode(String code, Double orderValue) {

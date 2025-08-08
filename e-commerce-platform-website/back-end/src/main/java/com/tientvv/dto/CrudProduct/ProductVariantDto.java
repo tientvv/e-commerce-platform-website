@@ -1,6 +1,7 @@
 package com.tientvv.dto.CrudProduct;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -18,4 +19,6 @@ public class ProductVariantDto {
   private Integer quantity;
   private BigDecimal price;
   private Boolean isActive;
+  private String imageUrl;
+  private List<String> images;
 }

@@ -25,6 +25,10 @@ public class Wishlist {
     @JoinColumn(name = "product_id")
     private Product product;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_variant_id")
+    private ProductVariant productVariant;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 

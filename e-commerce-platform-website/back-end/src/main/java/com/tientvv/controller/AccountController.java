@@ -9,6 +9,7 @@ import com.tientvv.service.AccountService;
 import jakarta.servlet.http.HttpSession;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/api")
@@ -33,24 +34,6 @@ public class AccountController {
     return response;
   }
 
-  @PostMapping("/update-account")
-  public Map<String, Object> updateAccount(@RequestBody UpdateAccountDto dto, HttpSession session) {
-    Map<String, Object> response = new HashMap<>();
-    Account account = (Account) session.getAttribute("account");
-    if (account == null) {
-      response.put("message", "Bạn chưa đăng nhập!");
-      return response;
-    }
-    Account updatedAccount = accountService.updateAccount(dto);
-    session.setAttribute("account", updatedAccount);
-    response.put("message", "Cập nhật tài khoản thành công!");
-    response.put("account",
-        new InfoAccountDto(updatedAccount.getId().toString(), updatedAccount.getUsername(), updatedAccount.getName(),
-            updatedAccount.getEmail(), updatedAccount.getPhone(), updatedAccount.getRole(),
-            updatedAccount.getAddress()));
-    return response;
-  }
-
   @GetMapping("/info-account")
   public Map<String, Object> getInfoAccount(HttpSession session) {
     Map<String, Object> response = new HashMap<>();
@@ -59,9 +42,23 @@ public class AccountController {
       response.put("message", "Bạn chưa đăng nhập!");
       return response;
     }
-    response.put("account",
-        new InfoAccountDto(account.getId().toString(), account.getUsername(), account.getName(), account.getEmail(),
-            account.getPhone(), account.getRole(), account.getAddress()));
+    
+    // Trả về thông tin đầy đủ hơn
+    Map<String, Object> accountInfo = new HashMap<>();
+    accountInfo.put("id", account.getId().toString());
+    accountInfo.put("username", account.getUsername());
+    accountInfo.put("name", account.getName());
+    accountInfo.put("email", account.getEmail());
+    accountInfo.put("phone", account.getPhone());
+    accountInfo.put("address", account.getAddress());
+    accountInfo.put("role", account.getRole());
+    accountInfo.put("accountsImage", account.getAccountsImage());
+    accountInfo.put("createdAt", account.getCreatedAt());
+    accountInfo.put("updatedAt", account.getUpdatedAt());
+    accountInfo.put("lastLogin", account.getLastLogin());
+    accountInfo.put("isActive", account.getIsActive());
+    
+    response.put("account", accountInfo);
     return response;
   }
 
@@ -222,5 +219,34 @@ public class AccountController {
     }
 
     return response;
+  }
+
+  @PutMapping("/account/update")
+  public ResponseEntity<Map<String, Object>> updateAccount(@RequestBody UpdateAccountDto updateDto, HttpSession session) {
+    try {
+      Account account = (Account) session.getAttribute("account");
+      if (account == null) {
+        Map<String, Object> response = Map.of(
+          "success", false,
+          "message", "Bạn chưa đăng nhập!"
+        );
+        return ResponseEntity.badRequest().body(response);
+      }
+      
+      Account updatedAccount = accountService.updateAccount(updateDto);
+      session.setAttribute("account", updatedAccount);
+      
+      Map<String, Object> response = Map.of(
+        "success", true,
+        "message", "Cập nhật thông tin thành công"
+      );
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      Map<String, Object> response = Map.of(
+        "success", false,
+        "message", e.getMessage()
+      );
+      return ResponseEntity.badRequest().body(response);
+    }
   }
 }

@@ -18,9 +18,12 @@ const themeOverrides = {
     <n-message-provider>
       <n-dialog-provider>
         <n-notification-provider>
-          <RouterView />
+          <router-view />
         </n-notification-provider>
       </n-dialog-provider>
     </n-message-provider>
   </n-config-provider>
 </template>
+
+<style>
+</style>

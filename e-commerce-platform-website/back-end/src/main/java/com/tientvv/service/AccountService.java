@@ -28,10 +28,32 @@ public class AccountService {
   }
 
   public Account updateAccount(UpdateAccountDto dto) {
-    Account account = accountRepository.findById(dto.getId())
-        .orElseThrow(() -> new RuntimeException("Account not found"));
+    Account currentUser = getCurrentUserFromSession();
+    if (currentUser == null) {
+      throw new RuntimeException("Bạn chưa đăng nhập!");
+    }
 
-    account.setUsername(dto.getUsername());
+    Account account = accountRepository.findById(currentUser.getId())
+        .orElseThrow(() -> new RuntimeException("Không tìm thấy tài khoản"));
+
+    // Validate username (chỉ kiểm tra, không cho phép thay đổi)
+    if (dto.getUsername() != null && !account.getUsername().equals(dto.getUsername())) {
+      throw new RuntimeException("Không thể thay đổi tên đăng nhập!");
+    }
+
+    // Validate email uniqueness if changed
+    if (!account.getEmail().equals(dto.getEmail()) && 
+        accountRepository.existsByEmail(dto.getEmail())) {
+      throw new RuntimeException("Email đã được sử dụng!");
+    }
+
+    // Validate phone uniqueness if changed
+    if (!account.getPhone().equals(dto.getPhone()) && 
+        accountRepository.existsByPhone(dto.getPhone())) {
+      throw new RuntimeException("Số điện thoại đã được sử dụng!");
+    }
+
+    account.setName(dto.getName());
     account.setEmail(dto.getEmail());
     account.setPhone(dto.getPhone());
     account.setAddress(dto.getAddress());

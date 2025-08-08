@@ -122,7 +122,7 @@ export const removeOrderedItems = (orderedItems) => {
 // Lấy tổng số lượng sản phẩm trong giỏ hàng
 export const getCartItemCount = () => {
   const cart = getCart()
-  return cart.reduce((total, item) => total + item.quantity, 0)
+  return cart.length // Chỉ đếm số lượng sản phẩm, không tính số lượng của từng sản phẩm
 }
 
 // Lấy tổng giá trị giỏ hàng

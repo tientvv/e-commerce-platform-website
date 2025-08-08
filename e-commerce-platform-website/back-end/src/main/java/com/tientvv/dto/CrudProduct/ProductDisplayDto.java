@@ -1,6 +1,7 @@
 package com.tientvv.dto.CrudProduct;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public interface ProductDisplayDto {
@@ -27,6 +28,18 @@ public interface ProductDisplayDto {
   BigDecimal getOriginalPrice();
 
   Integer getDiscountPercentage();
+
+  Integer getDiscountAmount();
+
+  String getDiscountType();
+
+  String getDiscountName();
+
+  OffsetDateTime getDiscountStartDate();
+
+  OffsetDateTime getDiscountEndDate();
+
+  BigDecimal getMinOrderValue();
 
   String getShopName();
 

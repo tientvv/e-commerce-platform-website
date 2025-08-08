@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiểm tra lỗi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .error-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #f44336;
+            border-radius: 8px;
+            background: #ffebee;
+            color: #c62828;
+        }
+        .info-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .success-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Kiểm tra lỗi</h1>
+    
+    <div class="error-section">
+        <h2>❌ Bạn nói có lỗi - Hãy cho tôi biết:</h2>
+        <ul>
+            <li><strong>Lỗi gì?</strong> (Error message, stack trace, etc.)</li>
+            <li><strong>Khi nào xảy ra?</strong> (Khi search, khi load trang, etc.)</li>
+            <li><strong>Console log?</strong> (Kiểm tra browser console)</li>
+            <li><strong>Backend log?</strong> (Kiểm tra terminal backend)</li>
+        </ul>
+    </div>
+
+    <div class="info-section">
+        <h2>📋 Những gì đã được thêm:</h2>
+        <ul>
+            <li>✅ <code>findActiveProductsWithDiscountsBySearch()</code> trong ProductRepository</li>
+            <li>✅ <code>searchProducts()</code> sử dụng method mới trong ProductService</li>
+            <li>✅ Discount badge và logic hiển thị trong SearchView.vue</li>
+            <li>✅ Watch cho route query changes</li>
+        </ul>
+    </div>
+
+    <div class="info-section">
+        <h2>🧪 Cách debug:</h2>
+        <ol>
+            <li><strong>Backend:</strong> Chạy <code>cd back-end && mvn spring-boot:run</code></li>
+            <li><strong>Frontend:</strong> Chạy <code>cd front-end && npm run dev</code></li>
+            <li><strong>Test API:</strong> Gọi <code>GET /api/products/search?query=test</code></li>
+            <li><strong>Browser:</strong> Mở DevTools → Console → Network</li>
+            <li><strong>Search:</strong> Thử search một từ khóa</li>
+        </ol>
+    </div>
+
+    <div class="success-section">
+        <h2>✅ Nếu không có lỗi:</h2>
+        <p>Chức năng discount trong search đã hoạt động! Bạn sẽ thấy:</p>
+        <ul>
+            <li>Badge giảm giá màu xanh trên sản phẩm</li>
+            <li>Giá gốc gạch ngang</li>
+            <li>Giá sau giảm màu xanh</li>
+            <li>Search update real-time không cần reload</li>
+        </ul>
+    </div>
+
+    <div class="info-section">
+        <h2>📞 Báo cáo lỗi:</h2>
+        <p>Hãy copy và paste:</p>
+        <ul>
+            <li>Error message từ console</li>
+            <li>Stack trace từ backend</li>
+            <li>Network request/response</li>
+            <li>URL và query parameters</li>
+        </ul>
+    </div>
+</body>
+</html>

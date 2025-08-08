@@ -1,15 +1,10 @@
 <template>
   <div class="max-w-[1440px] w-full mx-auto flex gap-2 bg-white">
-    <RouterLink to="/user/order" class="py-1 px-2 rounded outline-1 flex items-center gap-2 border border-gray-400">
-      <ShoppingBasket width="18" />
-      Đơn hàng (1) (Đang phát triển)
-    </RouterLink>
-
     <!-- Hiển thị link khác nhau dựa trên trạng thái shop -->
     <RouterLink
       v-if="hasShop"
       to="/user/shop/profile"
-      class="py-1 px-2 rounded outline-1 flex items-center gap-2 border border-gray-400"
+      class="py-1 px-2 bg-white text-gray-700 rounded-xs border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-transparent transition-colors font-medium flex items-center gap-2"
     >
       <Store width="18" />
       Kênh bán hàng
@@ -18,16 +13,26 @@
     <RouterLink
       v-else
       to="/register-shop"
-      class="py-1 px-2 rounded outline-1 flex items-center gap-2 border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white"
+      class="py-1 px-2 bg-white text-gray-700 rounded-xs border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-transparent transition-colors font-medium flex items-center gap-2"
     >
       <Plus width="18" />
       Đăng ký cửa hàng
+    </RouterLink>
+
+    <RouterLink to="/user/profile" class="py-1 px-2 bg-white text-gray-700 rounded-xs border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-transparent transition-colors font-medium flex items-center gap-2">
+      <User width="18" />
+      Thông tin cá nhân
+    </RouterLink>
+
+    <RouterLink to="/user/order" class="py-1 px-2 bg-white text-gray-700 rounded-xs border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-transparent transition-colors font-medium flex items-center gap-2">
+      <ShoppingBasket width="18" />
+      Đơn hàng (1) (Đang phát triển)
     </RouterLink>
   </div>
 </template>
 
 <script setup>
-import { Store, Plus } from 'lucide-vue-next'
+import { Store, Plus, User } from 'lucide-vue-next'
 import { ShoppingBasket } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import { ref, onMounted } from 'vue'

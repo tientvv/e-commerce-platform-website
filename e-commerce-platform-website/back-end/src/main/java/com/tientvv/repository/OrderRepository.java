@@ -24,12 +24,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
   List<Order> findAllOrderByOrderDateDesc();
 
   // Shop Order Management Methods
-  @Query("SELECT o FROM Order o WHERE o.shop.id = :shopId AND " +
-      "(:status IS NULL OR o.orderStatus = :status) AND " +
-      "(:paymentMethod IS NULL OR o.payment.paymentCode = :paymentMethod) AND " +
-      "(:startDate IS NULL OR CAST(o.orderDate AS date) >= :startDate) AND " +
-      "(:endDate IS NULL OR CAST(o.orderDate AS date) <= :endDate) " +
-      "ORDER BY o.orderDate DESC")
+  @Query(value = "SELECT o.* FROM orders o " +
+      "WHERE o.shop_id = :shopId AND " +
+      "(:status IS NULL OR o.order_status = :status) AND " +
+      "(:paymentMethod IS NULL OR o.payment_id IN (SELECT p.id FROM payments p WHERE p.payment_code = :paymentMethod)) AND " +
+      "(:startDate IS NULL OR CAST(o.order_date AS date) >= :startDate) AND " +
+      "(:endDate IS NULL OR CAST(o.order_date AS date) <= :endDate) " +
+      "ORDER BY o.order_date DESC", nativeQuery = true)
   List<Order> findByShopIdWithFilters(
       @Param("shopId") UUID shopId,
       @Param("status") String status,

@@ -95,6 +95,20 @@ public class ProductVariantService {
   }
 
   private ProductVariantDto convertToDto(ProductVariant productVariant) {
+    // Lấy ảnh chính của variant (ảnh đầu tiên nếu có)
+    String imageUrl = null;
+    if (productVariant.getProductImages() != null && !productVariant.getProductImages().isEmpty()) {
+      imageUrl = productVariant.getProductImages().iterator().next().getImageUrl();
+    }
+    
+    // Lấy tất cả ảnh của variant
+    List<String> images = null;
+    if (productVariant.getProductImages() != null && !productVariant.getProductImages().isEmpty()) {
+      images = productVariant.getProductImages().stream()
+          .map(image -> image.getImageUrl())
+          .collect(Collectors.toList());
+    }
+    
     return new ProductVariantDto(
         productVariant.getId(),
         productVariant.getProduct().getId(),
@@ -102,6 +116,8 @@ public class ProductVariantService {
         productVariant.getVariantValue(),
         productVariant.getQuantity(),
         productVariant.getPrice(),
-        productVariant.getIsActive());
+        productVariant.getIsActive(),
+        imageUrl,
+        images);
   }
 }

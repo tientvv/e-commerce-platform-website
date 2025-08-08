@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.math.RoundingMode;
 
 @Service
 public class OrderService {
@@ -48,8 +49,6 @@ public class OrderService {
   @Autowired
   private ShopService shopService;
 
-
-
   @Autowired
   private AccountService accountService;
 
@@ -57,11 +56,36 @@ public class OrderService {
   @Autowired
   private DiscountRepository discountRepository;
 
+  /**
+   * Kiểm tra số lượng tồn kho trước khi đặt hàng
+   */
+  public void validateProductQuantities(List<CreateOrderDto.OrderItemDto> orderItems) {
+    for (CreateOrderDto.OrderItemDto itemDto : orderItems) {
+      if (itemDto.getProductVariantId() != null) {
+        ProductVariant productVariant = productVariantRepository.findById(itemDto.getProductVariantId())
+            .orElseThrow(() -> new RuntimeException("Product variant not found: " + itemDto.getProductVariantId()));
+
+        Integer currentQuantity = productVariant.getQuantity();
+        Integer orderedQuantity = itemDto.getQuantity();
+
+        if (currentQuantity == null || currentQuantity < orderedQuantity) {
+          throw new RuntimeException("Không đủ số lượng sản phẩm: " +
+              productVariant.getProduct().getName() + " - " +
+              productVariant.getVariantName() + ": " + productVariant.getVariantValue() +
+              ". Cần: " + orderedQuantity + ", Có: " + currentQuantity);
+        }
+      }
+    }
+  }
+
   @Transactional
   public OrderDto createOrder(CreateOrderDto createOrderDto) {
     // Validate entities exist
     Account account = accountRepository.findById(createOrderDto.getAccountId())
         .orElseThrow(() -> new RuntimeException("Account not found"));
+
+    // Kiểm tra số lượng tồn kho trước khi tạo đơn hàng
+    validateProductQuantities(createOrderDto.getOrderItems());
 
     Shop shop = shopRepository.findById(createOrderDto.getShopId())
         .orElseGet(() -> {
@@ -95,6 +119,7 @@ public class OrderService {
     if ("PAYOS".equals(payment.getPaymentCode())) {
       order.setOrderStatus("PENDING_PROCESSING");
     } else {
+      // COD - thanh toán khi nhận hàng, trừ số lượng ngay lập tức
       order.setOrderStatus("PENDING_PROCESSING");
     }
 
@@ -136,6 +161,11 @@ public class OrderService {
           return orderItemRepository.save(orderItem);
         })
         .collect(Collectors.toList());
+
+    // Trừ số lượng sản phẩm cho COD ngay lập tức
+    if (!"PAYOS".equals(payment.getPaymentCode())) {
+      deductProductQuantities(savedOrder.getId());
+    }
 
     // Create initial transaction
     Transaction transaction = new Transaction();
@@ -232,18 +262,25 @@ public class OrderService {
 
     // Cập nhật trạng thái transaction
     List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
-    System.out.println("Updating transactions for order " + orderId + ", found " + transactions.size() + " transactions");
-    
+    System.out
+        .println("Updating transactions for order " + orderId + ", found " + transactions.size() + " transactions");
+
     for (Transaction transaction : transactions) {
       String oldStatus = transaction.getTransactionStatus();
       System.out.println("Transaction " + transaction.getId() + " current status: " + oldStatus);
-      
+
+      // Nếu transaction chuyển từ PENDING sang SUCCESS, trừ số lượng sản phẩm
+      if ("PENDING".equals(oldStatus) && "SUCCESS".equals(transactionStatus)) {
+        deductProductQuantities(orderId);
+      }
+
       // Cập nhật transaction status
       transaction.setTransactionStatus(transactionStatus);
       transaction.setTransactionDate(OffsetDateTime.now());
       transactionRepository.save(transaction);
-      
-      System.out.println("Updated transaction " + transaction.getId() + " from " + oldStatus + " to " + transactionStatus);
+
+      System.out
+          .println("Updated transaction " + transaction.getId() + " from " + oldStatus + " to " + transactionStatus);
     }
 
     List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
@@ -334,11 +371,11 @@ public class OrderService {
     long inTransitOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "IN_TRANSIT");
     long deliveredOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "DELIVERED");
     long cancelledOrders = orderRepository.countByShopIdAndOrderStatus(shopId, "CANCELLED");
-    
+
     // Tính tổng đơn hàng
-    long totalOrders = pendingProcessingOrders + processedOrders + readyForPickupOrders + 
-                      inTransitOrders + deliveredOrders + cancelledOrders;
-    
+    long totalOrders = pendingProcessingOrders + processedOrders + readyForPickupOrders +
+        inTransitOrders + deliveredOrders + cancelledOrders;
+
     statistics.put("totalOrders", totalOrders);
     statistics.put("pendingProcessingOrders", pendingProcessingOrders);
     statistics.put("processedOrders", processedOrders);
@@ -350,6 +387,211 @@ public class OrderService {
     // Tổng doanh thu của shop
     BigDecimal totalRevenue = orderRepository.getTotalRevenueByShopId(shopId);
     statistics.put("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+
+    return statistics;
+  }
+
+  public Map<String, Object> getRevenueStatistics(String period, String startDate, String endDate) {
+    System.out.println("DEBUG: getRevenueStatistics called with period=" + period + ", startDate=" + startDate
+        + ", endDate=" + endDate);
+
+    UUID shopId = getCurrentShopId();
+    if (shopId == null) {
+      System.out.println("DEBUG: No shop ID found");
+      Map<String, Object> emptyStats = new HashMap<>();
+      emptyStats.put("totalRevenue", BigDecimal.ZERO);
+      emptyStats.put("totalOrders", 0L);
+      emptyStats.put("averageOrderValue", BigDecimal.ZERO);
+      emptyStats.put("revenueByPeriod", new ArrayList<>());
+      emptyStats.put("topProducts", new ArrayList<>());
+      return emptyStats;
+    }
+
+    System.out.println("DEBUG: Found shop ID: " + shopId);
+
+    Map<String, Object> statistics = new HashMap<>();
+
+    // Xử lý thời gian
+    LocalDate startDateFilter = null;
+    LocalDate endDateFilter = null;
+    LocalDate today = LocalDate.now();
+
+    if (startDate != null && !startDate.isEmpty() && !startDate.equals("null")) {
+      try {
+        startDateFilter = LocalDate.parse(startDate);
+        System.out.println("DEBUG: Parsed startDate '" + startDate + "' to " + startDateFilter);
+      } catch (Exception e) {
+        System.err.println("Error parsing startDate: " + startDate);
+      }
+    }
+    if (endDate != null && !endDate.isEmpty() && !endDate.equals("null")) {
+      try {
+        endDateFilter = LocalDate.parse(endDate);
+        System.out.println("DEBUG: Parsed endDate '" + endDate + "' to " + endDateFilter);
+      } catch (Exception e) {
+        System.err.println("Error parsing endDate: " + endDate);
+      }
+    }
+
+    System.out.println("DEBUG: After parsing dates - startDateFilter: " + startDateFilter + ", endDateFilter: " + endDateFilter);
+    
+    // Nếu không có startDate/endDate và không phải CUSTOM, sử dụng period
+    if (startDateFilter == null && endDateFilter == null && period != null && !period.equals("ALL") && !period.equals("CUSTOM")) {
+      switch (period) {
+        case "TODAY":
+          startDateFilter = today;
+          endDateFilter = today;
+          break;
+        case "THIS_WEEK":
+          startDateFilter = today.minusDays(today.getDayOfWeek().getValue() - 1);
+          endDateFilter = today;
+          break;
+        case "THIS_MONTH":
+          startDateFilter = today.withDayOfMonth(1);
+          endDateFilter = today;
+          break;
+        case "THIS_YEAR":
+          startDateFilter = today.withDayOfYear(1);
+          endDateFilter = today;
+          break;
+      }
+      System.out.println("DEBUG: Applied period logic - startDateFilter: " + startDateFilter + ", endDateFilter: " + endDateFilter);
+    }
+
+    // Nếu vẫn không có endDate, dùng hôm nay (chỉ khi không phải CUSTOM)
+    if (endDateFilter == null && (period == null || !period.equals("CUSTOM"))) {
+      endDateFilter = today;
+    }
+    
+    // Kiểm tra nếu period là CUSTOM nhưng không có startDate hoặc endDate
+    if ("CUSTOM".equals(period) && (startDateFilter == null || endDateFilter == null)) {
+      System.out.println("DEBUG: CUSTOM period but missing startDate or endDate - using default period");
+      // Fallback to THIS_MONTH if CUSTOM is selected but dates are missing
+      startDateFilter = today.withDayOfMonth(1);
+      endDateFilter = today;
+    }
+    
+    // Nếu có startDate hoặc endDate nhưng period không phải CUSTOM, set period thành CUSTOM
+    if ((startDateFilter != null || endDateFilter != null) && !"CUSTOM".equals(period)) {
+      System.out.println("DEBUG: Found startDate or endDate but period is not CUSTOM - treating as CUSTOM");
+    }
+
+    System.out.println("DEBUG: Final date filters - startDateFilter: " + startDateFilter + ", endDateFilter: " + endDateFilter);
+    System.out.println("DEBUG: Today is: " + today);
+    System.out.println("DEBUG: Period: " + period);
+
+        // Lấy doanh thu từ transactions SUCCESS
+    BigDecimal totalRevenue = null;
+    try {
+      totalRevenue = transactionRepository.getTotalRevenueByShopIdAndStatus(
+          shopId, "SUCCESS", startDateFilter, endDateFilter);
+      System.out.println("DEBUG: Total revenue: " + totalRevenue);
+    } catch (Exception e) {
+      System.err.println("DEBUG: Error getting total revenue: " + e.getMessage());
+      totalRevenue = BigDecimal.ZERO;
+    }
+    
+    // Lấy số đơn hàng đã thanh toán thành công
+    long totalOrders = 0;
+    try {
+      totalOrders = transactionRepository.countSuccessfulOrdersByShopId(
+          shopId, startDateFilter, endDateFilter);
+      System.out.println("DEBUG: Total orders: " + totalOrders);
+    } catch (Exception e) {
+      System.err.println("DEBUG: Error getting total orders: " + e.getMessage());
+    }
+
+    // Tính giá trị đơn hàng trung bình
+    BigDecimal averageOrderValue = totalOrders > 0
+        ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
+        : BigDecimal.ZERO;
+
+    // Lấy doanh thu theo từng ngày/tuần/tháng
+    List<Object[]> revenueByPeriodRaw = null;
+    try {
+      revenueByPeriodRaw = transactionRepository.getRevenueByPeriod(
+          shopId, "SUCCESS", startDateFilter, endDateFilter);
+      System.out.println("DEBUG: Revenue by period raw data size: "
+          + (revenueByPeriodRaw != null ? revenueByPeriodRaw.size() : "null"));
+    } catch (Exception e) {
+      System.err.println("DEBUG: Error getting revenue by period: " + e.getMessage());
+      revenueByPeriodRaw = new ArrayList<>();
+    }
+
+    List<Map<String, Object>> revenueByPeriod = new ArrayList<>();
+    if (revenueByPeriodRaw != null) {
+      revenueByPeriod = revenueByPeriodRaw.stream()
+          .map(row -> {
+            Map<String, Object> periodData = new HashMap<>();
+            try {
+              System.out.println("DEBUG: Processing revenue period row - row[0]: "
+                  + (row[0] != null ? row[0].getClass().getSimpleName() + ":" + row[0] : "null") +
+                  ", row[1]: " + (row[1] != null ? row[1].getClass().getSimpleName() + ":" + row[1] : "null") +
+                  ", row[2]: " + (row[2] != null ? row[2].getClass().getSimpleName() + ":" + row[2] : "null"));
+              periodData.put("date", row[0]);
+              periodData.put("revenue", row[1]);
+              periodData.put("orderCount", row[2]);
+              System.out.println(
+                  "DEBUG: Revenue period data - date: " + row[0] + ", revenue: " + row[1] + ", orderCount: " + row[2]);
+            } catch (Exception e) {
+              System.err.println("DEBUG: Error processing revenue period data: " + e.getMessage());
+              e.printStackTrace();
+            }
+            return periodData;
+          })
+          .collect(Collectors.toList());
+    }
+
+    // Lấy top sản phẩm bán chạy
+    List<Object[]> topProductsRaw = null;
+    try {
+      topProductsRaw = orderItemRepository.getTopSellingProducts(
+          shopId, startDateFilter, endDateFilter);
+      System.out
+          .println("DEBUG: Top products raw data size: " + (topProductsRaw != null ? topProductsRaw.size() : "null"));
+    } catch (Exception e) {
+      System.err.println("DEBUG: Error getting top products: " + e.getMessage());
+      topProductsRaw = new ArrayList<>();
+    }
+
+    List<Map<String, Object>> topProducts = new ArrayList<>();
+    if (topProductsRaw != null) {
+      topProducts = topProductsRaw.stream()
+          .map(row -> {
+            Map<String, Object> productData = new HashMap<>();
+            try {
+              System.out.println("DEBUG: Processing top product row - row[0]: "
+                  + (row[0] != null ? row[0].getClass().getSimpleName() + ":" + row[0] : "null") +
+                  ", row[1]: " + (row[1] != null ? row[1].getClass().getSimpleName() + ":" + row[1] : "null") +
+                  ", row[2]: " + (row[2] != null ? row[2].getClass().getSimpleName() + ":" + row[2] : "null") +
+                  ", row[3]: " + (row[3] != null ? row[3].getClass().getSimpleName() + ":" + row[3] : "null") +
+                  ", row[4]: " + (row[4] != null ? row[4].getClass().getSimpleName() + ":" + row[4] : "null") +
+                  ", row[5]: " + (row[5] != null ? row[5].getClass().getSimpleName() + ":" + row[5] : "null"));
+              productData.put("productName", row[0]);
+              productData.put("variantName", row[1]);
+              productData.put("variantValue", row[2]);
+              productData.put("totalQuantity", row[3]);
+              productData.put("totalRevenue", row[4]);
+              productData.put("orderCount", row[5]);
+              System.out.println("DEBUG: Top product data - name: " + row[0] + ", variant: " + row[1] + ", value: "
+                  + row[2] + ", quantity: " + row[3] + ", revenue: " + row[4] + ", orderCount: " + row[5]);
+            } catch (Exception e) {
+              System.err.println("DEBUG: Error processing top product data: " + e.getMessage());
+              e.printStackTrace();
+            }
+            return productData;
+          })
+          .collect(Collectors.toList());
+    }
+
+    statistics.put("totalRevenue", totalRevenue != null ? totalRevenue : BigDecimal.ZERO);
+    statistics.put("totalOrders", totalOrders);
+    statistics.put("averageOrderValue", averageOrderValue);
+    statistics.put("revenueByPeriod", revenueByPeriod);
+    statistics.put("topProducts", topProducts);
+    statistics.put("period", period);
+    statistics.put("startDate", startDateFilter);
+    statistics.put("endDate", endDateFilter);
 
     return statistics;
   }
@@ -450,6 +692,14 @@ public class OrderService {
     dto.setCancelledDate(order.getCancelledDate());
     dto.setShippingAddress(order.getShippingAddress());
 
+    // Set transaction status (lấy từ transaction đầu tiên hoặc PENDING nếu không
+    // có)
+    if (!transactions.isEmpty()) {
+      dto.setTransactionStatus(transactions.get(0).getTransactionStatus());
+    } else {
+      dto.setTransactionStatus("PENDING");
+    }
+
     // Convert order items
     dto.setOrderItems(orderItems.stream()
         .map(item -> {
@@ -496,5 +746,42 @@ public class OrderService {
         .collect(Collectors.toList()));
 
     return dto;
+  }
+
+  /**
+   * Trừ số lượng sản phẩm khi đơn hàng được thanh toán thành công
+   */
+  @Transactional
+  private void deductProductQuantities(UUID orderId) {
+    try {
+      List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+
+      for (OrderItem orderItem : orderItems) {
+        if (orderItem.getProductVariant() != null) {
+          ProductVariant productVariant = orderItem.getProductVariant();
+          Integer currentQuantity = productVariant.getQuantity();
+          Integer orderedQuantity = orderItem.getQuantity();
+
+          if (currentQuantity != null && orderedQuantity != null) {
+            // Kiểm tra xem có đủ số lượng không
+            if (currentQuantity >= orderedQuantity) {
+              // Trừ số lượng
+              int newQuantity = currentQuantity - orderedQuantity;
+              productVariant.setQuantity(newQuantity);
+              productVariantRepository.save(productVariant);
+
+              System.out.println("Đã trừ " + orderedQuantity + " sản phẩm từ variant " +
+                  productVariant.getId() + ". Số lượng còn lại: " + newQuantity);
+            } else {
+              System.err.println("Không đủ số lượng sản phẩm variant " + productVariant.getId() +
+                  ". Cần: " + orderedQuantity + ", Có: " + currentQuantity);
+            }
+          }
+        }
+      }
+    } catch (Exception e) {
+      System.err.println("Lỗi khi trừ số lượng sản phẩm cho đơn hàng " + orderId + ": " + e.getMessage());
+      e.printStackTrace();
+    }
   }
 }
