@@ -167,4 +167,30 @@ public class WishlistController {
       return ResponseEntity.badRequest().body(errorResponse);
     }
   }
+
+  // Lấy tổng số lượng wishlist của user hiện tại
+  @GetMapping("/count")
+  public ResponseEntity<Map<String, Object>> getUserWishlistCount() {
+    try {
+      Account currentUser = accountService.getCurrentUserFromSession();
+      if (currentUser == null) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", 0);
+        response.put("message", "Chưa đăng nhập");
+        return ResponseEntity.ok(response);
+      }
+      
+      long count = wishlistService.getUserWishlistCount(currentUser.getId());
+      
+      Map<String, Object> response = new HashMap<>();
+      response.put("count", count);
+      response.put("message", "Lấy số lượng yêu thích thành công");
+      
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      Map<String, Object> errorResponse = new HashMap<>();
+      errorResponse.put("message", "Không thể lấy số lượng yêu thích: " + e.getMessage());
+      return ResponseEntity.badRequest().body(errorResponse);
+    }
+  }
 }

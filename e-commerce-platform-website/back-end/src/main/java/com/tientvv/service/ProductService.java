@@ -1,17 +1,20 @@
 package com.tientvv.service;
 
+import com.tientvv.config.TimeZoneConfig;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+import java.util.Map;
+import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import com.tientvv.dto.CrudProduct.CreateProductDto;
 import com.tientvv.dto.CrudProduct.ProductDto;
 import com.tientvv.dto.CrudProduct.ProductDisplayDto;
@@ -26,6 +29,7 @@ import com.tientvv.repository.ProductRepository;
 import com.tientvv.repository.ShopRepository;
 import com.tientvv.specification.ProductSpecification;
 
+@SuppressWarnings("unused")
 @Service
 public class ProductService {
 
@@ -50,43 +54,72 @@ public class ProductService {
 
   public Product createProduct(CreateProductDto dto) throws Exception {
     Product product = new Product();
+    
+    // Validate và set category
+    if (dto.getCategoryId() == null) {
+      throw new RuntimeException("Category ID is required");
+    }
     Category category = categoryRepository.findById(dto.getCategoryId())
         .orElseThrow(() -> new RuntimeException("Category not found"));
     product.setCategory(category);
-    product.setBrand(dto.getBrand() != null ? dto.getBrand() : "");
-    product.setName(dto.getName());
+    
+    // Set basic fields
+    product.setName(dto.getName() != null ? dto.getName().trim() : "");
+    product.setBrand(dto.getBrand() != null ? dto.getBrand().trim() : "");
+    product.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : "");
+    
+    // Handle image upload
     if (dto.getProductImage() != null && !dto.getProductImage().isEmpty()) {
       String imageUrl = imageUploadService.uploadImage(dto.getProductImage());
       product.setProductImage(imageUrl);
+    } else {
+      throw new RuntimeException("Product image is required");
     }
-    product.setDescription(dto.getDescription());
+    
+    // Set shop
+    if (dto.getShopId() == null) {
+      throw new RuntimeException("Shop ID is required");
+    }
     Shop shop = shopRepository.findById(dto.getShopId())
         .orElseThrow(() -> new RuntimeException("Shop not found"));
-    product.setIsActive(true);
     product.setShop(shop);
+    
+    // Set default values
+    product.setIsActive(true);
+    product.setViewCount(0);
+    product.setSoldCount(0);
+    
     return productRepository.save(product);
   }
 
   public Product updateProduct(UUID id, UpdateProductDto dto) throws Exception {
     Product product = productRepository.findById(id)
         .orElseThrow(() -> new RuntimeException("Product not found"));
-    product.setName(dto.getName());
-    product.setBrand(dto.getBrand());
-    product.setDescription(dto.getDescription());
+    
+    // Update basic fields - only update if provided
+    if (dto.getName() != null) {
+      product.setName(dto.getName().trim());
+    }
+    if (dto.getBrand() != null) {
+      product.setBrand(dto.getBrand().trim());
+    }
+    if (dto.getDescription() != null) {
+      product.setDescription(dto.getDescription().trim());
+    }
+    
+    // Update category if provided
     if (dto.getCategoryId() != null) {
       Category category = categoryRepository.findById(dto.getCategoryId())
           .orElseThrow(() -> new RuntimeException("Category not found"));
       product.setCategory(category);
     }
-    if (dto.getShopId() != null) {
-      Shop shop = shopRepository.findById(dto.getShopId())
-          .orElseThrow(() -> new RuntimeException("Shop not found"));
-      product.setShop(shop);
-    }
+    
+    // Update image if provided
     if (dto.getProductImage() != null && !dto.getProductImage().isEmpty()) {
       String imageUrl = imageUploadService.uploadImage(dto.getProductImage());
       product.setProductImage(imageUrl);
     }
+    
     return productRepository.save(product);
   }
 
@@ -133,75 +166,126 @@ public class ProductService {
   }
 
   public List<ProductDisplayDto> findActiveProductsWithPricing() {
-    return productRepository.findActiveProductsWithPricing();
+    OffsetDateTime currentTime = OffsetDateTime.now();
+    return productRepository.findActiveProductsWithPricing(currentTime);
   }
 
   public List<ProductDisplayDto> findActiveProductsWithPricingByCategoryId(UUID categoryId) {
-    return productRepository.findActiveProductsWithPricingByCategoryId(categoryId);
+    OffsetDateTime currentTime = OffsetDateTime.now();
+    return productRepository.findActiveProductsWithPricingByCategoryId(categoryId, currentTime);
   }
 
   public List<ProductDisplayDto> findActiveProductsWithActiveDiscounts() {
-    return productRepository.findActiveProductsWithActiveDiscounts();
+    // Lấy thời gian hiện tại theo múi giờ Việt Nam
+    OffsetDateTime currentVietnamTime = TimeZoneConfig.getCurrentVietnamTime().toOffsetDateTime();
+    return productRepository.findActiveProductsWithActiveDiscounts(currentVietnamTime);
   }
 
-  public List<ProductDisplayDto> findProductsWithProductSpecificDiscounts() {
-    return productRepository.findActiveProductsWithProductSpecificDiscounts();
+  public List<ProductDisplayDto> findActiveProductsWithProductSpecificDiscounts() {
+    OffsetDateTime currentTime = OffsetDateTime.now();
+    return productRepository.findActiveProductsWithProductSpecificDiscounts(currentTime);
   }
 
   public List<ProductDisplayDto> findProductsWithDiscountsSimple() {
-    return productRepository.findActiveProductsWithDiscountsSimple();
+    OffsetDateTime currentTime = OffsetDateTime.now();
+    return productRepository.findActiveProductsWithDiscountsSimple(currentTime);
   }
 
   public List<ProductDisplayDto> findProductsWithBestDiscounts() {
-    List<ProductDisplayDto> productsWithDiscounts = productRepository.findActiveProductsWithActiveDiscounts();
+    // Lấy thời gian hiện tại theo múi giờ Việt Nam
+    OffsetDateTime currentVietnamTime = TimeZoneConfig.getCurrentVietnamTime().toOffsetDateTime();
     
-    // Sắp xếp theo mức độ ưu tiên discount
-    return productsWithDiscounts.stream()
-        .sorted((p1, p2) -> {
-          // Ưu tiên theo giá trị discount (cao nhất trước)
-          BigDecimal discount1 = p1.getDiscountPercentage() != null && p1.getDiscountPercentage() > 0 
-              ? new BigDecimal(p1.getDiscountPercentage())
-              : p1.getDiscountAmount() != null ? new BigDecimal(p1.getDiscountAmount()) : BigDecimal.ZERO;
-          
-          BigDecimal discount2 = p2.getDiscountPercentage() != null && p2.getDiscountPercentage() > 0 
-              ? new BigDecimal(p2.getDiscountPercentage())
-              : p2.getDiscountAmount() != null ? new BigDecimal(p2.getDiscountAmount()) : BigDecimal.ZERO;
-          
-          return discount2.compareTo(discount1); // Giảm dần
-        })
+    // Lấy tất cả sản phẩm có discount
+    List<ProductDisplayDto> productsWithDiscounts = productRepository.findActiveProductsWithActiveDiscounts(currentVietnamTime);
+    
+    // Loại bỏ trùng lặp sản phẩm và chỉ giữ lại sản phẩm với discount tốt nhất
+    Map<UUID, ProductDisplayDto> uniqueProducts = new HashMap<>();
+    
+    for (ProductDisplayDto product : productsWithDiscounts) {
+      UUID productId = product.getId();
+      
+      if (!uniqueProducts.containsKey(productId)) {
+        // Sản phẩm chưa có trong map, thêm vào
+        uniqueProducts.put(productId, product);
+      } else {
+        // Sản phẩm đã có, so sánh discount để giữ lại cái tốt hơn
+        ProductDisplayDto existingProduct = uniqueProducts.get(productId);
+        
+        // Sử dụng method so sánh mới
+        if (compareDiscounts(product, existingProduct) > 0) {
+          uniqueProducts.put(productId, product);
+        }
+      }
+    }
+    
+    // Chuyển về list và sắp xếp theo giá trị discount giảm dần
+    List<ProductDisplayDto> result = uniqueProducts.values().stream()
+        .sorted((p1, p2) -> compareDiscounts(p2, p1)) // Giảm dần
         .collect(Collectors.toList());
+    
+    return result;
+  }
+  
+  // Helper method để tính giá trị discount
+  private BigDecimal getDiscountValue(ProductDisplayDto product) {
+    BigDecimal productPrice = product.getMinPrice() != null ? product.getMinPrice() : BigDecimal.ZERO;
+    
+    if (product.getDiscountPercentage() != null && product.getDiscountPercentage() > 0) {
+      // Với discount percentage, tính giá trị thực tế
+      BigDecimal percentageValue = new BigDecimal(product.getDiscountPercentage());
+      BigDecimal result = productPrice.multiply(percentageValue).divide(new BigDecimal(100), 2, RoundingMode.HALF_UP);
+      return result;
+    } else if (product.getDiscountAmount() != null && product.getDiscountAmount() > 0) {
+      // Với discount fixed, trả về số tiền giảm trực tiếp
+      BigDecimal result = new BigDecimal(product.getDiscountAmount());
+      return result;
+    }
+    return BigDecimal.ZERO;
+  }
+
+  // Helper method để so sánh discount (ưu tiên percentage trước)
+  private int compareDiscounts(ProductDisplayDto product1, ProductDisplayDto product2) {
+    // Ưu tiên 1: Percentage discount luôn tốt hơn Fixed discount
+    boolean hasPercentage1 = product1.getDiscountPercentage() != null && product1.getDiscountPercentage() > 0;
+    boolean hasPercentage2 = product2.getDiscountPercentage() != null && product2.getDiscountPercentage() > 0;
+    
+    if (hasPercentage1 && !hasPercentage2) {
+      return 1; // product1 tốt hơn
+    }
+    if (!hasPercentage1 && hasPercentage2) {
+      return -1; // product2 tốt hơn
+    }
+    
+    // Nếu cùng loại, so sánh giá trị thực tế
+    BigDecimal value1 = getDiscountValue(product1);
+    BigDecimal value2 = getDiscountValue(product2);
+    
+    return value1.compareTo(value2);
   }
 
   public List<ProductDisplayDto> getSuggestedProducts() {
-      // Lấy tất cả sản phẩm active có discount
-      List<ProductDisplayDto> allProducts = findActiveProductsWithActiveDiscounts();
-      
-      // Nếu không đủ sản phẩm có discount, thêm sản phẩm thường
-      if (allProducts.size() < 36) {
-          List<ProductDisplayDto> regularProducts = findActiveProductsWithPricing();
-          // Lọc ra những sản phẩm không có trong danh sách discount
-          List<ProductDisplayDto> additionalProducts = regularProducts.stream()
-              .filter(regular -> allProducts.stream()
-                  .noneMatch(discount -> discount.getId().equals(regular.getId())))
-              .limit(36 - allProducts.size())
-              .collect(Collectors.toList());
-          allProducts.addAll(additionalProducts);
+      try {
+          // Sử dụng query giống như CategoryView để đảm bảo logic discount đúng
+          List<ProductDisplayDto> allProducts = new ArrayList<>();
+          
+          // Lấy tất cả category và sử dụng findActiveProductsWithPricingByCategoryId
+          List<Category> categories = categoryRepository.findAll();
+          for (Category category : categories) {
+              List<ProductDisplayDto> categoryProducts = findActiveProductsWithPricingByCategoryId(category.getId());
+              allProducts.addAll(categoryProducts);
+          }
+          
+          // Randomize danh sách
+          Collections.shuffle(allProducts);
+          
+          // Trả về tối đa 20 sản phẩm
+          return allProducts.stream().limit(20).collect(Collectors.toList());
+      } catch (Exception e) {
+          System.err.println("Error in getSuggestedProducts: " + e.getMessage());
+          e.printStackTrace();
+          // Trả về danh sách rỗng nếu có lỗi
+          return new ArrayList<>();
       }
-      
-      // Tạo seed dựa trên thời gian hiện tại, chia cho 30 phút (1800000ms)
-      long currentTime = System.currentTimeMillis();
-      long timeSlot = currentTime / (30 * 60 * 1000); // 30 phút
-      
-      // Sử dụng timeSlot làm seed để đảm bảo cùng 1 kết quả trong 30 phút
-      Random random = new Random(timeSlot);
-      
-      // Shuffle với seed cố định
-      Collections.shuffle(allProducts, random);
-      
-      // Trả về tối đa 36 sản phẩm
-      return allProducts.stream()
-              .limit(36)
-              .collect(Collectors.toList());
   }
 
   public ProductDto getProductDtoById(UUID id) {
@@ -213,7 +297,12 @@ public class ProductService {
   }
 
   public ProductDetailDto getProductDetailById(UUID id) {
-    return productRepository.findProductDetailById(id);
+    OffsetDateTime currentTime = OffsetDateTime.now();
+    return productRepository.findProductDetailById(id, currentTime);
+  }
+
+  public ProductDto getProductForEdit(UUID id) {
+    return productRepository.findProductForEdit(id);
   }
 
   public List<ProductDisplayDto> searchProducts(String query) {

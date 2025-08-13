@@ -73,6 +73,7 @@
               <n-icon :component="Heart" />
             </template>
             Yêu thích
+            <n-badge v-if="wishlistCount > 0" :value="wishlistCount" :max="99" class="ml-2" />
           </n-button>
         </RouterLink>
 
@@ -85,6 +86,15 @@
           </n-button>
         </RouterLink>
 
+        <RouterLink v-if="accountInfo && accountInfo.role === 'ADMIN'" to="/admin">
+          <n-button type="error">
+            <template #icon>
+              <n-icon :component="Settings" />
+            </template>
+            Trang quản trị
+          </n-button>
+        </RouterLink>
+
         <!-- User dropdown when logged in -->
         <n-dropdown v-if="accountInfo" :options="userMenuOptions" @select="handleUserMenuSelect" placement="bottom-end">
           <n-button>
@@ -94,15 +104,6 @@
             Xin chào, {{ accountInfo.username }}
           </n-button>
         </n-dropdown>
-
-        <RouterLink v-if="accountInfo && accountInfo.role === 'ADMIN'" to="/admin">
-          <n-button type="error">
-            <template #icon>
-              <n-icon :component="Settings" />
-            </template>
-            Trang quản trị
-          </n-button>
-        </RouterLink>
       </n-space>
     </div>
   </n-layout-header>
@@ -122,6 +123,7 @@ const message = useMessage()
 const { itemCount: cartItemCount } = useCart()
 
 const accountInfo = ref(null)
+const wishlistCount = ref(0)
 
 // Search functionality
 const searchQuery = ref('')
@@ -167,6 +169,7 @@ const handleUserMenuSelect = (key) => {
 
 onMounted(() => {
   fetchAccountInfo()
+  fetchWishlistCount()
 })
 
 const fetchAccountInfo = async () => {
@@ -177,6 +180,16 @@ const fetchAccountInfo = async () => {
     }
   } catch {
     // Không hiển thị lỗi vì người dùng có thể chưa đăng nhập
+  }
+}
+
+const fetchWishlistCount = async () => {
+  try {
+    const res = await axios.get('/api/wishlist/count')
+    wishlistCount.value = res.data.count || 0
+  } catch {
+    // Không hiển thị lỗi vì người dùng có thể chưa đăng nhập
+    wishlistCount.value = 0
   }
 }
 
@@ -266,3 +279,25 @@ const formatPrice = (price) => {
   }).format(price)
 }
 </script>
+
+<style scoped>
+/* Custom scrollbar cho dropdown search */
+.max-h-96::-webkit-scrollbar {
+  width: 6px;
+}
+
+.max-h-96::-webkit-scrollbar-track {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 3px;
+}
+
+.max-h-96::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.max-h-96::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+</style>

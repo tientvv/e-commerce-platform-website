@@ -1,5 +1,14 @@
 <template>
   <div>
+    <div class="mb-4">
+      <button
+        @click="router.push('/user/shop/product/list')"
+        class="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+      >
+        ← Quay lại danh sách sản phẩm
+      </button>
+    </div>
+
     <form @submit.prevent="updateProduct">
       <div v-if="successMessage" class="mt-4 border border-green-500 text-green-500 py-3 px-4 rounded">
         {{ successMessage }}
@@ -70,10 +79,18 @@
           </li>
         </ul>
       </div>
-      <div class="mt-8">
+      <div class="mt-8 flex gap-4">
         <button
+          type="button"
+          @click="router.push('/user/shop/product/list')"
+          class="flex-1 py-2 px-3 rounded border border-gray-400 hover:bg-gray-100 text-gray-700"
+        >
+          Hủy
+        </button>
+        <button
+          type="submit"
           :disabled="isLoading"
-          class="w-full py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600"
+          class="flex-1 py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600"
         >
           <span v-if="isLoading">Đang cập nhật...</span>
           <span v-else>Cập nhật sản phẩm</span>
@@ -84,11 +101,12 @@
 </template>
 
 <script setup>
-import axios from 'axios'
+import axios from '../../../utils/axios'
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 const productId = route.params.id
 
 const name = ref('')
@@ -100,9 +118,8 @@ const imageInput = ref(null)
 const isLoading = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
-
 const categories = ref([])
-const selectedCategory = ref(null)
+const selectedCategoryId = ref(null)
 const selectedCategoryName = ref('')
 const showDropdown = ref(false)
 
@@ -111,7 +128,7 @@ const toggleDropdown = () => {
 }
 
 const selectCategory = (category) => {
-  selectedCategory.value = category.id
+  selectedCategoryId.value = category.id
   selectedCategoryName.value = category.name
   showDropdown.value = false
 }
@@ -134,47 +151,79 @@ const fetchCategories = async () => {
 }
 const fetchProduct = async () => {
   try {
-    const res = await axios.get(`/api/products/${productId}`)
-    const product = res.data
-    name.value = product.name
-    brand.value = product.brand
-    description.value = product.description
-    selectedCategory.value = product.categoryId
-    selectedCategoryName.value = product.categoryName
-    previewImage.value = product.productImage
-    productImage.value = null
-  } catch {
-    errorMessage.value = 'Không tìm thấy sản phẩm!'
+    const res = await axios.get(`/api/products/edit/${productId}`)
+    if (res.data) {
+      const product = res.data
+      name.value = product.name || ''
+      brand.value = product.brand || ''
+      description.value = product.description || ''
+      selectedCategoryId.value = product.categoryId
+      selectedCategoryName.value = product.categoryName || ''
+      previewImage.value = product.productImage || ''
+      productImage.value = null
+    } else {
+      errorMessage.value = 'Không tìm thấy sản phẩm!'
+    }
+  } catch (error) {
+    console.error('Error fetching product:', error)
+    if (error.response?.status === 404) {
+      errorMessage.value = 'Không tìm thấy sản phẩm!'
+    } else if (error.response?.status === 401) {
+      errorMessage.value = 'Bạn chưa đăng nhập!'
+    } else {
+      errorMessage.value = 'Không thể tải thông tin sản phẩm!'
+    }
   }
 }
 
 const updateProduct = async () => {
+  if (!name.value.trim()) {
+    errorMessage.value = 'Tên sản phẩm không được để trống!'
+    return
+  }
+
+  if (!selectedCategoryId.value) {
+    errorMessage.value = 'Vui lòng chọn danh mục!'
+    return
+  }
+
   isLoading.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
   const formData = new FormData()
-  formData.append('name', name.value)
-  formData.append('brand', brand.value)
-  formData.append('description', description.value)
+  formData.append('name', name.value.trim())
+  formData.append('brand', brand.value.trim())
+  formData.append('description', description.value.trim())
+  formData.append('categoryId', selectedCategoryId.value)
+
   // Chỉ append ảnh nếu có chọn mới
   if (productImage.value) {
     formData.append('productImage', productImage.value)
   }
-  // Luôn append categoryId (vì đã gán mặc định khi fetchProduct)
-  formData.append('categoryId', selectedCategory.value)
+
   try {
     const res = await axios.put(`/api/products/update/${productId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
-    if (res.data.message === 'Sản phẩm đã được cập nhật thành công!') {
+
+    if (res.data.message) {
       successMessage.value = res.data.message
       errorMessage.value = ''
+      // Redirect back to list after 2 seconds
+      setTimeout(() => {
+        router.push('/user/shop/product/list')
+      }, 2000)
     } else {
-      errorMessage.value = res.data.message || 'Cập nhật sản phẩm thất bại!'
+      errorMessage.value = 'Cập nhật sản phẩm thất bại!'
       successMessage.value = ''
     }
-  } catch {
-    errorMessage.value = 'Cập nhật sản phẩm thất bại!'
+  } catch (error) {
+    console.error('Error updating product:', error)
+    errorMessage.value = error.response?.data?.message || 'Cập nhật sản phẩm thất bại!'
+    successMessage.value = ''
   } finally {
     isLoading.value = false
   }
@@ -187,6 +236,50 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Ẩn thanh scroll cho tất cả elements */
+::-webkit-scrollbar {
+  display: none !important;
+}
+
+::-webkit-scrollbar-track {
+  display: none !important;
+}
+
+::-webkit-scrollbar-thumb {
+  display: none !important;
+}
+
+::-webkit-scrollbar-corner {
+  display: none !important;
+}
+
+* {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Ẩn thanh scroll cho parent elements */
+:deep(::-webkit-scrollbar) {
+  display: none !important;
+}
+
+:deep(::-webkit-scrollbar-track) {
+  display: none !important;
+}
+
+:deep(::-webkit-scrollbar-thumb) {
+  display: none !important;
+}
+
+:deep(::-webkit-scrollbar-corner) {
+  display: none !important;
+}
+
+:deep(*) {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
 button {
   color: #155dfc;
 }

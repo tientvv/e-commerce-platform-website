@@ -259,35 +259,40 @@
                 </div>
 
                 <div class="flex items-center justify-between">
-                  <div class="flex items-center space-x-2">
+                  <div class="flex flex-col">
                     <!-- Price Range for products with variants -->
-                    <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex items-center space-x-2">
-                      <span class="text-lg font-bold text-blue-600">
-                        {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
-                      </span>
-                      <span
-                        v-if="getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
-                        class="text-sm text-gray-500 line-through"
-                      >
-                        {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
-                      </span>
+                    <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex flex-col">
+                      <div class="flex items-center">
+                        <span class="text-lg font-bold text-blue-600 whitespace-nowrap">
+                          {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
+                        </span>
+                      </div>
+                      <div v-if="getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="flex items-center">
+                        <span class="text-sm text-gray-500 line-through whitespace-nowrap">
+                          {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
+                        </span>
+                      </div>
                     </div>
 
                     <!-- Single price for products without variants -->
-                    <div v-else class="flex items-center space-x-2">
-                      <span v-if="getDiscountedPrice(product) > 0" class="text-lg font-bold text-blue-600">
-                        {{ formatPrice(getDiscountedPrice(product)) }}
-                      </span>
-                      <span v-else-if="product.minPrice && product.minPrice > 0" class="text-lg font-bold text-blue-600">
-                        {{ formatPrice(product.minPrice) }}
-                      </span>
-                      <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
-                      <span
-                        v-if="getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
-                        class="text-sm text-gray-500 line-through"
-                      >
-                        {{ formatPrice(getOriginalPrice(product)) }}
-                      </span>
+                    <div v-else class="flex flex-col">
+                      <div class="flex items-center">
+                        <span v-if="getDiscountedPrice(product) > 0" class="text-lg font-bold text-blue-600">
+                          {{ formatPrice(getDiscountedPrice(product)) }}
+                        </span>
+                        <span v-else-if="product.minPrice && product.minPrice > 0" class="text-lg font-bold text-blue-600">
+                          {{ formatPrice(product.minPrice) }}
+                        </span>
+                        <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
+                      </div>
+                      <div v-if="getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="flex items-center">
+                        <span class="text-sm text-gray-500 line-through">
+                          {{ formatPrice(getOriginalPrice(product)) }}
+                        </span>
+                      </div>
+                      <div v-else-if="!getDiscountedPrice(product) && !product.minPrice" class="flex items-center">
+                        <span class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
+                      </div>
                     </div>
                   </div>
                   <div class="flex items-center text-sm text-gray-500">
@@ -396,8 +401,66 @@ const hasActiveFilters = computed(() => {
   )
 })
 
+// Helper function để so sánh discount (ưu tiên percentage trước)
+const compareDiscounts = (product1, product2) => {
+  // Ưu tiên 1: Percentage discount luôn tốt hơn Fixed discount
+  const hasPercentage1 = product1.discountPercentage && product1.discountPercentage > 0
+  const hasPercentage2 = product2.discountPercentage && product2.discountPercentage > 0
+
+  if (hasPercentage1 && !hasPercentage2) {
+    return 1 // product1 tốt hơn
+  }
+  if (!hasPercentage1 && hasPercentage2) {
+    return -1 // product2 tốt hơn
+  }
+
+  // Nếu cùng loại, so sánh giá trị thực tế
+  const value1 = getDiscountValue(product1)
+  const value2 = getDiscountValue(product2)
+
+  return value1 - value2
+}
+
+// Helper function để tính giá trị discount
+const getDiscountValue = (product) => {
+  const productPrice = product.minPrice || 0
+
+  if (product.discountPercentage && product.discountPercentage > 0) {
+    // Với discount percentage, tính giá trị thực tế
+    return (productPrice * product.discountPercentage) / 100
+  } else if (product.discountAmount && product.discountAmount > 0) {
+    // Với discount fixed, trả về số tiền giảm trực tiếp
+    return product.discountAmount
+  }
+  return 0
+}
+
+// Computed property để lọc và loại bỏ trùng lặp sản phẩm
 const filteredProducts = computed(() => {
   let filtered = [...products.value]
+
+  // Loại bỏ trùng lặp sản phẩm và chỉ giữ lại sản phẩm với discount tốt nhất
+  const uniqueProducts = new Map()
+
+  filtered.forEach(product => {
+    const productId = product.id
+
+    if (!uniqueProducts.has(productId)) {
+      // Sản phẩm chưa có trong map, thêm vào
+      uniqueProducts.set(productId, product)
+    } else {
+      // Sản phẩm đã có, so sánh discount để giữ lại cái tốt hơn
+      const existingProduct = uniqueProducts.get(productId)
+
+      // Sử dụng function so sánh mới
+      if (compareDiscounts(product, existingProduct) > 0) {
+        uniqueProducts.set(productId, product)
+      }
+    }
+  })
+
+  // Chuyển về array
+  filtered = Array.from(uniqueProducts.values())
 
   // Price filter
   if (priceFilter.value) {
@@ -628,21 +691,22 @@ onMounted(() => {
 
 /* Custom scrollbar for brand filter */
 .overflow-y-auto::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 2px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 3px;
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 2px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
 }
 
 /* Voucher Badge */

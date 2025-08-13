@@ -1,6 +1,15 @@
 <template>
   <div>
-    <form @submit.prevent="registerProduct">
+    <div class="mb-4">
+      <button
+        @click="router.push('/user/shop/product/list')"
+        class="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+      >
+        ← Quay lại danh sách sản phẩm
+      </button>
+    </div>
+
+    <form @submit.prevent="createProduct">
       <div v-if="successMessage" class="mt-4 border border-green-500 text-green-500 py-3 px-4 rounded">
         {{ successMessage }}
       </div>
@@ -36,7 +45,7 @@
         ></textarea>
       </div>
       <div class="mt-4">
-        <label for="image" class="mb-2 block">Hình ảnh cửa hàng:</label>
+        <label for="image" class="mb-2 block">Hình ảnh sản phẩm:</label>
         <input
           id="image"
           type="file"
@@ -44,13 +53,15 @@
           ref="imageInput"
           @change="handleImageChange"
         />
+        <div v-if="previewImage" class="mt-2">
+          <img :src="previewImage" alt="Ảnh sản phẩm" class="w-24 h-24 object-cover rounded" />
+        </div>
       </div>
       <div class="mt-4 relative">
         <label for="category" class="block mb-2">Danh mục:</label>
         <div @click="toggleDropdown" class="border border-gray-400 rounded px-3 py-2 cursor-pointer">
           {{ selectedCategoryName || 'Chọn danh mục' }}
         </div>
-
         <ul
           v-show="showDropdown"
           class="absolute z-10 bg-white border border-gray-300 rounded mt-1 w-full max-h-40 overflow-y-auto shadow-md"
@@ -68,10 +79,18 @@
           </li>
         </ul>
       </div>
-      <div class="mt-8">
+      <div class="mt-8 flex gap-4">
         <button
+          type="button"
+          @click="router.push('/user/shop/product/list')"
+          class="flex-1 py-2 px-3 rounded border border-gray-400 hover:bg-gray-100 text-gray-700"
+        >
+          Hủy
+        </button>
+        <button
+          type="submit"
           :disabled="isLoading"
-          class="w-full py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600"
+          class="flex-1 py-2 px-3 rounded border border-blue-600 hover:bg-blue-600 hover:text-white text-blue-600"
         >
           <span v-if="isLoading">Đang tạo...</span>
           <span v-else>Thêm sản phẩm</span>
@@ -84,6 +103,7 @@
 <script setup>
 import axios from 'axios'
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const name = ref('')
 const brand = ref('')
@@ -93,11 +113,15 @@ const imageInput = ref(null)
 const isLoading = ref(false)
 const successMessage = ref('')
 const errorMessage = ref('')
+const previewImage = ref(null)
+
+const router = useRouter()
 
 const handleImageChange = (event) => {
   const file = event.target.files[0]
   if (file) {
     productImage.value = file
+    previewImage.value = URL.createObjectURL(file)
   }
 }
 
@@ -107,9 +131,10 @@ const resetForm = () => {
   description.value = ''
   productImage.value = null
   imageInput.value.value = ''
+  previewImage.value = null
 }
 
-const registerProduct = async () => {
+const createProduct = async () => {
   console.log('🚀 Starting product registration...')
   console.log('📝 Form data:', {
     name: name.value,
@@ -192,13 +217,123 @@ onMounted(() => {
 </script>
 
 <style scoped>
-button {
-  color: #155dfc;
+/* Custom scrollbar cho tất cả elements */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-button {
-  transition: all 0.3s ease;
+
+::-webkit-scrollbar-track {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 4px;
 }
-button:hover {
-  color: white;
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+::-webkit-scrollbar-corner {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #f0f9ff;
+}
+
+/* Custom scrollbar cho parent elements */
+:deep(::-webkit-scrollbar) {
+  width: 8px;
+  height: 8px;
+}
+
+:deep(::-webkit-scrollbar-track) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 4px;
+}
+
+:deep(::-webkit-scrollbar-thumb) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:deep(::-webkit-scrollbar-thumb:hover) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+:deep(::-webkit-scrollbar-corner) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+:deep(*) {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #f0f9ff;
+}
+
+/* Custom scrollbar cho Naive UI layout containers */
+:deep(.n-layout-scroll-container) {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #f0f9ff;
+}
+
+:deep(.n-layout-scroll-container::-webkit-scrollbar) {
+  width: 8px;
+  height: 8px;
+}
+
+:deep(.n-layout-scroll-container::-webkit-scrollbar-track) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 4px;
+}
+
+:deep(.n-layout-scroll-container::-webkit-scrollbar-thumb) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:deep(.n-layout-scroll-container::-webkit-scrollbar-thumb:hover) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+:deep(.n-layout-scroll-container::-webkit-scrollbar-corner) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+}
+
+/* Custom scrollbar cho tất cả Naive UI components */
+:deep(.n-scrollbar) {
+  scrollbar-width: thin;
+  scrollbar-color: #3b82f6 #f0f9ff;
+}
+
+:deep(.n-scrollbar::-webkit-scrollbar) {
+  width: 8px;
+  height: 8px;
+}
+
+:deep(.n-scrollbar::-webkit-scrollbar-track) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 4px;
+}
+
+:deep(.n-scrollbar::-webkit-scrollbar-thumb) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:deep(.n-scrollbar::-webkit-scrollbar-thumb:hover) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+:deep(.n-scrollbar::-webkit-scrollbar-corner) {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
 }
 </style>

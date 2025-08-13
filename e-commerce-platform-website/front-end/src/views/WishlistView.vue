@@ -82,6 +82,9 @@
                   <span v-else-if="item.discountType === 'FIXED' && item.discountAmount > 0">
                     -{{ formatPrice(item.discountAmount) }}
                   </span>
+                  <span v-else-if="item.discountName && item.discountName.trim()">
+                    {{ item.discountName }}
+                  </span>
                   <span v-else>
                     GIẢM GIÁ
                   </span>
@@ -109,12 +112,37 @@
             <p class="text-sm text-gray-500 mb-2">{{ item.brand }}</p>
 
             <!-- Price -->
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-2">
-                <span v-if="item.minPrice && item.minPrice > 0" class="text-lg font-bold text-blue-600">
-                  {{ formatPrice(item.minPrice) }}
-                </span>
-                <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
+            <div class="mb-2">
+              <!-- Price Range for products with variants -->
+              <div v-if="item.maxPrice && item.maxPrice > item.minPrice" class="flex flex-col">
+                <div class="flex items-center">
+                  <span class="text-lg font-bold text-blue-600 whitespace-nowrap">
+                    {{ formatPrice(getDiscountedPrice(item)) }} - {{ formatPrice(getDiscountedMaxPrice(item)) }}
+                  </span>
+                </div>
+                <div v-if="hasDiscount(item) && getOriginalPrice(item) > 0 && getOriginalPrice(item) > getDiscountedPrice(item)" class="flex items-center">
+                  <span class="text-sm text-gray-500 line-through whitespace-nowrap">
+                    {{ formatPrice(getOriginalPrice(item)) }} - {{ formatPrice(getOriginalMaxPrice(item)) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Single price for products without variants -->
+              <div v-else class="flex flex-col">
+                <div class="flex items-center">
+                  <span v-if="hasDiscount(item) && getDiscountedPrice(item) > 0" class="text-lg font-bold text-blue-600">
+                    {{ formatPrice(getDiscountedPrice(item)) }}
+                  </span>
+                  <span v-else-if="item.minPrice && item.minPrice > 0" class="text-lg font-bold text-blue-600">
+                    {{ formatPrice(item.minPrice) }}
+                  </span>
+                  <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
+                </div>
+                <div v-if="hasDiscount(item) && getOriginalPrice(item) > 0 && getOriginalPrice(item) > getDiscountedPrice(item)" class="flex items-center">
+                  <span class="text-sm text-gray-500 line-through">
+                    {{ formatPrice(getOriginalPrice(item)) }}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -123,8 +151,7 @@
               <span class="text-sm text-gray-600">{{ item.variantName }}: {{ item.variantValue }}</span>
             </div>
 
-            <!-- Shop Name -->
-            <p class="text-sm text-gray-500 mt-2">{{ item.shopName }}</p>
+
           </div>
         </div>
       </div>
@@ -204,10 +231,10 @@ const formatPrice = (price) => {
 }
 
 const hasDiscount = (item) => {
-  // Kiểm tra xem có discount không
-  const hasDiscountValue = (item?.discountPercentage && item.discountPercentage > 0) ||
-                          (item?.discountAmount && item.discountAmount > 0) ||
-                          (item?.discountType && item.discountType !== '')
+  // Kiểm tra xem có discount không (sử dụng discount tốt nhất từ backend)
+  const hasDiscountValue = (item?.discountType === 'PERCENTAGE' && item.discountPercentage > 0) ||
+                          (item?.discountType === 'FIXED' && item.discountAmount > 0) ||
+                          (item?.discountName && item.discountName.trim())
 
   if (!hasDiscountValue) return false
 
@@ -218,6 +245,38 @@ const hasDiscount = (item) => {
   }
 
   return true
+}
+
+const getDiscountedPrice = (item) => {
+  if (!hasDiscount(item)) return item.minPrice || 0
+
+  const basePrice = item.minPrice || 0
+  if (item.discountType === 'PERCENTAGE' && item.discountPercentage > 0) {
+    return basePrice * (1 - item.discountPercentage / 100)
+  } else if (item.discountType === 'FIXED' && item.discountAmount > 0) {
+    return Math.max(0, basePrice - item.discountAmount)
+  }
+  return basePrice
+}
+
+const getDiscountedMaxPrice = (item) => {
+  if (!hasDiscount(item)) return item.maxPrice || item.minPrice || 0
+
+  const basePrice = item.maxPrice || item.minPrice || 0
+  if (item.discountType === 'PERCENTAGE' && item.discountPercentage > 0) {
+    return basePrice * (1 - item.discountPercentage / 100)
+  } else if (item.discountType === 'FIXED' && item.discountAmount > 0) {
+    return Math.max(0, basePrice - item.discountAmount)
+  }
+  return basePrice
+}
+
+const getOriginalPrice = (item) => {
+  return item.minPrice || 0
+}
+
+const getOriginalMaxPrice = (item) => {
+  return item.maxPrice || item.minPrice || 0
 }
 
 onMounted(() => {

@@ -64,6 +64,12 @@
                     <span v-else-if="product.discountType === 'FIXED' && product.discountAmount > 0">
                       -{{ formatPrice(product.discountAmount) }}
                     </span>
+                    <span v-else-if="product.discountPercentage > 0">
+                      -{{ product.discountPercentage }}%
+                    </span>
+                    <span v-else-if="product.discountAmount > 0">
+                      -{{ formatPrice(product.discountAmount) }}
+                    </span>
                     <span v-else>
                       GIẢM GIÁ
                     </span>
@@ -74,46 +80,47 @@
 
             <!-- Product Info -->
             <div class="product-info">
-              <h3 class="product-name">{{ product.name }}</h3>
-              <p class="product-brand">{{ product.brand }}</p>
+              <h3 class="product-name">{{ product.name || 'Sản phẩm' }}</h3>
+              <p class="product-brand">{{ product.brand || 'Thương hiệu' }}</p>
 
               <!-- Price -->
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center space-x-2">
-                  <!-- Price Range for products with variants -->
-                  <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex items-center space-x-2">
-                    <span class="text-lg font-bold text-blue-600">
-                      {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
-                    </span>
-                    <span
-                      v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
-                      class="text-sm text-gray-500 line-through"
-                    >
-                      {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
-                    </span>
-                  </div>
+              <div class="mb-2">
+                        <!-- Price Range for products with variants -->
+        <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex flex-col">
+          <div class="flex items-center">
+            <span class="text-sm font-bold text-blue-600 whitespace-nowrap">
+              {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
+            </span>
+          </div>
+          <div class="flex items-center">
+            <span v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="text-sm text-gray-500 line-through whitespace-nowrap">
+              {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
+            </span>
+            <span v-else class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
+          </div>
+        </div>
 
-                  <!-- Single price for products without variants -->
-                  <div v-else class="flex items-center space-x-2">
-                    <span v-if="hasDiscount(product) && getDiscountedPrice(product) > 0" class="text-lg font-bold text-blue-600">
-                      {{ formatPrice(getDiscountedPrice(product)) }}
-                    </span>
-                    <span v-else-if="product.minPrice && product.minPrice > 0" class="text-lg font-bold text-blue-600">
-                      {{ formatPrice(product.minPrice) }}
-                    </span>
-                    <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
-                    <span
-                      v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
-                      class="text-sm text-gray-500 line-through"
-                    >
-                      {{ formatPrice(getOriginalPrice(product)) }}
-                    </span>
-                  </div>
-                </div>
+                        <!-- Single price for products without variants -->
+        <div v-else class="flex flex-col">
+          <div class="flex items-center">
+            <span v-if="hasDiscount(product) && getDiscountedPrice(product) > 0" class="text-sm font-bold text-blue-600">
+              {{ formatPrice(getDiscountedPrice(product)) }}
+            </span>
+            <span v-else-if="product.minPrice && product.minPrice > 0" class="text-sm font-bold text-blue-600">
+              {{ formatPrice(product.minPrice) }}
+            </span>
+            <span v-else class="text-sm font-bold text-gray-500">Liên hệ</span>
+          </div>
+          <div class="flex items-center">
+            <span v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="text-sm text-gray-500 line-through">
+              {{ formatPrice(getOriginalPrice(product)) }}
+            </span>
+            <span v-else class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
+          </div>
+        </div>
               </div>
 
-              <!-- Shop Name -->
-              <p class="shop-name">{{ product.shopName }}</p>
+
             </div>
           </div>
         </swiper-slide>
@@ -180,6 +187,15 @@ const fetchSuggestedProducts = async () => {
     const response = await axios.get('/api/products/suggestions')
     suggestedProducts.value = response.data.products || []
     lastFetchTime.value = now
+
+    // Debug: Log dữ liệu discount để kiểm tra
+    console.log('Suggested products discount data:', suggestedProducts.value.map(p => ({
+      name: p.name,
+      discountType: p.discountType,
+      discountPercentage: p.discountPercentage,
+      discountAmount: p.discountAmount,
+      discountName: p.discountName
+    })))
   } catch (err) {
     error.value = true
     errorMessage.value = 'Không thể tải gợi ý sản phẩm'
@@ -211,8 +227,23 @@ const formatPrice = (price) => {
 }
 
 const hasDiscount = (product) => {
+  // Debug: Log dữ liệu discount của sản phẩm
+  if (product.name && product.name.includes('G304')) {
+    console.log('G304 product discount data:', {
+      name: product.name,
+      discountType: product.discountType,
+      discountPercentage: product.discountPercentage,
+      discountAmount: product.discountAmount,
+      discountName: product.discountName,
+      minOrderValue: product.minOrderValue,
+      minPrice: product.minPrice
+    })
+  }
+
   const hasDiscountValue = product.discountType === 'PERCENTAGE' && product.discountPercentage > 0 ||
-                          product.discountType === 'FIXED' && product.discountAmount > 0
+                          product.discountType === 'FIXED' && product.discountAmount > 0 ||
+                          product.discountPercentage > 0 ||
+                          product.discountAmount > 0
 
   if (!hasDiscountValue) return false
 
@@ -256,6 +287,8 @@ const getOriginalMaxPrice = (product) => {
   return product.maxPrice || product.minPrice || 0
 }
 
+
+
 onMounted(() => {
   fetchSuggestedProducts()
 })
@@ -269,6 +302,9 @@ onMounted(() => {
   overflow: hidden;
   border: 1px solid #e5e7eb;
   transition: border-color 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .product-card:hover {
@@ -371,5 +407,15 @@ onMounted(() => {
 
 .suggestions-swiper .swiper-pagination-bullet-active {
   background: #1d4ed8;
+}
+
+.suggestions-swiper .swiper-slide {
+  height: auto;
+  display: flex;
+}
+
+.suggestions-swiper .swiper-slide > div {
+  width: 100%;
+  height: 100%;
 }
 </style>

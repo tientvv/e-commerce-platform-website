@@ -106,7 +106,7 @@
               <div v-if="hasDiscount(product) && product.discountName" class="discount-info">
                 <div class="discount-details">
                   <span class="discount-name">{{ product.discountName }}</span>
-                  <span class="discount-time">{{ formatDiscountTime(product.discountEndDate) }}</span>
+                  <span class="discount-time">{{ formatTimeRemaining(product.discountEndDate) }}</span>
                 </div>
               </div>
             </div>
@@ -117,23 +117,24 @@
               <p class="product-brand">{{ product.brand }}</p>
 
               <!-- Price -->
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center space-x-2">
-                  <!-- Price Range for products with variants -->
-                  <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex items-center space-x-2">
-                    <span class="text-lg font-bold text-blue-600">
+              <div class="mb-2">
+                <!-- Price Range for products with variants -->
+                <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex flex-col">
+                  <div class="flex items-center">
+                    <span class="text-lg font-bold text-blue-600 whitespace-nowrap">
                       {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
                     </span>
-                    <span
-                      v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
-                      class="text-sm text-gray-500 line-through"
-                    >
+                  </div>
+                  <div v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="flex items-center">
+                    <span class="text-sm text-gray-500 line-through whitespace-nowrap">
                       {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
                     </span>
                   </div>
+                </div>
 
-                  <!-- Single price for products without variants -->
-                  <div v-else class="flex items-center space-x-2">
+                <!-- Single price for products without variants -->
+                <div v-else class="flex flex-col">
+                  <div class="flex items-center">
                     <span v-if="hasDiscount(product) && getDiscountedPrice(product) > 0" class="text-lg font-bold text-blue-600">
                       {{ formatPrice(getDiscountedPrice(product)) }}
                     </span>
@@ -141,18 +142,16 @@
                       {{ formatPrice(product.minPrice) }}
                     </span>
                     <span v-else class="text-lg font-bold text-gray-500">Liên hệ</span>
-                    <span
-                      v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)"
-                      class="text-sm text-gray-500 line-through"
-                    >
+                  </div>
+                  <div v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="flex items-center">
+                    <span class="text-sm text-gray-500 line-through">
                       {{ formatPrice(getOriginalPrice(product)) }}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <!-- Shop Name -->
-              <p class="shop-name">{{ product.shopName }}</p>
+
             </div>
           </div>
         </swiper-slide>
@@ -162,11 +161,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { Swiper, SwiperSlide } from 'swiper/vue'
 import { Navigation as SwiperNavigation, Pagination as SwiperPagination, Autoplay as SwiperAutoplay } from 'swiper/modules'
+
 
 // Import Swiper styles
 import 'swiper/css'
@@ -179,26 +179,104 @@ const discountedProducts = ref([])
 const isLoading = ref(false)
 const error = ref(false)
 const errorMessage = ref('')
+const countdownTimer = ref(null)
+const currentTime = ref(new Date())
 
-// Computed property để lọc sản phẩm đạt điều kiện minOrderValue
+// Computed property để lọc sản phẩm đạt điều kiện minOrderValue và loại bỏ trùng lặp
 const filteredDiscountedProducts = computed(() => {
-  return discountedProducts.value.filter(product => {
+  // Lọc sản phẩm có discount và đạt điều kiện minOrderValue
+  const validProducts = discountedProducts.value.filter(product => {
     // Kiểm tra xem có discount không
     const hasDiscountValue = (product.discountPercentage && product.discountPercentage > 0) ||
                             (product.discountAmount && product.discountAmount > 0) ||
                             (product.discountType && product.discountType !== '')
 
-    if (!hasDiscountValue) return false
+    if (!hasDiscountValue) {
+      return false
+    }
 
     // Kiểm tra min_order_value nếu có
     if (product.minOrderValue && product.minOrderValue > 0) {
       const productPrice = product.minPrice || 0
-      return productPrice >= product.minOrderValue
+      const isValid = productPrice >= product.minOrderValue
+      return isValid
     }
 
     return true
   })
+
+  // Loại bỏ trùng lặp sản phẩm và chỉ giữ lại sản phẩm với discount tốt nhất
+  const uniqueProducts = new Map()
+
+  validProducts.forEach(product => {
+    const productId = product.id
+
+    if (!uniqueProducts.has(productId)) {
+      // Sản phẩm chưa có trong map, thêm vào
+      uniqueProducts.set(productId, product)
+    } else {
+      // Sản phẩm đã có, so sánh discount để giữ lại cái tốt hơn
+      const existingProduct = uniqueProducts.get(productId)
+
+      // Sử dụng function so sánh mới
+      if (compareDiscounts(product, existingProduct) > 0) {
+        uniqueProducts.set(productId, product)
+      }
+    }
+  })
+
+  // Chuyển về array và random thay vì sắp xếp theo giá trị discount
+  const result = Array.from(uniqueProducts.values())
+
+  // Random sản phẩm
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  return result
 })
+
+// Helper function để so sánh discount (ưu tiên percentage trước)
+const compareDiscounts = (product1, product2) => {
+  // Ưu tiên 1: Percentage discount luôn tốt hơn Fixed discount
+  const hasPercentage1 = product1.discountPercentage && product1.discountPercentage > 0
+  const hasPercentage2 = product2.discountPercentage && product2.discountPercentage > 0
+
+  console.log(`Comparing discounts for ${product1.name}:`)
+  console.log(`  Product1: ${hasPercentage1 ? product1.discountPercentage + '%' : product1.discountAmount + ' VNĐ'}`)
+  console.log(`  Product2: ${hasPercentage2 ? product2.discountPercentage + '%' : product2.discountAmount + ' VNĐ'}`)
+
+  if (hasPercentage1 && !hasPercentage2) {
+    console.log(`  -> Product1 wins (percentage vs fixed)`)
+    return 1 // product1 tốt hơn
+  }
+  if (!hasPercentage1 && hasPercentage2) {
+    console.log(`  -> Product2 wins (fixed vs percentage)`)
+    return -1 // product2 tốt hơn
+  }
+
+  // Nếu cùng loại, so sánh giá trị thực tế
+  const value1 = getDiscountValue(product1)
+  const value2 = getDiscountValue(product2)
+
+  console.log(`  -> Same type, comparing values: ${value1} vs ${value2}`)
+  return value1 - value2
+}
+
+// Helper function để tính giá trị discount
+const getDiscountValue = (product) => {
+  const productPrice = product.minPrice || 0
+
+  if (product.discountPercentage && product.discountPercentage > 0) {
+    // Với discount percentage, tính giá trị thực tế
+    return (productPrice * product.discountPercentage) / 100
+  } else if (product.discountAmount && product.discountAmount > 0) {
+    // Với discount fixed, trả về số tiền giảm trực tiếp
+    return product.discountAmount
+  }
+  return 0
+}
 
 // Methods
 const loadDiscountedProducts = async () => {
@@ -206,11 +284,9 @@ const loadDiscountedProducts = async () => {
   error.value = false
   try {
     const response = await axios.get('/api/products/discounted')
-    console.log('API Response:', response.data)
 
     if (response.data && response.data.products) {
       discountedProducts.value = response.data.products
-      console.log('Discounted products loaded:', discountedProducts.value)
     } else {
       discountedProducts.value = []
     }
@@ -236,32 +312,7 @@ const formatPrice = (price) => {
   }).format(price)
 }
 
-const formatDiscountTime = (endDate) => {
-  if (!endDate) return ''
 
-  const now = new Date()
-  const end = new Date(endDate)
-  const diffInSeconds = Math.floor((end - now) / 1000)
-
-  if (diffInSeconds <= 0) {
-    return 'Đã hết hạn'
-  }
-
-  if (diffInSeconds < 3600) {
-    return `Còn ${Math.floor(diffInSeconds / 60)} phút`
-  }
-
-  if (diffInSeconds < 86400) {
-    return `Còn ${Math.floor(diffInSeconds / 3600)} giờ`
-  }
-
-  const days = Math.floor(diffInSeconds / 86400)
-  if (days === 1) {
-    return 'Còn 1 ngày'
-  }
-
-  return `Còn ${days} ngày`
-}
 
 const getOriginalPrice = (product) => {
   if (product.originalPrice && product.originalPrice > 0) {
@@ -330,9 +381,54 @@ const getOriginalMaxPrice = (product) => {
   }
 }
 
+// Format time remaining with realtime updates
+const formatTimeRemaining = (endDate) => {
+  if (!endDate) return ''
+
+  // Sử dụng currentTime để tính toán realtime
+  const now = currentTime.value
+  const end = new Date(endDate)
+  const diffInMs = end.getTime() - now.getTime()
+  const diffInSeconds = Math.max(0, Math.floor(diffInMs / 1000))
+
+  if (diffInSeconds <= 0) {
+    return 'Đã hết hạn'
+  }
+
+  // Tính giờ, phút, giây
+  const hours = Math.floor(diffInSeconds / 3600)
+  const minutes = Math.floor((diffInSeconds % 3600) / 60)
+  const seconds = diffInSeconds % 60
+
+  // Format: HH:MM:SS
+  const formatNumber = (num) => num.toString().padStart(2, '0')
+
+  return `${formatNumber(hours)}:${formatNumber(minutes)}:${formatNumber(seconds)}`
+}
+
+// Start countdown timer
+const startCountdownTimer = () => {
+  countdownTimer.value = setInterval(() => {
+    currentTime.value = new Date()
+  }, 1000)
+}
+
+// Stop countdown timer
+const stopCountdownTimer = () => {
+  if (countdownTimer.value) {
+    clearInterval(countdownTimer.value)
+    countdownTimer.value = null
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   loadDiscountedProducts()
+  startCountdownTimer()
+})
+
+onUnmounted(() => {
+  stopCountdownTimer()
 })
 </script>
 

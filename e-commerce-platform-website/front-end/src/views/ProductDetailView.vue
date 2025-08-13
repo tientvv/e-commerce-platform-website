@@ -80,12 +80,7 @@
                   </div>
                 </div>
 
-                <!-- New Badge -->
-                <div class="absolute top-3 right-3">
-                  <span class="inline-block bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">
-                    MỚI
-                  </span>
-                </div>
+
               </div>
 
               <!-- Additional Images Thumbnails -->
@@ -146,7 +141,6 @@
                 <span class="text-sm text-gray-600">
                   {{ product.rating || 0 }}/5 ({{ product.reviewCount || 0 }} đánh giá)
                 </span>
-                <span class="ml-4 text-sm text-gray-500 underline cursor-pointer">Tố cáo</span>
                 <div class="ml-4 flex items-center space-x-4 text-sm text-gray-600">
                   <div class="flex items-center">
                     <Eye class="w-4 h-4 mr-1" />
@@ -325,15 +319,15 @@
               <div class="flex space-x-4">
                 <button
                   @click="handleAddToCart"
-                  :disabled="isOutOfStock"
+                  :disabled="!canAddToCart"
                   :class="[
                     'flex-1 font-semibold py-3 px-6 rounded-md transition-colors',
-                    isOutOfStock
-                      ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    canAddToCart
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-400 text-gray-600 cursor-not-allowed'
                   ]"
                 >
-                  {{ isOutOfStock ? 'Hết hàng' : 'Thêm vào giỏ hàng' }}
+                  {{ addToCartButtonText }}
                 </button>
 
                 <!-- Wishlist Button -->
@@ -430,6 +424,40 @@ const isOutOfStock = computed(() => {
   return product.value?.quantity <= 0
 })
 
+// Kiểm tra shop hoặc sản phẩm có bị khóa không
+const isBlocked = computed(() => {
+  // Debug: Log thông tin để kiểm tra
+  if (product.value) {
+    console.log('Product debug:', {
+      productId: product.value.id,
+      productName: product.value.name,
+      productIsActive: product.value.isActive,
+      shopIsActive: product.value.shopIsActive,
+      shopName: product.value.shopName
+    })
+  }
+
+  const blocked = product.value?.shopIsActive === false || product.value?.isActive === false
+  console.log('Is blocked:', blocked)
+  return blocked
+})
+
+// Kiểm tra có thể thêm vào giỏ hàng không
+const canAddToCart = computed(() => {
+  return !isOutOfStock.value && !isBlocked.value
+})
+
+// Text hiển thị cho nút thêm vào giỏ hàng
+const addToCartButtonText = computed(() => {
+  if (isBlocked.value) {
+    return 'Sản phẩm này đã bị khóa'
+  }
+  if (isOutOfStock.value) {
+    return 'Hết hàng'
+  }
+  return 'Thêm vào giỏ hàng'
+})
+
 const getSelectedVariantQuantity = () => {
   if (selectedVariant.value) {
     return selectedVariant.value.quantity || 0
@@ -458,6 +486,8 @@ const fetchProduct = async () => {
       // Mặc định chọn biến thể đầu tiên nếu có
       if (productVariants.value.length > 0) {
         selectedVariant.value = productVariants.value[0]
+        // Cập nhật wishlist status cho variant mặc định
+        await updateWishlistStatus()
       }
     } catch {
       console.log('No variants found for this product')
@@ -471,13 +501,15 @@ const fetchProduct = async () => {
       console.log('No additional images found for this product')
     }
 
-    // Check if product is in wishlist (sẽ được cập nhật khi có variant được chọn)
-    try {
-      const wishlistResponse = await axios.get(`/api/wishlist/check/${productId}`)
-      isInWishlist.value = wishlistResponse.data.isInWishlist || false
-    } catch {
-      console.log('Could not check wishlist status')
-      isInWishlist.value = false
+    // Check if product is in wishlist (chỉ kiểm tra nếu không có variant được chọn)
+    if (productVariants.value.length === 0) {
+      try {
+        const wishlistResponse = await axios.get(`/api/wishlist/check/${productId}`)
+        isInWishlist.value = wishlistResponse.data.isInWishlist || false
+      } catch {
+        console.log('Could not check wishlist status')
+        isInWishlist.value = false
+      }
     }
 
     // Get wishlist count
@@ -550,23 +582,26 @@ const formatPrice = (price) => {
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
-  return date.toLocaleDateString('vi-VN', {
+  return date.toLocaleString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit'
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
 const hasDiscount = () => {
+  if (!product.value) return false
+
   // Kiểm tra xem có discount không
-  const hasDiscountValue = (product.value?.discountPercentage && product.value.discountPercentage > 0) ||
-                          (product.value?.discountAmount && product.value.discountAmount > 0) ||
-                          (product.value?.discountType && product.value.discountType !== '')
+  const hasDiscountValue = (product.value.discountType === 'PERCENTAGE' && product.value.discountPercentage > 0) ||
+                          (product.value.discountType === 'FIXED' && product.value.discountAmount > 0)
 
   if (!hasDiscountValue) return false
 
   // Kiểm tra min_order_value nếu có
-  if (product.value?.minOrderValue && product.value.minOrderValue > 0) {
+  if (product.value.minOrderValue && product.value.minOrderValue > 0) {
     const productPrice = product.value.minPrice || 0
     return productPrice >= product.value.minOrderValue
   }
@@ -575,6 +610,18 @@ const hasDiscount = () => {
 }
 
 const handleAddToCart = () => {
+  // Kiểm tra shop hoặc sản phẩm có bị khóa không
+  if (isBlocked.value) {
+    showToast.value = true
+    toastMessage.value = 'Sản phẩm này đã bị khóa!'
+    toastType.value = 'error'
+
+    setTimeout(() => {
+      showToast.value = false
+    }, 3000)
+    return
+  }
+
   // Kiểm tra trạng thái hết hàng
   if (isOutOfStock.value) {
     showToast.value = true
@@ -695,10 +742,11 @@ const getSelectedVariantPrice = () => {
   }
 
   // Apply discount if available
-  if (product.value?.discountType === 'PERCENTAGE' && product.value?.discountPercentage > 0) {
-    return basePrice * (1 - product.value.discountPercentage / 100)
-  } else if (product.value?.discountType === 'FIXED' && product.value?.discountAmount > 0) {
-    return Math.max(0, basePrice - product.value.discountAmount)
+  const discount = product.value // Use product.value for discount
+  if (discount.discountType === 'PERCENTAGE' && discount.discountPercentage > 0) {
+    return basePrice * (1 - discount.discountPercentage / 100)
+  } else if (discount.discountType === 'FIXED' && discount.discountAmount > 0) {
+    return Math.max(0, basePrice - discount.discountAmount)
   }
 
   return basePrice

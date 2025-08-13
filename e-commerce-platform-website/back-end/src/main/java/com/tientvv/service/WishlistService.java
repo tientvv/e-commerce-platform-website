@@ -37,7 +37,12 @@ public class WishlistService {
 
 		return wishlistItems.stream()
 				.map(wishlist -> {
-					ProductDisplayDto productDto = productService.convertToProductDisplayDto(wishlist.getProduct());
+					// Sử dụng query có logic discount tốt nhất thay vì convertToProductDisplayDto
+					List<ProductDisplayDto> products = productRepository.findActiveProductsWithPricingByCategoryId(wishlist.getProduct().getCategory().getId(), OffsetDateTime.now());
+					ProductDisplayDto productDto = products.stream()
+							.filter(p -> p.getId().equals(wishlist.getProduct().getId()))
+							.findFirst()
+							.orElse(productService.convertToProductDisplayDto(wishlist.getProduct()));
 					Map<String, Object> item = new HashMap<>();
 					item.put("id", productDto.getId());
 					item.put("name", productDto.getName());
@@ -147,5 +152,10 @@ public class WishlistService {
 	// Lấy số lượng wishlist cho một sản phẩm
 	public long getWishlistCount(UUID productId) {
 		return wishlistRepository.countByProductId(productId);
+	}
+
+	// Lấy tổng số lượng wishlist của user
+	public long getUserWishlistCount(UUID accountId) {
+		return wishlistRepository.countByAccountId(accountId);
 	}
 }

@@ -22,9 +22,8 @@
     <!-- Discounts Table -->
     <n-card>
       <template #header>
-        <div class="flex items-center justify-between">
-          <n-h3>Danh sách giảm giá</n-h3>
-          <n-text depth="3">{{ filteredDiscounts.length }} giảm giá</n-text>
+        <div class="flex items-center justify-end">
+          <n-text depth="3" style="font-size: 14px;">{{ filteredDiscounts.length }} giảm giá</n-text>
         </div>
       </template>
 
@@ -203,7 +202,6 @@ import axios from '../../utils/axios'
 import { Plus, Edit, Trash2, Tag } from 'lucide-vue-next'
 import {
   NH1,
-  NH3,
   NSpace,
   NCard,
   NButton,
@@ -774,7 +772,9 @@ const formatDiscountValue = (discount) => {
 
 const formatDate = (dateString) => {
   const date = new Date(dateString)
-  return date.toLocaleString('vi-VN', {
+  // Chuyển đổi sang múi giờ Việt Nam
+  const vietnamDate = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}))
+  return vietnamDate.toLocaleString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

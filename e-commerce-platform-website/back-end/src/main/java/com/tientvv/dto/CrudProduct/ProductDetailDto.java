@@ -45,6 +45,8 @@ public interface ProductDetailDto {
 
   UUID getShopId();
 
+  Boolean getShopIsActive();
+
   Integer getViewCount();
 
   Integer getSoldCount();

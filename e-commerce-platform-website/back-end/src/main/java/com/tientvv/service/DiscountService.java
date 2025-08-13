@@ -1,5 +1,6 @@
 package com.tientvv.service;
 
+import com.tientvv.config.TimeZoneConfig;
 import com.tientvv.dto.discount.CreateDiscountDto;
 import com.tientvv.dto.discount.DiscountDto;
 import com.tientvv.dto.discount.UpdateDiscountDto;
@@ -9,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
+import java.time.ZonedDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -72,8 +73,13 @@ public class DiscountService {
     discount.setDescription(dto.getDescription());
     discount.setDiscountType(dto.getDiscountType());
     discount.setDiscountValue(dto.getDiscountValue());
-    discount.setStartDate(dto.getStartDate());
-    discount.setEndDate(dto.getEndDate());
+    
+    // Chuyển đổi thời gian sang múi giờ Việt Nam
+    ZonedDateTime vietnamStartDate = TimeZoneConfig.toVietnamTime(dto.getStartDate());
+    ZonedDateTime vietnamEndDate = TimeZoneConfig.toVietnamTime(dto.getEndDate());
+    
+    discount.setStartDate(TimeZoneConfig.toOffsetDateTime(vietnamStartDate));
+    discount.setEndDate(TimeZoneConfig.toOffsetDateTime(vietnamEndDate));
     discount.setMinOrderValue(dto.getMinOrderValue());
     discount.setIsActive(true);
 
@@ -112,8 +118,13 @@ public class DiscountService {
     discount.setDescription(dto.getDescription());
     discount.setDiscountType(dto.getDiscountType());
     discount.setDiscountValue(dto.getDiscountValue());
-    discount.setStartDate(dto.getStartDate());
-    discount.setEndDate(dto.getEndDate());
+    
+    // Chuyển đổi thời gian sang múi giờ Việt Nam
+    ZonedDateTime vietnamStartDate = TimeZoneConfig.toVietnamTime(dto.getStartDate());
+    ZonedDateTime vietnamEndDate = TimeZoneConfig.toVietnamTime(dto.getEndDate());
+    
+    discount.setStartDate(TimeZoneConfig.toOffsetDateTime(vietnamStartDate));
+    discount.setEndDate(TimeZoneConfig.toOffsetDateTime(vietnamEndDate));
     discount.setMinOrderValue(dto.getMinOrderValue());
 
     // Update application scope
@@ -249,8 +260,8 @@ public class DiscountService {
     Discount discount = discountRepository.findByNameAndIsActiveTrue(code)
         .orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại hoặc đã bị vô hiệu hóa"));
 
-    // Kiểm tra thời gian hiệu lực
-    OffsetDateTime now = OffsetDateTime.now();
+    // Kiểm tra thời gian hiệu lực với múi giờ Việt Nam
+    OffsetDateTime now = TimeZoneConfig.getCurrentVietnamTime().toOffsetDateTime();
     if (now.isBefore(discount.getStartDate()) || now.isAfter(discount.getEndDate())) {
       throw new RuntimeException("Mã giảm giá chưa có hiệu lực hoặc đã hết hạn");
     }

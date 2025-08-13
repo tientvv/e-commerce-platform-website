@@ -50,4 +50,8 @@ public interface WishlistRepository extends JpaRepository<Wishlist, UUID> {
     // Đếm số lượng wishlist cho một sản phẩm
     @Query("SELECT COUNT(w) FROM Wishlist w WHERE w.product.id = :productId")
     long countByProductId(@Param("productId") UUID productId);
+
+    // Đếm số lượng wishlist của một account
+    @Query("SELECT COUNT(w) FROM Wishlist w WHERE w.account.id = :accountId")
+    long countByAccountId(@Param("accountId") UUID accountId);
 }

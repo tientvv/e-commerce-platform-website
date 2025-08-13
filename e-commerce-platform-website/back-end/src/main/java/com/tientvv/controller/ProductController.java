@@ -166,7 +166,7 @@ public class ProductController {
   }
 
   @PostMapping("/add")
-  public Map<String, Object> createProduct(@ModelAttribute CreateProductDto dto, HttpSession session) throws Exception {
+  public Map<String, Object> createProduct(@ModelAttribute CreateProductDto dto, HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
     if (account == null) {
@@ -174,21 +174,17 @@ public class ProductController {
       return response;
     }
 
-    // Lấy shopId từ user session
-    try {
-      com.tientvv.dto.shop.ShopDto shopDto = shopService.getShopByUserId(account.getId());
-      if (shopDto == null) {
-        response.put("message", "Bạn chưa đăng ký cửa hàng!");
-        return response;
-      }
-      dto.setShopId(shopDto.getId());
-    } catch (Exception e) {
-      response.put("message", "Lỗi khi lấy thông tin cửa hàng: " + e.getMessage());
+    // Validation
+    if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+      response.put("errorMessage", "Vui lòng nhập tên sản phẩm!");
       return response;
     }
-
-    if (dto.getName().isEmpty() || dto.getBrand().isEmpty() || dto.getDescription().isEmpty()) {
-      response.put("message", "Vui lòng điền đầy đủ thông tin sản phẩm!");
+    if (dto.getBrand() == null || dto.getBrand().trim().isEmpty()) {
+      response.put("errorMessage", "Vui lòng nhập thương hiệu sản phẩm!");
+      return response;
+    }
+    if (dto.getDescription() == null || dto.getDescription().trim().isEmpty()) {
+      response.put("errorMessage", "Vui lòng nhập mô tả sản phẩm!");
       return response;
     }
     if (dto.getCategoryId() == null) {
@@ -196,12 +192,29 @@ public class ProductController {
       return response;
     }
     if (dto.getProductImage() == null || dto.getProductImage().isEmpty()) {
-      response.put("errorMessage", "Vui lòng chọn hình ảnh cho sản phẩm!");
+      response.put("errorMessage", "Vui lòng chọn hình ảnh sản phẩm!");
       return response;
     }
 
-    productService.createProduct(dto);
-    response.put("message", "Sản phẩm đã được tạo thành công!");
+    // Lấy shopId từ user session
+    try {
+      com.tientvv.dto.shop.ShopDto shopDto = shopService.getShopByUserId(account.getId());
+      if (shopDto == null) {
+        response.put("errorMessage", "Bạn chưa đăng ký cửa hàng!");
+        return response;
+      }
+      dto.setShopId(shopDto.getId());
+    } catch (Exception e) {
+      response.put("errorMessage", "Lỗi khi lấy thông tin cửa hàng: " + e.getMessage());
+      return response;
+    }
+
+    try {
+      productService.createProduct(dto);
+      response.put("message", "Sản phẩm đã được tạo thành công!");
+    } catch (Exception e) {
+      response.put("errorMessage", "Lỗi khi tạo sản phẩm: " + e.getMessage());
+    }
     return response;
   }
 
@@ -240,22 +253,54 @@ public class ProductController {
     return ResponseEntity.ok(productDetail);
   }
 
-  @PutMapping("/update/{id}")
-  public Map<String, Object> updateProduct(@ModelAttribute UpdateProductDto dto, @PathVariable UUID id,
-      HttpSession session)
-      throws Exception {
+  @GetMapping("/edit/{id}")
+  public ResponseEntity<?> getProductForEdit(@PathVariable UUID id, HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
     if (account == null) {
       response.put("message", "Bạn chưa đăng nhập!");
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    try {
+      ProductDto product = productService.getProductForEdit(id);
+      if (product == null) {
+        response.put("message", "Không tìm thấy sản phẩm!");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+      }
+      return ResponseEntity.ok(product);
+    } catch (Exception e) {
+      response.put("message", "Lỗi khi tải thông tin sản phẩm: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+  }
+
+  @PutMapping("/update/{id}")
+  public Map<String, Object> updateProduct(@PathVariable UUID id, @ModelAttribute UpdateProductDto dto) {
+    Map<String, Object> response = new HashMap<>();
+
+    if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+      response.put("errorMessage", "Vui lòng nhập tên sản phẩm!");
       return response;
     }
-    if (dto.getName() == null || dto.getBrand() == null || dto.getDescription() == null) {
-      response.put("message", "Vui lòng điền đầy đủ thông tin sản phẩm!");
+
+    if (dto.getBrand() == null || dto.getBrand().trim().isEmpty()) {
+      response.put("errorMessage", "Vui lòng nhập thương hiệu sản phẩm!");
       return response;
     }
-    productService.updateProduct(id, dto);
-    response.put("message", "Sản phẩm đã được cập nhật thành công!");
+
+    if (dto.getDescription() == null || dto.getDescription().trim().isEmpty()) {
+      response.put("errorMessage", "Vui lòng nhập mô tả sản phẩm!");
+      return response;
+    }
+    // CategoryId is optional in update operation
+
+    try {
+      productService.updateProduct(id, dto);
+      response.put("message", "Sản phẩm đã được cập nhật thành công!");
+    } catch (Exception e) {
+      response.put("errorMessage", "Lỗi khi cập nhật sản phẩm: " + e.getMessage());
+    }
     return response;
   }
 
@@ -314,8 +359,8 @@ public class ProductController {
   public Map<String, Object> getDiscountedProducts() {
     Map<String, Object> response = new HashMap<>();
     try {
-      // Sử dụng method mới để lấy sản phẩm có giảm giá tốt nhất
-      List<ProductDisplayDto> discountedProducts = productService.findProductsWithBestDiscounts();
+      // Sử dụng query đơn giản và để frontend xử lý logic so sánh
+      List<ProductDisplayDto> discountedProducts = productService.findActiveProductsWithProductSpecificDiscounts();
 
       response.put("products", discountedProducts);
       response.put("message", "Lấy danh sách sản phẩm giảm giá thành công");
@@ -332,8 +377,8 @@ public class ProductController {
   public Map<String, Object> getDiscountedProductsSimple() {
     Map<String, Object> response = new HashMap<>();
     try {
-      // Sử dụng query đơn giản hơn chỉ cho product-specific discounts
-      List<ProductDisplayDto> discountedProducts = productService.findProductsWithProductSpecificDiscounts();
+      // Sử dụng method có sẵn
+      List<ProductDisplayDto> discountedProducts = productService.findActiveProductsWithProductSpecificDiscounts();
 
       response.put("products", discountedProducts);
       response.put("message", "Lấy danh sách sản phẩm có discount cụ thể thành công");
@@ -639,11 +684,17 @@ public class ProductController {
       System.out.println("Found " + searchResults.size() + " products matching '" + query + "'");
       searchResults.forEach(p -> System.out.println("  - " + p.getName()));
 
-      // Convert sang DTO
+      // Convert sang DTO với logic discount tốt nhất
       List<ProductDisplayDto> resultDtos = searchResults.stream()
           .map(product -> {
             try {
-              return productService.convertToProductDisplayDto(product);
+              // Sử dụng query có logic discount tốt nhất thay vì convertToProductDisplayDto
+              List<ProductDisplayDto> productsWithDiscount = productRepository.findActiveProductsWithPricingByCategoryId(product.getCategory().getId(), OffsetDateTime.now());
+              ProductDisplayDto productDto = productsWithDiscount.stream()
+                      .filter(p -> p.getId().equals(product.getId()))
+                      .findFirst()
+                      .orElse(productService.convertToProductDisplayDto(product));
+              return productDto;
             } catch (Exception e) {
               System.err.println("Error converting product " + product.getId() + ": " + e.getMessage());
               return null;

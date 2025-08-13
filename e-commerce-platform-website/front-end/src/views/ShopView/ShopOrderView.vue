@@ -845,7 +845,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Làm cho thanh scroll của Naive UI có thể kéo được */
+/* Custom scrollbar cho Naive UI với màu xanh gradient */
 :deep(.n-data-table .n-scrollbar) {
   cursor: grab !important;
   user-select: none !important;
@@ -858,6 +858,7 @@ onMounted(() => {
 :deep(.n-data-table .n-scrollbar-rail) {
   cursor: grab !important;
   user-select: none !important;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
 }
 
 :deep(.n-data-table .n-scrollbar-rail:hover) {
@@ -873,7 +874,17 @@ onMounted(() => {
   cursor: grabbing !important;
 }
 
-/* Làm cho thanh scroll của pagination có thể kéo được */
+:deep(.n-data-table .n-scrollbar-thumb) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+:deep(.n-data-table .n-scrollbar-thumb:hover) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+}
+
+/* Custom scrollbar cho pagination với màu xanh gradient */
 :deep(.n-pagination .n-scrollbar) {
   cursor: grab !important;
   user-select: none !important;
@@ -886,10 +897,21 @@ onMounted(() => {
 :deep(.n-pagination .n-scrollbar-rail) {
   cursor: grab !important;
   user-select: none !important;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
 }
 
 :deep(.n-pagination .n-scrollbar-rail:hover) {
   cursor: grabbing !important;
+}
+
+:deep(.n-pagination .n-scrollbar-thumb) {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  border-radius: 4px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+:deep(.n-pagination .n-scrollbar-thumb:hover) {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
 }
 
 /* Swiper Table Styles */
