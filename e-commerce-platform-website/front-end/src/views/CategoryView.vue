@@ -198,7 +198,7 @@
                   :alt="product.name"
                   :class="
                     viewMode === 'grid'
-                      ? 'w-full h-full object-cover group-hover:scale-110 transition-transform duration-300'
+                      ? 'w-full h-full object-cover'
                       : 'w-full h-full object-cover'
                   "
                   @error="handleImageError"

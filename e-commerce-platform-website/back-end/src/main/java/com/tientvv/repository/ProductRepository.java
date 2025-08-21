@@ -56,13 +56,14 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
                  COALESCE(MIN(pv.price), 0) AS minPrice,
                  COALESCE(MAX(pv.price), 0) AS maxPrice,
                  COALESCE(MIN(pv.price), 0) AS originalPrice,
-                 0.0 AS rating,
-                 0 AS reviewCount,
+                 COALESCE(AVG(r.rating), 0.0) AS rating,
+                 COUNT(r.id) AS reviewCount,
                  COALESCE(MAX(d.discountValue), 0) AS discountPercentage
           FROM Product p
           JOIN p.category c
           JOIN p.shop s
           LEFT JOIN p.productVariants pv ON pv.isActive = true
+          LEFT JOIN p.reviews r
           LEFT JOIN p.discounts d ON d.isActive = true
               AND d.startDate <= :currentTime
               AND d.endDate >= :currentTime
@@ -89,8 +90,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
                  COALESCE(MIN(pv.price), 0) AS minPrice,
                  COALESCE(MAX(pv.price), 0) AS maxPrice,
                  COALESCE(MIN(pv.price), 0) AS originalPrice,
-                 0.0 AS rating,
-                 0 AS reviewCount,
+                 COALESCE(AVG(r.rating), 0.0) AS rating,
+                 COUNT(r.id) AS reviewCount,
                  (SELECT CASE
                    WHEN d2.discountType = 'PERCENTAGE' THEN d2.discountValue
                    ELSE 0
@@ -206,6 +207,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
           JOIN p.category c
           JOIN p.shop s
           LEFT JOIN p.productVariants pv ON pv.isActive = true
+          LEFT JOIN p.reviews r
           WHERE p.isActive = true AND c.id = :categoryId
           GROUP BY p.id, p.name, p.brand, p.description, p.productImage, p.isActive,
                    p.viewCount, p.soldCount, c.name, c.id, s.shopName, s.id
@@ -231,8 +233,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
                  COALESCE(MIN(pv.price), 0) AS minPrice,
                  COALESCE(MAX(pv.price), 0) AS maxPrice,
                  COALESCE(MIN(pv.price), 0) AS originalPrice,
-                 0.0 AS rating,
-                 0 AS reviewCount,
+                 COALESCE(AVG(r.rating), 0.0) AS rating,
+                 COUNT(r.id) AS reviewCount,
                                    (SELECT CASE
                     WHEN d2.discountType = 'PERCENTAGE' THEN d2.discountValue
                     ELSE 0
@@ -372,8 +374,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
                  COALESCE(MIN(pv.price), 0) AS minPrice,
                  COALESCE(MAX(pv.price), 0) AS maxPrice,
                  COALESCE(MIN(pv.price), 0) AS originalPrice,
-                 0.0 AS rating,
-                 0 AS reviewCount,
+                 COALESCE(AVG(r.rating), 0.0) AS rating,
+                 COUNT(r.id) AS reviewCount,
                                    (SELECT CASE
                     WHEN d2.discountType = 'PERCENTAGE' THEN d2.discountValue
                     ELSE 0
@@ -447,6 +449,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
           JOIN p.category c
           JOIN p.shop s
           LEFT JOIN p.productVariants pv ON pv.isActive = true
+          LEFT JOIN p.reviews r
           WHERE p.isActive = true
                          AND EXISTS (
                SELECT 1 FROM Discount d3
@@ -493,8 +496,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
                  COALESCE(MIN(pv.price), 0) AS minPrice,
                  COALESCE(MAX(pv.price), 0) AS maxPrice,
                  COALESCE(MIN(pv.price), 0) AS originalPrice,
-                 0.0 AS rating,
-                 0 AS reviewCount,
+                 COALESCE(AVG(r.rating), 0.0) AS rating,
+                 COUNT(r.id) AS reviewCount,
                  CASE
                    WHEN d.discountType = 'PERCENTAGE' THEN d.discountValue
                    ELSE 0
