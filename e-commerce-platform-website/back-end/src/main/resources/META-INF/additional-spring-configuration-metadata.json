@@ -1,0 +1,92 @@
+{"properties": [
+  {
+    "name": "cloudinary.cloud_name",
+    "type": "java.lang.String",
+    "description": "A description for 'cloudinary.cloud_name'"
+  },
+  {
+    "name": "cloudinary.api_key",
+    "type": "java.lang.String",
+    "description": "A description for 'cloudinary.api_key'"
+  },
+  {
+    "name": "cloudinary.api_secret",
+    "type": "java.lang.String",
+    "description": "A description for 'cloudinary.api_secret'"
+  },
+  {
+    "name": "vnpay.tmn-code",
+    "type": "java.lang.String",
+    "description": "A description for 'vnpay.tmn-code'"
+  },
+  {
+    "name": "vnpay.hash-secret",
+    "type": "java.lang.String",
+    "description": "A description for 'vnpay.hash-secret'"
+  },
+  {
+    "name": "vnpay.pay-url",
+    "type": "java.lang.String",
+    "description": "A description for 'vnpay.pay-url'"
+  },
+  {
+    "name": "vnpay.return-url",
+    "type": "java.lang.String",
+    "description": "A description for 'vnpay.return-url'"
+  },
+  {
+    "name": "payos.api-key",
+    "type": "java.lang.String",
+    "description": "A description for 'payos.api-key'"
+  },
+  {
+    "name": "payos.client-id",
+    "type": "java.lang.String",
+    "description": "A description for 'payos.client-id'"
+  },
+  {
+    "name": "payos.return-url",
+    "type": "java.lang.String",
+    "description": "A description for 'payos.return-url'"
+  },
+  {
+    "name": "payos.cancel-url",
+    "type": "java.lang.String",
+    "description": "A description for 'payos.cancel-url'"
+  },
+  {
+    "name": "payos.checksum-key",
+    "type": "java.lang.String",
+    "description": "A description for 'payos.checksum-key'"
+  },
+  {
+    "name": "zalopay.app-id",
+    "type": "java.lang.String",
+    "description": "A description for 'zalopay.app-id'"
+  },
+  {
+    "name": "zalopay.key1",
+    "type": "java.lang.String",
+    "description": "A description for 'zalopay.key1'"
+  },
+  {
+    "name": "zalopay.sandbox-url",
+    "type": "java.lang.String",
+    "description": "A description for 'zalopay.sandbox-url'"
+  },
+  {
+    "name": "zalopay.key2",
+    "type": "java.lang.String",
+    "description": "A description for 'zalopay.key2'"
+  },
+  {
+    "name": "zalopay.callback-url",
+    "type": "java.lang.String",
+    "description": "A description for 'zalopay.callback-url'"
+  },
+  {
+    "name": "payos.callback-url",
+    "type": "java.lang.String",
+    "description": "A description for 'payos.callback-url'"
+  }
+]}
