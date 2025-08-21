@@ -18,7 +18,7 @@
     <!-- Category Grid -->
     <div v-else class="category-grid">
       <div
-        v-for="category in categories"
+        v-for="category in visibleCategories"
         :key="category.id"
         class="category-item"
         @click="navigateToCategory(category.id)"
@@ -42,23 +42,39 @@
       </div>
     </div>
 
-    <!-- Navigation Arrow -->
-    <div class="navigation-arrow">
-      <button class="arrow-button" @click="scrollToNext">
-        <svg class="arrow-icon" fill="currentColor" viewBox="0 0 20 20">
-          <path
-            fill-rule="evenodd"
-            d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-            clip-rule="evenodd"
-          />
-        </svg>
-      </button>
+    <!-- Navigation Arrows -->
+    <div v-if="totalPages > 1" class="navigation-arrows">
+      <!-- Left Arrow -->
+      <div v-if="currentPage > 0" class="navigation-arrow navigation-arrow-left">
+        <button class="arrow-button" @click="scrollToPrevious">
+          <svg class="arrow-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Right Arrow -->
+      <div v-if="currentPage < totalPages - 1" class="navigation-arrow navigation-arrow-right">
+        <button class="arrow-button" @click="scrollToNext">
+          <svg class="arrow-icon" fill="currentColor" viewBox="0 0 20 20">
+            <path
+              fill-rule="evenodd"
+              d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from '../../utils/axios'
 
@@ -190,13 +206,30 @@ const navigateToCategory = (categoryId) => {
   router.push(`/category/${categoryId}`)
 }
 
+const currentPage = ref(0)
+const itemsPerPage = ref(20) // 10 columns x 2 rows = 20 items
+
+const totalPages = computed(() => {
+  return Math.ceil(categories.value.length / itemsPerPage.value)
+})
+
 const scrollToNext = () => {
-  // Scroll to next set of categories
-  const container = document.querySelector('.category-grid')
-  if (container) {
-    container.scrollBy({ left: 800, behavior: 'smooth' })
+  if (currentPage.value < totalPages.value - 1) {
+    currentPage.value++
   }
 }
+
+const scrollToPrevious = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--
+  }
+}
+
+const visibleCategories = computed(() => {
+  const start = currentPage.value * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return categories.value.slice(start, end)
+})
 
 // Load data on mount
 onMounted(() => {
@@ -230,7 +263,7 @@ onMounted(() => {
 
 .loading-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(10, 1fr);
   gap: 16px;
   max-width: 100%;
   overflow-x: auto;
@@ -272,16 +305,12 @@ onMounted(() => {
 /* Category Grid */
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(2, auto);
   gap: 16px;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.category-grid::-webkit-scrollbar {
-  display: none;
+  overflow: hidden;
+  position: relative;
 }
 
 .category-item {
@@ -353,13 +382,30 @@ onMounted(() => {
   word-wrap: break-word;
 }
 
-/* Navigation Arrow */
+/* Navigation Arrows */
+.navigation-arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
 .navigation-arrow {
   position: absolute;
-  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 10;
+  pointer-events: auto;
+}
+
+.navigation-arrow-left {
+  left: 8px;
+}
+
+.navigation-arrow-right {
+  right: 8px;
 }
 
 .arrow-button {
@@ -399,8 +445,10 @@ onMounted(() => {
   }
 
   .category-grid {
-    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(2, auto);
     gap: 12px;
+    position: relative;
   }
 
   .category-item {
@@ -435,8 +483,10 @@ onMounted(() => {
 
 @media (max-width: 480px) {
   .category-grid {
-    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, auto);
     gap: 8px;
+    position: relative;
   }
 
   .category-item {
@@ -463,8 +513,10 @@ onMounted(() => {
 /* Tablet Layout */
 @media (min-width: 769px) and (max-width: 1024px) {
   .category-grid {
-    grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(2, auto);
     gap: 18px;
+    position: relative;
   }
 
   .category-item {
@@ -493,8 +545,10 @@ onMounted(() => {
   }
 
   .category-grid {
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(2, auto);
     gap: 20px;
+    position: relative;
   }
 
   .category-item {

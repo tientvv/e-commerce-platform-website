@@ -112,6 +112,59 @@
                     <n-input v-model:value="editForm.address" placeholder="Nhập địa chỉ" />
                   </n-form-item-gi>
 
+                  <n-form-item-gi label="Ảnh cửa hàng" :span="2" path="shopImage">
+                    <n-space vertical class="w-full">
+                      <!-- Current Image Display -->
+                      <div v-if="editForm.existingImageUrl && !imagePreview" class="mb-4">
+                        <n-text depth="3" class="block mb-2">Ảnh hiện tại:</n-text>
+                        <div class="relative inline-block">
+                          <n-image :src="editForm.existingImageUrl" width="120" height="120" object-fit="cover" class="rounded" />
+                          <n-button
+                            size="small"
+                            type="error"
+                            class="absolute -top-2 -right-2"
+                            @click="removeExistingImage"
+                          >
+                            <template #icon>
+                              <n-icon><X /></n-icon>
+                            </template>
+                          </n-button>
+                        </div>
+                      </div>
+
+                      <!-- New Image Preview -->
+                      <div v-if="imagePreview" class="mb-4">
+                        <n-text depth="3" class="block mb-2">Ảnh mới:</n-text>
+                        <div class="relative inline-block">
+                          <n-image :src="imagePreview" width="120" height="120" object-fit="cover" class="rounded" />
+                          <n-button size="small" type="error" class="absolute -top-2 -right-2" @click="removeImage">
+                            <template #icon>
+                              <n-icon><X /></n-icon>
+                            </template>
+                          </n-button>
+                        </div>
+                      </div>
+
+                      <!-- Upload Button -->
+                      <n-upload
+                        :max="1"
+                        accept="image/*"
+                        :show-file-list="false"
+                        @change="handleFileChange"
+                        :disabled="uploading"
+                      >
+                        <n-button :loading="uploading">
+                          <template #icon>
+                            <n-icon><Upload /></n-icon>
+                          </template>
+                          {{ getUploadButtonText() }}
+                        </n-button>
+                      </n-upload>
+
+                      <n-text depth="3" class="text-sm"> Kích thước tối đa: 5MB </n-text>
+                    </n-space>
+                  </n-form-item-gi>
+
                   <n-form-item-gi label="Mô tả" :span="2" path="description">
                     <n-input
                       v-model:value="editForm.description"
@@ -160,7 +213,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from '../../utils/axios'
-import { Edit, RefreshCw, Save, X } from 'lucide-vue-next'
+import { Edit, RefreshCw, Save, X, Upload } from 'lucide-vue-next'
 import {
   NH2,
   NSpace,
@@ -179,19 +232,22 @@ import {
   NInput,
   NResult,
   useMessage,
+  NImage,
+  NUpload,
 } from 'naive-ui'
 
 const message = useMessage()
 
-// State
 const isLoading = ref(true)
 const isEditing = ref(false)
 const isUpdating = ref(false)
+const uploading = ref(false)
 const shopInfo = ref(null)
 const canUpdate = ref(true)
 const hoursUntilNextUpdate = ref(0)
+const imagePreview = ref('')
+const removeExistingImageFlag = ref(false)
 
-// Form
 const formRef = ref(null)
 const editForm = ref({
   shopName: '',
@@ -199,9 +255,10 @@ const editForm = ref({
   phone: '',
   address: '',
   description: '',
+  shopImage: null,
+  existingImageUrl: '',
 })
 
-// Form validation rules
 const formRules = {
   shopName: {
     required: true,
@@ -232,12 +289,10 @@ const formRules = {
   },
 }
 
-// Computed
 const isFormValid = computed(() => {
   return editForm.value.shopName && editForm.value.email && editForm.value.phone && editForm.value.address
 })
 
-// Methods
 const loadShopInfo = async () => {
   isLoading.value = true
   try {
@@ -269,7 +324,11 @@ const startEditing = () => {
     phone: shopInfo.value.phone || '',
     address: shopInfo.value.address || '',
     description: shopInfo.value.description || '',
+    shopImage: null,
+    existingImageUrl: shopInfo.value.shopImage || '',
   }
+  imagePreview.value = ''
+  removeExistingImageFlag.value = false
   isEditing.value = true
 }
 
@@ -281,7 +340,11 @@ const cancelEditing = () => {
     phone: '',
     address: '',
     description: '',
+    shopImage: null,
+    existingImageUrl: '',
   }
+  imagePreview.value = ''
+  removeExistingImageFlag.value = false
 }
 
 const updateShopInfo = async () => {
@@ -291,7 +354,26 @@ const updateShopInfo = async () => {
     await formRef.value.validate()
     isUpdating.value = true
 
-    const response = await axios.put('/api/user/shop/update', editForm.value)
+    const submitData = new FormData()
+    submitData.append('shopName', editForm.value.shopName)
+    submitData.append('email', editForm.value.email)
+    submitData.append('phone', editForm.value.phone)
+    submitData.append('address', editForm.value.address)
+    submitData.append('description', editForm.value.description || '')
+
+    if (editForm.value.shopImage) {
+      submitData.append('shopImage', editForm.value.shopImage)
+    }
+
+    if (removeExistingImageFlag.value) {
+      submitData.append('removeImage', 'true')
+    }
+
+    const response = await axios.put('/api/user/shop/update', submitData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
 
     if (response.data.shop) {
       shopInfo.value = response.data.shop
@@ -314,12 +396,45 @@ const updateShopInfo = async () => {
   }
 }
 
+const handleFileChange = ({ file }) => {
+  if (!file) return
+
+  // Validate file size (5MB)
+  if (file.file.size > 5 * 1024 * 1024) {
+    message.error('Kích thước file không được vượt quá 5MB')
+    return
+  }
+
+  editForm.value.shopImage = file.file
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    imagePreview.value = e.target.result
+  }
+  reader.readAsDataURL(file.file)
+}
+
+const removeImage = () => {
+  editForm.value.shopImage = null
+  imagePreview.value = ''
+}
+
+const removeExistingImage = () => {
+  removeExistingImageFlag.value = true
+  editForm.value.existingImageUrl = ''
+}
+
+const getUploadButtonText = () => {
+  if (uploading.value) return 'Đang tải...'
+  if (imagePreview.value) return 'Thay đổi ảnh'
+  if (editForm.value.existingImageUrl && !removeExistingImageFlag.value) return 'Thay đổi ảnh'
+  return 'Tải lên ảnh'
+}
+
 const refreshInfo = () => {
   loadShopInfo()
   message.info('Đã làm mới thông tin')
 }
 
-// Helper functions
 const formatDateTime = (dateString) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
@@ -347,7 +462,6 @@ const formatTimeRemaining = (hours) => {
   }
 }
 
-// Load data on mount
 onMounted(() => {
   loadShopInfo()
 })

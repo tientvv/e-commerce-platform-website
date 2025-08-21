@@ -1,13 +1,13 @@
 <template>
   <n-layout has-sider class="min-h-screen">
     <!-- Sidebar -->
-    <n-layout-sider bordered :width="240" show-trigger="false">
+    <n-layout-sider bordered :width="240" :collapsed="false" :collapsed-width="0" :show-trigger="false" :native-scrollbar="false">
       <n-menu :value="selectedMenuKey" :options="menuOptions" @update:value="handleMenuSelect" />
     </n-layout-sider>
 
     <n-layout>
       <!-- Header -->
-      <n-layout-header bordered class="h-16 flex items-center px-4">
+      <n-layout-header bordered class="h-16 flex items-center px-4 sticky top-0 z-50 bg-white">
         <div class="flex items-center justify-between w-full">
           <div class="flex items-center gap-4">
             <n-text strong class="text-xl">Trang quản trị</n-text>
@@ -161,5 +161,10 @@ onMounted(async () => {
 .n-layout-header {
   display: flex;
   align-items: center;
+}
+
+/* Đảm bảo sidebar không bị thu nhỏ */
+:deep(.n-layout-sider) {
+  transition: none !important;
 }
 </style>

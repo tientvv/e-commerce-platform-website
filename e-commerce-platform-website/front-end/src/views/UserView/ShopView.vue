@@ -1,6 +1,6 @@
 <template>
   <n-layout has-sider class="h-full">
-    <n-layout-sider bordered :width="280" :native-scrollbar="false" show-trigger="false">
+    <n-layout-sider bordered :width="280" :collapsed="false" :collapsed-width="0" :show-trigger="false" :native-scrollbar="false">
       <MenuBarView />
     </n-layout-sider>
 
@@ -59,5 +59,10 @@ onMounted(async () => {
 
 :deep(.n-layout-sider-trigger-arrow) {
   display: none !important;
+}
+
+/* Đảm bảo sidebar không bị thu nhỏ */
+:deep(.n-layout-sider) {
+  transition: none !important;
 }
 </style>

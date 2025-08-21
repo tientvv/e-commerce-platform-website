@@ -102,6 +102,7 @@
               :show-file-list="false"
               @change="handleFileChange"
               :disabled="uploading"
+              :key="uploadKey"
             >
               <n-button :loading="uploading">
                 <template #icon>
@@ -188,6 +189,7 @@ const formData = reactive({
 const imagePreview = ref('')
 const categoryToDelete = ref(null)
 const removeExistingImageFlag = ref(false)
+const uploadKey = ref(0)
 
 // Form validation rules
 const rules = {
@@ -228,14 +230,6 @@ const columns = [
     title: 'Tên danh mục',
     key: 'name',
     width: 200,
-  },
-  {
-    title: 'ID',
-    key: 'id',
-    width: 120,
-    render(row) {
-      return h(NTag, { size: 'small', type: 'info' }, { default: () => row.id })
-    },
   },
   {
     title: 'Thao tác',
@@ -335,6 +329,7 @@ const resetForm = () => {
   imagePreview.value = ''
   currentCategoryId.value = null
   removeExistingImageFlag.value = false
+  uploadKey.value = 0
 }
 
 // Get upload button text
@@ -367,12 +362,19 @@ const handleFileChange = ({ file }) => {
 const removeImage = () => {
   formData.image = null
   imagePreview.value = ''
+  // Force re-render upload component
+  uploadKey.value++
 }
 
 // Remove existing image
 const removeExistingImage = () => {
   removeExistingImageFlag.value = true
   formData.existingImageUrl = ''
+  // Reset file input để có thể chọn lại
+  formData.image = null
+  imagePreview.value = ''
+  // Force re-render upload component
+  uploadKey.value++
 }
 
 // Handle submit

@@ -5,8 +5,10 @@ import com.tientvv.model.*;
 import com.tientvv.dto.shop.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
 import com.tientvv.repository.ShopRepository;
 import com.tientvv.service.ShopService;
+import com.tientvv.service.ImageUploadService;
 import jakarta.servlet.http.HttpSession;
 import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,9 @@ public class ShopController {
 
   @Autowired
   private ShopRepository shopRepository;
+
+  @Autowired
+  private ImageUploadService imageUploadService;
 
   @GetMapping("/user/shop")
   public Map<String, Object> getShopByUserId(HttpSession session) {
@@ -88,7 +93,15 @@ public class ShopController {
   }
 
   @PutMapping("/user/shop/update")
-  public Map<String, Object> updateShopInfo(@RequestBody UpdateShopDto dto, HttpSession session) {
+  public Map<String, Object> updateShopInfo(
+      @RequestParam(value = "shopName", required = false) String shopName,
+      @RequestParam(value = "email", required = false) String email,
+      @RequestParam(value = "phone", required = false) String phone,
+      @RequestParam(value = "address", required = false) String address,
+      @RequestParam(value = "description", required = false) String description,
+      @RequestParam(value = "shopImage", required = false) MultipartFile shopImage,
+      @RequestParam(value = "removeImage", required = false) String removeImage,
+      HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
 
@@ -98,6 +111,24 @@ public class ShopController {
     }
 
     try {
+      // Tạo DTO từ form data
+      UpdateShopDto dto = new UpdateShopDto();
+      dto.setShopName(shopName);
+      dto.setEmail(email);
+      dto.setPhone(phone);
+      dto.setAddress(address);
+      dto.setDescription(description);
+
+      // Xử lý ảnh
+      if (shopImage != null && !shopImage.isEmpty()) {
+        // Upload ảnh lên Cloudinary
+        String imageUrl = imageUploadService.uploadImage(shopImage);
+        dto.setShopImage(imageUrl);
+      } else if ("true".equals(removeImage)) {
+        // Xóa ảnh hiện tại
+        dto.setShopImage("");
+      }
+
       // Thực hiện cập nhật thông tin
       shopService.updateShopInfo(account.getId(), dto);
 

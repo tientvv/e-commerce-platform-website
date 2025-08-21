@@ -15,23 +15,13 @@ public class DataInitializer implements CommandLineRunner {
   @Autowired
   private AccountRepository accountRepository;
 
+  @SuppressWarnings("unused")
   @Autowired
   private DataSource dataSource;
 
   @Override
   public void run(String... args) throws Exception {
-    checkDatabaseConnection();
     initializeAdminAccount();
-  }
-
-  private void checkDatabaseConnection() {
-    try {
-      dataSource.getConnection().close();
-      System.out.println("✅ Database connection: OK");
-    } catch (Exception e) {
-      System.err.println("❌ Database connection failed: " + e.getMessage());
-      throw new RuntimeException("Cannot connect to database", e);
-    }
   }
 
   private void initializeAdminAccount() {
@@ -45,7 +35,7 @@ public class DataInitializer implements CommandLineRunner {
       // Create default admin account
       Account adminAccount = new Account();
       adminAccount.setUsername("admin");
-      adminAccount.setName("Administrator");
+      adminAccount.setName("Admin");
       adminAccount.setEmail(null);
       adminAccount.setPassword(BCrypt.hashpw("admin@123", BCrypt.gensalt()));
       adminAccount.setPhone(null);

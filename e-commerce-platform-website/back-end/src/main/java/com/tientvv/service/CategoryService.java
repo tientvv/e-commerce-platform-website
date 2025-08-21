@@ -35,9 +35,9 @@ public class CategoryService {
   }
 
   public Category createCategory(CreateCategoryDto dto) throws Exception {
-    // Check if category name already exists
-    if (categoryRepository.existsByName(dto.getName())) {
-      throw new RuntimeException("Category name already exists: " + dto.getName());
+    // Check if category name already exists (case insensitive)
+    if (categoryRepository.existsByNameIgnoreCase(dto.getName())) {
+      throw new RuntimeException("Tên danh mục đã tồn tại: " + dto.getName());
     }
 
     Category category = new Category();
@@ -58,8 +58,10 @@ public class CategoryService {
         .orElseThrow(() -> new RuntimeException("Category not found with id: " + dto.getId()));
 
     // Check if new name conflicts with existing categories (excluding current one)
-    if (!category.getName().equals(dto.getName()) && categoryRepository.existsByName(dto.getName())) {
-      throw new RuntimeException("Category name already exists: " + dto.getName());
+    // Sử dụng method mới để không phân biệt case và loại trừ danh mục hiện tại
+    if (!category.getName().equalsIgnoreCase(dto.getName()) && 
+        categoryRepository.existsByNameIgnoreCaseAndIdNot(dto.getName(), dto.getId())) {
+      throw new RuntimeException("Tên danh mục đã tồn tại: " + dto.getName());
     }
 
     category.setName(dto.getName());

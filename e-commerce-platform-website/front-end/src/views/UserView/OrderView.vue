@@ -32,7 +32,7 @@
       </div>
       <h3 class="text-lg font-medium text-gray-600 mb-2">Chưa có đơn hàng nào</h3>
       <p class="text-gray-500 mb-6">Bạn chưa có đơn hàng nào. Hãy mua sắm để tạo đơn hàng đầu tiên!</p>
-      <div class="flex justify-center space-x-4">
+      <div class="flex justify-center">
         <RouterLink
           to="/"
           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -40,13 +40,6 @@
           <ShoppingCart class="w-4 h-4 mr-2" />
           Mua sắm ngay
         </RouterLink>
-        <button
-          @click="createSampleOrder"
-          class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-        >
-          <Package class="w-4 h-4 mr-2" />
-          Tạo đơn hàng mẫu (Test)
-        </button>
       </div>
     </div>
 
@@ -383,20 +376,7 @@ const cancelOrder = async (orderId) => {
   }
 }
 
-const createSampleOrder = async () => {
-  try {
-    const response = await axios.post('/api/orders/create-sample-order')
-    if (response.data.success) {
-      alert('Tạo đơn hàng mẫu thành công!')
-      await fetchOrders() // Refresh orders
-    } else {
-      alert('Lỗi: ' + response.data.message)
-    }
-  } catch (err) {
-    console.error('Error creating sample order:', err)
-    alert('Không thể tạo đơn hàng mẫu. Vui lòng thử lại.')
-  }
-}
+
 
 onMounted(() => {
   fetchOrders()

@@ -79,7 +79,7 @@
           </n-form-item-gi>
         </n-grid>
 
-        <n-space class="mt-6">
+        <n-space>
           <n-button
             type="primary"
             attr-type="submit"

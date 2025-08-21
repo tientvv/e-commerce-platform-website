@@ -18,113 +18,95 @@
 
     <!-- Products -->
     <div v-else-if="suggestedProducts.length > 0" class="relative">
-      <swiper
-        :modules="[SwiperNavigation, SwiperPagination, SwiperAutoplay]"
-        :slides-per-view="2"
-        :space-between="16"
-        :navigation="true"
-        :pagination="{ clickable: true }"
-        :autoplay="{ delay: 3000, disableOnInteraction: false }"
-        :breakpoints="{
-          480: { slidesPerView: 3, spaceBetween: 16 },
-          640: { slidesPerView: 4, spaceBetween: 16 },
-          768: { slidesPerView: 5, spaceBetween: 20 },
-          1024: { slidesPerView: 6, spaceBetween: 24 }
-        }"
-        class="suggestions-swiper"
-      >
-        <swiper-slide v-for="product in displayedProducts" :key="product.id">
-          <div class="product-card cursor-pointer" @click="goToProduct(product.id)">
-            <!-- Product Image -->
-            <div class="product-image-container">
-              <img
-                v-if="product.productImage"
-                :src="product.productImage"
-                :alt="product.name"
-                class="w-full h-full object-cover"
-                @error="handleImageError"
-              />
-              <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fill-rule="evenodd"
-                    d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div v-for="product in displayedProducts" :key="product.id" class="product-card cursor-pointer" @click="goToProduct(product.id)">
+          <!-- Product Image -->
+          <div class="product-image-container">
+            <img
+              v-if="product.productImage"
+              :src="product.productImage"
+              :alt="product.name"
+              class="w-full h-full object-cover"
+              @error="handleImageError"
+            />
+            <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+              <svg class="w-8 h-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fill-rule="evenodd"
+                  d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
 
-              <!-- Discount Badge -->
-              <div v-if="hasDiscount(product)" class="absolute top-2 right-2">
-                <div class="voucher-badge">
-                  <div class="voucher-badge-content">
-                    <span v-if="product.discountType === 'PERCENTAGE' && product.discountPercentage > 0">
-                      -{{ product.discountPercentage }}%
-                    </span>
-                    <span v-else-if="product.discountType === 'FIXED' && product.discountAmount > 0">
-                      -{{ formatPrice(product.discountAmount) }}
-                    </span>
-                    <span v-else-if="product.discountPercentage > 0">
-                      -{{ product.discountPercentage }}%
-                    </span>
-                    <span v-else-if="product.discountAmount > 0">
-                      -{{ formatPrice(product.discountAmount) }}
-                    </span>
-                    <span v-else>
-                      GIẢM GIÁ
-                    </span>
-                  </div>
+            <!-- Discount Badge -->
+            <div v-if="hasDiscount(product)" class="absolute top-2 right-2">
+              <div class="voucher-badge">
+                <div class="voucher-badge-content">
+                  <span v-if="product.discountType === 'PERCENTAGE' && product.discountPercentage > 0">
+                    -{{ product.discountPercentage }}%
+                  </span>
+                  <span v-else-if="product.discountType === 'FIXED' && product.discountAmount > 0">
+                    -{{ formatPrice(product.discountAmount) }}
+                  </span>
+                  <span v-else-if="product.discountPercentage > 0">
+                    -{{ product.discountPercentage }}%
+                  </span>
+                  <span v-else-if="product.discountAmount > 0">
+                    -{{ formatPrice(product.discountAmount) }}
+                  </span>
+                  <span v-else>
+                    GIẢM GIÁ
+                  </span>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Product Info -->
-            <div class="product-info">
-              <h3 class="product-name">{{ product.name || 'Sản phẩm' }}</h3>
-              <p class="product-brand">{{ product.brand || 'Thương hiệu' }}</p>
+          <!-- Product Info -->
+          <div class="product-info">
+            <h3 class="product-name">{{ product.name || 'Sản phẩm' }}</h3>
+            <p class="product-brand">{{ product.brand || 'Thương hiệu' }}</p>
 
-              <!-- Price -->
-              <div class="mb-2">
-                        <!-- Price Range for products with variants -->
-        <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex flex-col">
-          <div class="flex items-center">
-            <span class="text-sm font-bold text-blue-600 whitespace-nowrap">
-              {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
-            </span>
-          </div>
-          <div class="flex items-center">
-            <span v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="text-sm text-gray-500 line-through whitespace-nowrap">
-              {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
-            </span>
-            <span v-else class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
-          </div>
-        </div>
-
-                        <!-- Single price for products without variants -->
-        <div v-else class="flex flex-col">
-          <div class="flex items-center">
-            <span v-if="hasDiscount(product) && getDiscountedPrice(product) > 0" class="text-sm font-bold text-blue-600">
-              {{ formatPrice(getDiscountedPrice(product)) }}
-            </span>
-            <span v-else-if="product.minPrice && product.minPrice > 0" class="text-sm font-bold text-blue-600">
-              {{ formatPrice(product.minPrice) }}
-            </span>
-            <span v-else class="text-sm font-bold text-gray-500">Liên hệ</span>
-          </div>
-          <div class="flex items-center">
-            <span v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="text-sm text-gray-500 line-through">
-              {{ formatPrice(getOriginalPrice(product)) }}
-            </span>
-            <span v-else class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
-          </div>
-        </div>
+            <!-- Price -->
+            <div class="mb-2">
+              <!-- Price Range for products with variants -->
+              <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex flex-col">
+                <div class="flex items-center">
+                  <span class="text-sm font-bold text-blue-600 whitespace-nowrap">
+                    {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
+                  </span>
+                </div>
+                <div class="flex items-center">
+                  <span v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="text-sm text-gray-500 line-through whitespace-nowrap">
+                    {{ formatPrice(getOriginalPrice(product)) }} - {{ formatPrice(getOriginalMaxPrice(product)) }}
+                  </span>
+                  <span v-else class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
+                </div>
               </div>
 
-
+              <!-- Single price for products without variants -->
+              <div v-else class="flex flex-col">
+                <div class="flex items-center">
+                  <span v-if="hasDiscount(product) && getDiscountedPrice(product) > 0" class="text-sm font-bold text-blue-600">
+                    {{ formatPrice(getDiscountedPrice(product)) }}
+                  </span>
+                  <span v-else-if="product.minPrice && product.minPrice > 0" class="text-sm font-bold text-blue-600">
+                    {{ formatPrice(product.minPrice) }}
+                  </span>
+                  <span v-else class="text-sm font-bold text-gray-500">Liên hệ</span>
+                </div>
+                <div class="flex items-center">
+                  <span v-if="hasDiscount(product) && getOriginalPrice(product) > 0 && getOriginalPrice(product) > getDiscountedPrice(product)" class="text-sm text-gray-500 line-through">
+                    {{ formatPrice(getOriginalPrice(product)) }}
+                  </span>
+                  <span v-else class="text-sm text-gray-500" style="height: 1.25rem; display: inline-block;">&nbsp;</span>
+                </div>
+              </div>
             </div>
           </div>
-        </swiper-slide>
-      </swiper>
+        </div>
+      </div>
 
       <!-- Load More Button -->
       <div v-if="suggestedProducts.length > displayedProducts.length" class="text-center mt-6">
@@ -148,13 +130,6 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { Swiper, SwiperSlide } from 'swiper/vue'
-import { Navigation as SwiperNavigation, Pagination as SwiperPagination, Autoplay as SwiperAutoplay } from 'swiper/modules'
-
-// Import Swiper styles
-import 'swiper/css'
-import 'swiper/css/navigation'
-import 'swiper/css/pagination'
 
 // Reactive data
 const router = useRouter()
@@ -164,18 +139,15 @@ const error = ref(false)
 const errorMessage = ref('')
 const currentDisplayCount = ref(6)
 const lastFetchTime = ref(0)
-const CACHE_DURATION = 30 * 60 * 1000 // 30 phút
+const CACHE_DURATION = 30 * 60 * 1000
 
-// Computed
 const displayedProducts = computed(() => {
   return suggestedProducts.value.slice(0, currentDisplayCount.value)
 })
 
-// Methods
 const fetchSuggestedProducts = async () => {
   const now = Date.now()
 
-  // Kiểm tra cache - nếu chưa quá 30 phút thì không fetch lại
   if (suggestedProducts.value.length > 0 && (now - lastFetchTime.value) < CACHE_DURATION) {
     return
   }
@@ -188,7 +160,6 @@ const fetchSuggestedProducts = async () => {
     suggestedProducts.value = response.data.products || []
     lastFetchTime.value = now
 
-    // Debug: Log dữ liệu discount để kiểm tra
     console.log('Suggested products discount data:', suggestedProducts.value.map(p => ({
       name: p.name,
       discountType: p.discountType,
@@ -227,7 +198,6 @@ const formatPrice = (price) => {
 }
 
 const hasDiscount = (product) => {
-  // Debug: Log dữ liệu discount của sản phẩm
   if (product.name && product.name.includes('G304')) {
     console.log('G304 product discount data:', {
       name: product.name,
@@ -381,41 +351,5 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-/* Swiper Customization */
-.suggestions-swiper {
-  padding: 0;
-}
 
-.suggestions-swiper .swiper-button-next,
-.suggestions-swiper .swiper-button-prev {
-  color: #3b82f6;
-  background: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.suggestions-swiper .swiper-button-next:hover,
-.suggestions-swiper .swiper-button-prev:hover {
-  background: #f8fafc;
-}
-
-.suggestions-swiper .swiper-pagination-bullet {
-  background: #3b82f6;
-}
-
-.suggestions-swiper .swiper-pagination-bullet-active {
-  background: #1d4ed8;
-}
-
-.suggestions-swiper .swiper-slide {
-  height: auto;
-  display: flex;
-}
-
-.suggestions-swiper .swiper-slide > div {
-  width: 100%;
-  height: 100%;
-}
 </style>
