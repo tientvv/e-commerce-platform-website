@@ -1,3 +1,4 @@
+<!-- eslint-disable no-unused-vars -->
 <template>
   <div class="max-w-6xl mx-auto px-4">
     <!-- Header -->
@@ -43,6 +44,8 @@
       </div>
     </div>
 
+
+
     <!-- Orders List -->
     <div v-else class="space-y-6">
       <div
@@ -76,8 +79,11 @@
                 {{ getStatusText(order.orderStatus) }}
               </div>
             </div>
-            <div class="text-sm text-gray-500">
-              {{ order.shopName }}
+            <div class="text-right">
+              <div class="text-sm font-medium text-blue-600">
+                {{ order.shopName }}
+              </div>
+
             </div>
           </div>
         </div>
@@ -100,8 +106,8 @@
               </div>
               <div class="flex-1 min-w-0">
                 <h4 class="font-medium text-gray-800 truncate">{{ item.productName }}</h4>
-                <p v-if="item.variantName" class="text-sm text-gray-500">
-                  {{ item.variantName }}: {{ item.variantValue }}
+                <p v-if="formatVariantInfo(item.variantName, item.variantValue)" class="text-sm text-gray-500">
+                  {{ formatVariantInfo(item.variantName, item.variantValue) }}
                 </p>
                 <div class="flex items-center justify-between mt-2">
                   <div class="text-sm text-gray-500">
@@ -118,14 +124,19 @@
 
         <!-- Order Details -->
         <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <p class="text-gray-500">Phương thức thanh toán:</p>
-              <p class="font-medium text-gray-800">{{ order.paymentName }}</p>
+              <span :class="getPaymentMethodColor(order.paymentName)" class="px-2 py-1 rounded-full text-sm font-medium">
+                {{ order.paymentName }}
+              </span>
             </div>
             <div>
               <p class="text-gray-500">Phương thức giao hàng:</p>
-              <p class="font-medium text-gray-800">{{ order.shippingMethod }}</p>
+              <span :class="getShippingMethodColor(order.shippingMethod)" class="px-2 py-1 rounded-full text-sm font-medium">
+                {{ order.shippingMethod }}
+              </span>
             </div>
             <div>
               <p class="text-gray-500">Địa chỉ giao hàng:</p>
@@ -133,14 +144,19 @@
             </div>
             <div>
               <p class="text-gray-500">Trạng thái thanh toán:</p>
-              <p class="font-medium text-gray-800">{{ getTransactionStatus(order.transactions) }}</p>
+              <span :class="getTransactionStatusColor(order.transactions)" class="px-2 py-1 rounded-full text-sm font-medium">
+                {{ getTransactionStatus(order.transactions) }}
+              </span>
             </div>
           </div>
         </div>
 
         <!-- Order Timeline -->
         <div class="px-6 py-4 border-t border-gray-100">
-          <h4 class="font-medium text-gray-800 mb-6">Trạng thái đơn hàng</h4>
+          <div class="flex items-center justify-between mb-6">
+            <h4 class="font-medium text-gray-800">Trạng thái đơn hàng</h4>
+
+          </div>
           <div class="relative">
             <!-- Timeline -->
             <div class="grid grid-cols-5 gap-8">
@@ -209,6 +225,7 @@
             <div class="flex space-x-2">
               <button
                 v-if="order.orderStatus === 'DELIVERED'"
+                @click="openReviewDialog(order)"
                 class="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Đánh giá
@@ -225,6 +242,17 @@
         </div>
       </div>
     </div>
+    <!-- Review Dialog -->
+    <ReviewDialog
+      v-model:show="showReviewDialog"
+      :product-id="selectedProductForReview?.id"
+      :product-name="selectedProductForReview?.name"
+      :product-image="selectedProductForReview?.image"
+      :variant-name="selectedProductForReview?.variantName"
+      :variant-value="selectedProductForReview?.variantValue"
+      :product-variant-id="selectedProductForReview?.variantId"
+      @review-submitted="onReviewSubmitted"
+    />
   </div>
 </template>
 
@@ -233,11 +261,16 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import axios from '../../utils/axios'
 import { Package, ShoppingCart, AlertCircle, Check, Clock, Truck } from 'lucide-vue-next'
+import ReviewDialog from '../../components/ReviewDialog.vue'
 
 const orders = ref([])
 const loading = ref(true)
 const error = ref(false)
 const errorMessage = ref('')
+
+// Review dialog state
+const showReviewDialog = ref(false)
+const selectedProductForReview = ref(null)
 
 const fetchOrders = async () => {
   try {
@@ -253,6 +286,25 @@ const fetchOrders = async () => {
         const dateB = new Date(b.orderDate)
         return dateB - dateA // Sắp xếp giảm dần (mới nhất trước)
       })
+
+      // Debug: Log variant information
+      console.log('=== FRONTEND DEBUG ORDERS ===')
+      for (let i = 0; i < orders.value.length; i++) {
+        const order = orders.value[i]
+        console.log(`Order ${i + 1} (ID: ${order.id}):`)
+        if (order.orderItems) {
+          console.log(`  Order items count: ${order.orderItems.length}`)
+          for (let j = 0; j < order.orderItems.length; j++) {
+            const item = order.orderItems[j]
+            console.log(`    Item ${j + 1}:`)
+            console.log(`      - ProductName: ${item.productName}`)
+            console.log(`      - VariantName: ${item.variantName}`)
+            console.log(`      - VariantValue: ${item.variantValue}`)
+            console.log(`      - ProductVariantId: ${item.productVariantId}`)
+          }
+        }
+      }
+      console.log('=== END FRONTEND DEBUG ===')
     } else {
       error.value = true
       errorMessage.value = response.data.message || 'Không thể tải đơn hàng'
@@ -306,7 +358,7 @@ const getStatusText = (status) => {
   const statusTexts = {
     'PENDING_PROCESSING': 'Chờ xử lý',
     'PROCESSED': 'Đã xử lý',
-    'READY_FOR_PICKUP': 'Sẵn sàng giao hàng',
+    'READY_FOR_PICKUP': 'Chờ lấy hàng',
     'IN_TRANSIT': 'Đang giao hàng',
     'DELIVERED': 'Đã giao hàng',
     'CANCELLED': 'Đã hủy'
@@ -318,20 +370,59 @@ const getTransactionStatus = (transactions) => {
   if (!transactions || transactions.length === 0) return 'Chưa thanh toán'
 
   const latestTransaction = transactions[transactions.length - 1]
+  console.log('=== DEBUG TRANSACTION STATUS ===')
+  console.log('Transactions:', transactions)
+  console.log('Latest transaction:', latestTransaction)
+  console.log('Transaction status:', latestTransaction.transactionStatus)
+
   const statusTexts = {
     'PENDING': 'Chờ thanh toán',
     'SUCCESS': 'Đã thanh toán',
     'FAILED': 'Thanh toán thất bại',
     'CANCELLED': 'Đã hủy'
   }
-  return statusTexts[latestTransaction.transactionStatus] || latestTransaction.transactionStatus
+  const result = statusTexts[latestTransaction.transactionStatus] || latestTransaction.transactionStatus
+  console.log('Final status text:', result)
+  console.log('=== END DEBUG ===')
+  return result
+}
+
+const getTransactionStatusColor = (transactions) => {
+  if (!transactions || transactions.length === 0) return 'bg-gray-100 text-gray-800'
+
+  const latestTransaction = transactions[transactions.length - 1]
+  const statusColors = {
+    'PENDING': 'bg-yellow-100 text-yellow-800',
+    'SUCCESS': 'bg-green-100 text-green-800',
+    'FAILED': 'bg-red-100 text-red-800',
+    'CANCELLED': 'bg-red-100 text-red-800'
+  }
+  return statusColors[latestTransaction.transactionStatus] || 'bg-gray-100 text-gray-800'
+}
+
+const getPaymentMethodColor = (paymentName) => {
+  const paymentColors = {
+    'Thanh toán khi nhận hàng': 'bg-green-100 text-green-800',
+    'Thanh toán bằng ngân hàng': 'bg-blue-100 text-blue-800',
+    'PayOS': 'bg-purple-100 text-purple-800'
+  }
+  return paymentColors[paymentName] || 'bg-gray-100 text-gray-800'
+}
+
+const getShippingMethodColor = (shippingMethod) => {
+  const shippingColors = {
+    'Giao hàng nhanh': 'bg-green-100 text-green-800',
+    'Giao hàng tiêu chuẩn': 'bg-blue-100 text-blue-800',
+    'Giao hàng tiết kiệm': 'bg-orange-100 text-orange-800'
+  }
+  return shippingColors[shippingMethod] || 'bg-gray-100 text-gray-800'
 }
 
 const getOrderTimeline = (status) => {
   const timeline = [
     { label: 'Chờ xử lý', completed: false, current: false, date: null },
     { label: 'Đã xử lý', completed: false, current: false, date: null },
-    { label: 'Sẵn sàng giao hàng', completed: false, current: false, date: null },
+    { label: 'Chờ lấy hàng', completed: false, current: false, date: null },
     { label: 'Đang giao hàng', completed: false, current: false, date: null },
     { label: 'Đã giao hàng', completed: false, current: false, date: null }
   ]
@@ -362,6 +453,83 @@ const getOrderTimeline = (status) => {
 
 const canCancelOrder = (status) => {
   return ['PENDING_PROCESSING', 'PROCESSED'].includes(status)
+}
+
+// eslint-disable-next-line no-unused-vars
+const getUniqueShopsCount = () => {
+  const uniqueShops = new Set(orders.value.map(order => order.shopName))
+  return uniqueShops.size
+}
+
+const formatVariantInfo = (variantName, variantValue) => {
+  // Kiểm tra và làm sạch dữ liệu
+  const cleanVariantName = variantName ? variantName.trim() : ''
+  const cleanVariantValue = variantValue ? variantValue.trim() : ''
+
+  if (!cleanVariantName) {
+    return ''
+  }
+
+  // Nếu variantName là "Màu sắc" hoặc "Color", hiển thị rõ ràng hơn
+  if (cleanVariantName.toLowerCase().includes('màu') || cleanVariantName.toLowerCase().includes('color')) {
+    return `Màu sắc: ${cleanVariantValue || 'Không xác định'}`
+  }
+
+  // Nếu có cả variantName và variantValue
+  if (cleanVariantValue) {
+    return `${cleanVariantName}: ${cleanVariantValue}`
+  }
+
+  // Chỉ có variantName
+  return cleanVariantName
+}
+
+const openReviewDialog = (order) => {
+  // Lấy sản phẩm đầu tiên từ đơn hàng để đánh giá
+  if (order.orderItems && order.orderItems.length > 0) {
+    const firstItem = order.orderItems[0]
+    console.log('Order item for review:', firstItem) // Debug log
+    console.log('Order item keys:', Object.keys(firstItem)) // Debug log
+
+    // Kiểm tra các trường có thể có product ID
+    const productId = firstItem.productId ||
+                     firstItem.product?.id ||
+                     firstItem.productVariant?.product?.id ||
+                     firstItem.productVariantId
+
+    if (!productId) {
+      console.error('No product ID found in order item')
+      console.error('Available fields:', Object.keys(firstItem))
+      return
+    }
+
+    selectedProductForReview.value = {
+      id: productId,
+      name: firstItem.productName ||
+            firstItem.product?.name ||
+            firstItem.productVariant?.product?.name ||
+            'Sản phẩm',
+      image: firstItem.productImage ||
+             firstItem.product?.productImage ||
+             firstItem.productVariant?.product?.productImage ||
+             '',
+      variantName: firstItem.variantName ||
+                  firstItem.productVariant?.variantName ||
+                  '',
+      variantValue: firstItem.variantValue ||
+                   firstItem.productVariant?.variantValue ||
+                   '',
+      variantId: firstItem.productVariantId ||
+                firstItem.productVariant?.id ||
+                null
+    }
+    showReviewDialog.value = true
+  }
+}
+
+const onReviewSubmitted = (review) => {
+  // Có thể thêm logic cập nhật UI sau khi đánh giá thành công
+  console.log('Review submitted:', review)
 }
 
 const cancelOrder = async (orderId) => {

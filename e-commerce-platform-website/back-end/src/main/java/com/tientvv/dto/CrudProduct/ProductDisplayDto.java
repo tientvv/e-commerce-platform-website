@@ -43,6 +43,8 @@ public interface ProductDisplayDto {
 
   String getShopName();
 
+  UUID getShopId();
+
   Integer getViewCount();
 
   Integer getSoldCount();

@@ -24,9 +24,16 @@
 
             <!-- Order Info -->
             <div v-if="orderInfo" class="mt-6 bg-gray-50 rounded-lg p-4">
-              <h3 class="text-sm font-medium text-gray-900 mb-2">Thông tin đơn hàng</h3>
+              <h3 class="text-sm font-medium text-gray-900 mb-2">
+                {{ orderInfo.multipleOrders ? 'Thông tin đơn hàng' : 'Thông tin đơn hàng' }}
+              </h3>
               <div class="text-sm text-gray-600 space-y-1">
-                <p><strong>Mã đơn hàng:</strong> {{ orderInfo.orderId }}</p>
+                <p v-if="orderInfo.multipleOrders">
+                  <strong>Tổng đơn hàng:</strong> {{ orderInfo.totalOrders }}
+                </p>
+                <p v-else>
+                  <strong>Mã đơn hàng:</strong> {{ orderInfo.orderId }}
+                </p>
                 <p><strong>Tổng tiền:</strong> {{ formatPrice(orderInfo.amount) }}</p>
                 <p><strong>Phương thức:</strong> {{ orderInfo.paymentMethod }}</p>
               </div>
@@ -124,38 +131,80 @@ onMounted(async () => {
         paymentMethod: 'PayOS',
       }
 
-      // Verify payment với backend để cập nhật trạng thái
-      try {
-        const response = await axios.post('/api/payos/verify-payment', {
-          orderCode: orderCode,
-          transactionCode: 'PAYOS_SUCCESS',
-        })
+      // Kiểm tra xem có nhiều đơn hàng không
+      const pendingMultipleOrders = localStorage.getItem('pendingMultipleOrders')
 
-        if (response.data.success) {
-          orderInfo.value.orderId = response.data.orderId
+      if (pendingMultipleOrders) {
+        // Xử lý nhiều đơn hàng
+        try {
+          const multipleOrdersData = JSON.parse(pendingMultipleOrders)
+          orderInfo.value.multipleOrders = true
+          orderInfo.value.totalOrders = multipleOrdersData.length
 
-          // Lấy thông tin đơn hàng thật từ backend
-          try {
-            const orderResponse = await axios.get(`/api/orders/${response.data.orderId}`)
-            if (orderResponse.data.success) {
-              const order = orderResponse.data.data
-              orderInfo.value.amount = order.totalAmount
-              orderInfo.value.paymentMethod = order.paymentName || 'PayOS'
+          // Tạo tất cả đơn hàng
+          const createdOrders = []
+          for (const orderData of multipleOrdersData) {
+            try {
+              console.log('Creating order for shop:', orderData.shopId, 'with total:', orderData.totalAmount)
+              const orderResponse = await axios.post('/api/orders', orderData)
+              if (orderResponse.data) {
+                createdOrders.push(orderResponse.data)
+                console.log('Order created successfully:', orderResponse.data.id)
+
+                // Cập nhật trạng thái thanh toán thành SUCCESS cho đơn hàng vừa tạo
+                try {
+                  await axios.put(`/api/shop/orders/${orderResponse.data.id}/payment-status`, {
+                    paymentStatus: 'SUCCESS'
+                  })
+                  console.log('Payment status updated to SUCCESS for order:', orderResponse.data.id)
+                } catch (paymentStatusError) {
+                  console.error('Error updating payment status for order:', orderResponse.data.id, paymentStatusError)
+                }
+              }
+            } catch (orderError) {
+              console.error('Error creating order:', orderError)
+              message.error('Lỗi tạo đơn hàng cho shop: ' + orderData.shopId)
             }
-          } catch (orderError) {
-            console.error('Error fetching order details:', orderError)
-            // Vẫn hiển thị thông tin cơ bản
+          }
+
+          // Tính tổng tiền
+          orderInfo.value.amount = createdOrders.reduce((total, order) => total + order.totalAmount, 0)
+          orderInfo.value.paymentMethod = 'PayOS'
+
+          if (createdOrders.length > 0) {
+            message.success(`Thanh toán thành công! Đã tạo ${createdOrders.length} đơn hàng.`)
+          } else {
+            message.error('Không thể tạo đơn hàng nào. Vui lòng liên hệ hỗ trợ.')
+          }
+
+          // Clear localStorage
+          localStorage.removeItem('pendingMultipleOrders')
+          localStorage.removeItem('pendingOrderCode')
+          localStorage.removeItem('pendingOrderAmount')
+
+        } catch (multipleOrdersError) {
+          console.error('Error processing multiple orders:', multipleOrdersError)
+          message.error('Có lỗi xảy ra khi tạo đơn hàng')
+        }
+      } else {
+        // Xử lý đơn hàng đơn lẻ - không cần tạo đơn hàng mới vì đã được tạo trong PayOS
+        try {
+          // Lấy thông tin đơn hàng từ localStorage hoặc tạo mới
+          const pendingOrderAmount = localStorage.getItem('pendingOrderAmount')
+          if (pendingOrderAmount) {
+            orderInfo.value.amount = parseFloat(pendingOrderAmount)
           }
 
           message.success('Thanh toán thành công!')
-        }
-      } catch (verifyError) {
-        console.error('Verify payment error:', verifyError)
-        // Vẫn hiển thị thành công vì PayOS đã confirm
-      }
 
-      // Clear pending order code từ localStorage
-      localStorage.removeItem('pendingOrderCode')
+          // Clear localStorage
+          localStorage.removeItem('pendingOrderCode')
+          localStorage.removeItem('pendingOrderAmount')
+        } catch (error) {
+          console.error('Error processing single order:', error)
+          message.error('Có lỗi xảy ra khi xử lý đơn hàng')
+        }
+      }
 
       // Clear cart sau khi thanh toán thành công
       clear()
@@ -173,9 +222,8 @@ onMounted(async () => {
 })
 
 const viewOrder = () => {
-  if (orderInfo.value?.orderId) {
-    router.push(`/order/${orderInfo.value.orderId}`)
-  }
+  // Chuyển đến trang đơn hàng của user
+  router.push('/user/order')
 }
 
 const goHome = () => {

@@ -27,7 +27,9 @@ import com.tientvv.model.Shop;
 import com.tientvv.repository.CategoryRepository;
 import com.tientvv.repository.ProductRepository;
 import com.tientvv.repository.ShopRepository;
+import com.tientvv.repository.ReviewRepository;
 import com.tientvv.specification.ProductSpecification;
+import com.tientvv.model.Review;
 
 @SuppressWarnings("unused")
 @Service
@@ -47,6 +49,9 @@ public class ProductService {
 
   @Autowired
   private DiscountService discountService;
+
+  @Autowired
+  private ReviewRepository reviewRepository;
 
   public List<Product> getAllProducts() {
     return productRepository.findAll();
@@ -182,13 +187,121 @@ public class ProductService {
   }
 
   public List<ProductDisplayDto> findActiveProductsWithProductSpecificDiscounts() {
+    try {
+      OffsetDateTime currentTime = OffsetDateTime.now();
+      List<ProductDisplayDto> discountedProducts = productRepository.findActiveProductsWithProductSpecificDiscounts(currentTime);
+      
+      // Tạo danh sách mới với rating được tính từ reviews
+      List<ProductDisplayDto> productsWithRating = new ArrayList<>();
+      for (ProductDisplayDto product : discountedProducts) {
+        try {
+          // Fetch reviews cho sản phẩm này
+          List<Review> reviews = reviewRepository.findByProductIdOrderByReviewDateDesc(product.getId());
+          
+          final double avgRating;
+          final int reviewCount;
+          
+          if (reviews != null && !reviews.isEmpty()) {
+            // Tính rating trung bình
+            avgRating = reviews.stream()
+              .mapToDouble(review -> review.getRating().doubleValue())
+              .average()
+              .orElse(0.0);
+            
+            // Đếm số reviews
+            reviewCount = (int) reviews.stream()
+              .filter(review -> review.getRating() != null)
+              .count();
+          } else {
+            avgRating = 0.0;
+            reviewCount = 0;
+          }
+          
+          // Tạo ProductDisplayDto mới với rating đúng
+          ProductDisplayDto productWithRating = new ProductDisplayDto() {
+            @Override
+            public UUID getId() { return product.getId(); }
+            @Override
+            public String getName() { return product.getName(); }
+            @Override
+            public String getBrand() { return product.getBrand(); }
+            @Override
+            public String getDescription() { return product.getDescription(); }
+            @Override
+            public String getProductImage() { return product.getProductImage(); }
+            @Override
+            public Boolean getIsActive() { return product.getIsActive(); }
+            @Override
+            public Integer getViewCount() { return product.getViewCount(); }
+            @Override
+            public Integer getSoldCount() { return product.getSoldCount(); }
+            @Override
+            public String getCategoryName() { return product.getCategoryName(); }
+            @Override
+            public UUID getCategoryId() { return product.getCategoryId(); }
+            @Override
+            public String getShopName() { return product.getShopName(); }
+            @Override
+            public UUID getShopId() { return product.getShopId(); }
+            @Override
+            public BigDecimal getMinPrice() { 
+              return product.getMinPrice() != null ? product.getMinPrice() : BigDecimal.ZERO; 
+            }
+            @Override
+            public BigDecimal getMaxPrice() { 
+              return product.getMaxPrice() != null ? product.getMaxPrice() : BigDecimal.ZERO; 
+            }
+            @Override
+            public BigDecimal getOriginalPrice() { 
+              return product.getOriginalPrice() != null ? product.getOriginalPrice() : BigDecimal.ZERO; 
+            }
+            @Override
+            public Double getRating() { return avgRating; }
+            @Override
+            public Integer getReviewCount() { return reviewCount; }
+            @Override
+            public Integer getDiscountPercentage() { 
+              return product.getDiscountPercentage() != null ? product.getDiscountPercentage().intValue() : 0; 
+            }
+            @Override
+            public Integer getDiscountAmount() { 
+              return product.getDiscountAmount() != null ? product.getDiscountAmount().intValue() : 0; 
+            }
+            @Override
+            public String getDiscountType() { return product.getDiscountType(); }
+            @Override
+            public String getDiscountName() { return product.getDiscountName(); }
+            @Override
+            public OffsetDateTime getDiscountStartDate() { return product.getDiscountStartDate(); }
+            @Override
+            public OffsetDateTime getDiscountEndDate() { return product.getDiscountEndDate(); }
+            @Override
+            public BigDecimal getMinOrderValue() { 
+              return product.getMinOrderValue(); 
+            }
+          };
+          
+          productsWithRating.add(productWithRating);
+        } catch (Exception e) {
+          System.err.println("Error processing discounted product " + product.getId() + ": " + e.getMessage());
+          // Nếu có lỗi, vẫn thêm sản phẩm gốc
+          productsWithRating.add(product);
+        }
+      }
+      
+      return productsWithRating;
+    } catch (Exception e) {
+      System.err.println("Error in findActiveProductsWithProductSpecificDiscounts: " + e.getMessage());
+      e.printStackTrace();
+      // Fallback to original method
     OffsetDateTime currentTime = OffsetDateTime.now();
     return productRepository.findActiveProductsWithProductSpecificDiscounts(currentTime);
+    }
   }
 
   public List<ProductDisplayDto> findProductsWithDiscountsSimple() {
     OffsetDateTime currentTime = OffsetDateTime.now();
-    return productRepository.findActiveProductsWithDiscountsSimple(currentTime);
+    return productRepository.findActiveProductsWithProductSpecificDiscounts(currentTime);
   }
 
   public List<ProductDisplayDto> findProductsWithBestDiscounts() {
@@ -275,11 +388,96 @@ public class ProductService {
               allProducts.addAll(categoryProducts);
           }
           
+          // Tạo danh sách mới với rating được tính từ reviews
+          List<ProductDisplayDto> productsWithRating = new ArrayList<>();
+          for (ProductDisplayDto product : allProducts) {
+              try {
+                  // Fetch reviews cho sản phẩm này
+                  List<Review> reviews = reviewRepository.findByProductIdOrderByReviewDateDesc(product.getId());
+                  
+                  final double avgRating;
+                  final int reviewCount;
+                  
+                  if (reviews != null && !reviews.isEmpty()) {
+                      // Tính rating trung bình
+                      avgRating = reviews.stream()
+                          .mapToDouble(review -> review.getRating().doubleValue())
+                          .average()
+                          .orElse(0.0);
+                      
+                      // Đếm số reviews
+                      reviewCount = (int) reviews.stream()
+                          .filter(review -> review.getRating() != null)
+                          .count();
+                  } else {
+                      avgRating = 0.0;
+                      reviewCount = 0;
+                  }
+                  
+                  // Tạo ProductDisplayDto mới với rating đúng
+                  ProductDisplayDto productWithRating = new ProductDisplayDto() {
+                      @Override
+                      public UUID getId() { return product.getId(); }
+                      @Override
+                      public String getName() { return product.getName(); }
+                      @Override
+                      public String getBrand() { return product.getBrand(); }
+                      @Override
+                      public String getDescription() { return product.getDescription(); }
+                      @Override
+                      public String getProductImage() { return product.getProductImage(); }
+                      @Override
+                      public Boolean getIsActive() { return product.getIsActive(); }
+                      @Override
+                      public String getCategoryName() { return product.getCategoryName(); }
+                      @Override
+                      public UUID getCategoryId() { return product.getCategoryId(); }
+                      @Override
+                      public BigDecimal getMinPrice() { return product.getMinPrice(); }
+                      @Override
+                      public BigDecimal getMaxPrice() { return product.getMaxPrice(); }
+                      @Override
+                      public BigDecimal getOriginalPrice() { return product.getOriginalPrice(); }
+                      @Override
+                      public Integer getDiscountPercentage() { return product.getDiscountPercentage(); }
+                      @Override
+                      public Integer getDiscountAmount() { return product.getDiscountAmount(); }
+                      @Override
+                      public String getDiscountType() { return product.getDiscountType(); }
+                      @Override
+                      public String getDiscountName() { return product.getDiscountName(); }
+                      @Override
+                      public OffsetDateTime getDiscountStartDate() { return product.getDiscountStartDate(); }
+                      @Override
+                      public OffsetDateTime getDiscountEndDate() { return product.getDiscountEndDate(); }
+                      @Override
+                      public BigDecimal getMinOrderValue() { return product.getMinOrderValue(); }
+                                  @Override
+            public String getShopName() { return product.getShopName(); }
+            @Override
+            public UUID getShopId() { return product.getShopId(); }
+            @Override
+            public Integer getViewCount() { return product.getViewCount(); }
+                      @Override
+                      public Integer getSoldCount() { return product.getSoldCount(); }
+                      @Override
+                      public Double getRating() { return avgRating; }
+                      @Override
+                      public Integer getReviewCount() { return reviewCount; }
+                  };
+                  
+                  productsWithRating.add(productWithRating);
+              } catch (Exception e) {
+                  System.err.println("Error calculating rating for product " + product.getId() + ": " + e.getMessage());
+                  productsWithRating.add(product); // Thêm product gốc nếu có lỗi
+              }
+          }
+          
           // Randomize danh sách
-          Collections.shuffle(allProducts);
+          Collections.shuffle(productsWithRating);
           
           // Trả về tối đa 20 sản phẩm
-          return allProducts.stream().limit(20).collect(Collectors.toList());
+          return productsWithRating.stream().limit(20).collect(Collectors.toList());
       } catch (Exception e) {
           System.err.println("Error in getSuggestedProducts: " + e.getMessage());
           e.printStackTrace();
@@ -309,17 +507,228 @@ public class ProductService {
     try {
       System.out.println("Searching for query: " + query);
       
-      // Sử dụng Specification để search
-      List<Product> products = productRepository.findAll(ProductSpecification.searchProducts(query));
+      // Sử dụng search đơn giản thay vì Specification để tránh lỗi NCLOB
+      List<Product> allProducts = productRepository.findAll();
+      List<Product> products = allProducts.stream()
+          .filter(p -> p.getIsActive() &&
+              (p.getName() != null && p.getName().toLowerCase().contains(query.toLowerCase()) ||
+                  p.getBrand() != null && p.getBrand().toLowerCase().contains(query.toLowerCase()) ||
+                  p.getDescription() != null && p.getDescription().toLowerCase().contains(query.toLowerCase()) ||
+                  p.getCategory() != null && p.getCategory().getName() != null && p.getCategory().getName().toLowerCase().contains(query.toLowerCase())))
+          .collect(Collectors.toList());
       System.out.println("Raw products found: " + products.size());
       
-      // Convert sang DTO
-      List<ProductDisplayDto> results = products.stream()
-        .map(this::convertToProductDisplayDto)
-        .toList();
+      // Tạo danh sách mới với rating được tính từ reviews
+      List<ProductDisplayDto> productsWithRating = new ArrayList<>();
+      for (Product product : products) {
+        try {
+          // Fetch reviews cho sản phẩm này
+          List<Review> reviews = reviewRepository.findByProductIdOrderByReviewDateDesc(product.getId());
+          
+          final double avgRating;
+          final int reviewCount;
+          
+          if (reviews != null && !reviews.isEmpty()) {
+            // Tính rating trung bình
+            avgRating = reviews.stream()
+              .mapToDouble(review -> review.getRating().doubleValue())
+              .average()
+              .orElse(0.0);
+            
+            // Đếm số reviews
+            reviewCount = (int) reviews.stream()
+              .filter(review -> review.getRating() != null)
+              .count();
+          } else {
+            avgRating = 0.0;
+            reviewCount = 0;
+          }
+          
+          // Tạo ProductDisplayDto mới với rating đúng
+          ProductDisplayDto productWithRating = new ProductDisplayDto() {
+            @Override
+            public UUID getId() { return product.getId(); }
+            @Override
+            public String getName() { return product.getName(); }
+            @Override
+            public String getBrand() { return product.getBrand(); }
+            @Override
+            public String getDescription() { return product.getDescription(); }
+            @Override
+            public String getProductImage() { return product.getProductImage(); }
+            @Override
+            public Boolean getIsActive() { return product.getIsActive(); }
+            @Override
+            public String getCategoryName() { return product.getCategory().getName(); }
+            @Override
+            public UUID getCategoryId() { return product.getCategory().getId(); }
+            @Override
+            public BigDecimal getMinPrice() { 
+              if (product.getProductVariants() != null && !product.getProductVariants().isEmpty()) {
+                return product.getProductVariants().stream()
+                  .filter(pv -> pv.getIsActive())
+                  .map(pv -> pv.getPrice())
+                  .min(BigDecimal::compareTo)
+                  .orElse(BigDecimal.ZERO);
+              }
+              return BigDecimal.ZERO;
+            }
+            @Override
+            public BigDecimal getMaxPrice() { 
+              if (product.getProductVariants() != null && !product.getProductVariants().isEmpty()) {
+                return product.getProductVariants().stream()
+                  .filter(pv -> pv.getIsActive())
+                  .map(pv -> pv.getPrice())
+                  .max(BigDecimal::compareTo)
+                  .orElse(BigDecimal.ZERO);
+              }
+              return BigDecimal.ZERO;
+            }
+            @Override
+            public BigDecimal getOriginalPrice() { 
+              if (product.getProductVariants() != null && !product.getProductVariants().isEmpty()) {
+                return product.getProductVariants().stream()
+                  .filter(pv -> pv.getIsActive())
+                  .map(pv -> pv.getPrice())
+                  .min(BigDecimal::compareTo)
+                  .orElse(BigDecimal.ZERO);
+              }
+              return BigDecimal.ZERO;
+            }
+            @Override
+            public Integer getDiscountPercentage() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  if (bestDiscount != null && "PERCENTAGE".equals(bestDiscount.getDiscountType())) {
+                    return bestDiscount.getDiscountValue().intValue();
+                  }
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting discount percentage: " + e.getMessage());
+              }
+              return 0; 
+            }
+            @Override
+            public Integer getDiscountAmount() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  if (bestDiscount != null && "FIXED".equals(bestDiscount.getDiscountType())) {
+                    return bestDiscount.getDiscountValue().intValue();
+                  }
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting discount amount: " + e.getMessage());
+              }
+              return 0; 
+            }
+            @Override
+            public String getDiscountType() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  return bestDiscount != null ? bestDiscount.getDiscountType() : null;
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting discount type: " + e.getMessage());
+              }
+              return null; 
+            }
+            @Override
+            public String getDiscountName() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  return bestDiscount != null ? bestDiscount.getName() : null;
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting discount name: " + e.getMessage());
+              }
+              return null; 
+            }
+            @Override
+            public OffsetDateTime getDiscountStartDate() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  return bestDiscount != null ? bestDiscount.getStartDate() : null;
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting discount start date: " + e.getMessage());
+              }
+              return null; 
+            }
+            @Override
+            public OffsetDateTime getDiscountEndDate() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  return bestDiscount != null ? bestDiscount.getEndDate() : null;
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting discount end date: " + e.getMessage());
+              }
+              return null; 
+            }
+            @Override
+            public BigDecimal getMinOrderValue() { 
+              try {
+                List<Discount> activeDiscounts = discountService.findActiveDiscountsForProduct(product.getId());
+                if (!activeDiscounts.isEmpty()) {
+                  Discount bestDiscount = activeDiscounts.stream()
+                    .max((d1, d2) -> d1.getDiscountValue().compareTo(d2.getDiscountValue()))
+                    .orElse(null);
+                  return bestDiscount != null ? bestDiscount.getMinOrderValue() : BigDecimal.ZERO;
+                }
+              } catch (Exception e) {
+                System.err.println("Error getting min order value: " + e.getMessage());
+              }
+              return BigDecimal.ZERO; 
+            }
+            @Override
+            public String getShopName() { return product.getShop().getShopName(); }
+            @Override
+            public UUID getShopId() { return product.getShop().getId(); }
+            @Override
+            public Integer getViewCount() { return product.getViewCount(); }
+            @Override
+            public Integer getSoldCount() { return product.getSoldCount(); }
+            @Override
+            public Double getRating() { return avgRating; }
+            @Override
+            public Integer getReviewCount() { return reviewCount; }
+          };
+          
+          productsWithRating.add(productWithRating);
+        } catch (Exception e) {
+          System.err.println("Error calculating rating for product " + product.getId() + ": " + e.getMessage());
+          // Thêm product với rating 0 nếu có lỗi
+          ProductDisplayDto fallbackProduct = convertToProductDisplayDto(product);
+          productsWithRating.add(fallbackProduct);
+        }
+      }
       
-      System.out.println("Converted to DTO: " + results.size() + " products");
-      return results;
+      System.out.println("Converted to DTO with rating: " + productsWithRating.size() + " products");
+      return productsWithRating;
     } catch (Exception e) {
       System.err.println("Error in searchProducts: " + e.getMessage());
       e.printStackTrace();
@@ -502,16 +911,43 @@ public class ProductService {
       public String getShopName() { return product.getShop().getShopName(); }
       
       @Override
+      public UUID getShopId() { return product.getShop().getId(); }
+      
+      @Override
       public Integer getViewCount() { return product.getViewCount(); }
       
       @Override
       public Integer getSoldCount() { return product.getSoldCount(); }
       
       @Override
-      public Double getRating() { return 0.0; }
+      public Double getRating() { 
+        try {
+          if (product.getReviews() != null && !product.getReviews().isEmpty()) {
+            double avgRating = product.getReviews().stream()
+              .mapToDouble(review -> review.getRating().doubleValue())
+              .average()
+              .orElse(0.0);
+            return avgRating;
+          }
+        } catch (Exception e) {
+          System.err.println("Error calculating rating: " + e.getMessage());
+        }
+        return 0.0; 
+      }
       
       @Override
-      public Integer getReviewCount() { return 0; }
+      public Integer getReviewCount() { 
+        try {
+          if (product.getReviews() != null) {
+            return (int) product.getReviews().stream()
+              .filter(review -> review.getRating() != null)
+              .count();
+          }
+        } catch (Exception e) {
+          System.err.println("Error calculating review count: " + e.getMessage());
+        }
+        return 0; 
+      }
     };
   }
 }

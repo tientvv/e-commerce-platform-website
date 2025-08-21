@@ -1,7 +1,7 @@
 <template>
-  <div class="h-full flex flex-col overflow-hidden">
+  <div class="h-full flex flex-col">
     <!-- Products Table -->
-    <div class="flex-1 overflow-hidden">
+    <div class="flex-1">
       <n-card class="h-full flex flex-col no-border-card">
         <template #header-extra>
           <div class="flex items-center gap-2">
@@ -38,6 +38,7 @@
                             <div class="header-cell">Trạng thái</div>
                             <div class="header-cell">Mô tả</div>
                             <div class="header-cell">Hình ảnh</div>
+                            <div class="header-cell">Thêm biến thể</div>
                             <div class="header-cell">Thao tác</div>
                           </div>
 
@@ -59,7 +60,7 @@
                                   {{ product.description || 'Không có mô tả' }}
                                 </div>
                               </div>
-                              <div class="table-cell">
+                                                            <div class="table-cell">
                                 <img
                                   :src="product.productImage || '/default-product.png'"
                                   :alt="product.name"
@@ -68,26 +69,29 @@
                                 />
                               </div>
                               <div class="table-cell">
+                                <button @click="openAddVariantDialog(product)" class="action-btn-variant">
+                                  <Plus class="w-4 h-4" />
+                                  Thêm biến thể
+                                </button>
+                              </div>
+                              <div class="table-cell">
                                 <div class="flex items-center gap-2">
-                                  <button @click="editProduct(product)" class="action-btn">
+                                  <button @click="editProduct(product)" class="action-btn-icon">
                                     <Edit class="w-4 h-4" />
-                                    Sửa
                                   </button>
                                   <button
                                     v-if="product.isActive"
                                     @click="confirmDelete(product.id, product.name)"
-                                    class="action-btn-delete"
+                                    class="action-btn-icon-delete"
                                   >
                                     <Trash2 class="w-4 h-4" />
-                                    Xóa
                                   </button>
                                   <button
                                     v-else
                                     @click="confirmRestore(product.id, product.name)"
-                                    class="action-btn-restore"
+                                    class="action-btn-icon-restore"
                                   >
                                     <RefreshCw class="w-4 h-4" />
-                                    Khôi phục
                                   </button>
                                 </div>
                               </div>
@@ -238,14 +242,113 @@
         </form>
       </div>
     </n-modal>
+
+    <!-- Add Variant Dialog -->
+    <n-modal v-model:show="showAddVariantDialog" preset="card" style="width: 600px" title="Thêm biến thể mới">
+      <div class="space-y-6">
+        <!-- Success/Error Messages -->
+        <div v-if="variantSuccessMessage" class="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-green-800 font-medium">{{ variantSuccessMessage }}</span>
+          </div>
+        </div>
+
+        <div v-if="variantErrorMessage" class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-center">
+            <svg class="w-5 h-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-red-800 font-medium">{{ variantErrorMessage }}</span>
+          </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+          <h4 class="font-medium text-gray-900 mb-2">Sản phẩm: {{ selectedProduct?.name }}</h4>
+          <p class="text-sm text-gray-600">{{ selectedProduct?.description }}</p>
+        </div>
+
+                <!-- Form -->
+        <n-form
+          ref="variantFormRef"
+          :model="variantForm"
+          :rules="variantFormRules"
+          label-placement="top"
+          @submit.prevent="addVariant"
+        >
+          <n-grid :cols="2" :x-gap="16" :y-gap="16">
+            <n-form-item-gi label="Tên biến thể" path="variantName">
+              <n-input
+                v-model:value="variantForm.variantName"
+                placeholder="VD: Màu sắc, Kích thước"
+              />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="Giá trị biến thể" path="variantValue">
+              <n-input
+                v-model:value="variantForm.variantValue"
+                placeholder="VD: Đỏ, XL"
+              />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="Số lượng" path="quantity">
+              <n-input-number
+                v-model:value="variantForm.quantity"
+                :min="0"
+                placeholder="Nhập số lượng"
+                class="w-full"
+              />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="Trạng thái" path="isActive">
+              <n-select
+                v-model:value="variantForm.isActive"
+                :options="[
+                  { label: 'Hoạt động', value: true },
+                  { label: 'Không hoạt động', value: false }
+                ]"
+              />
+            </n-form-item-gi>
+
+            <n-form-item-gi label="Giá (VNĐ)" path="price" :span="2">
+              <n-input-number
+                v-model:value="variantForm.price"
+                :min="0"
+                :step="1000"
+                placeholder="Nhập giá sản phẩm"
+                class="w-full"
+                :format="formatPrice"
+                :parse="parsePrice"
+              />
+            </n-form-item-gi>
+          </n-grid>
+
+          <!-- Dialog Actions -->
+          <n-space class="mt-6" justify="end">
+            <n-button @click="closeAddVariantDialog" size="medium">Hủy</n-button>
+            <n-button
+              type="primary"
+              :loading="variantLoading"
+              size="medium"
+              @click="addVariant"
+            >
+              {{ variantLoading ? 'Đang thêm...' : 'Thêm biến thể' }}
+            </n-button>
+          </n-space>
+        </n-form>
+      </div>
+    </n-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick, computed, reactive } from 'vue'
 import axios from '../../utils/axios'
-import { Edit, Trash2, RefreshCw } from 'lucide-vue-next'
-import { NCard, NButton, NModal, useMessage, useDialog } from 'naive-ui'
+import { Edit, Trash2, RefreshCw, Plus } from 'lucide-vue-next'
+import { NCard, NButton, NModal, NForm, NFormItemGi, NGrid, NInput, NInputNumber, NSelect, NSpace, useMessage, useDialog } from 'naive-ui'
 import Swiper from 'swiper'
 import 'swiper/css'
 
@@ -304,7 +407,57 @@ const editImageInput = ref(null)
 const categories = ref([])
 const showEditCategoryDropdown = ref(false)
 
-// Methods
+// Add Variant Dialog
+const showAddVariantDialog = ref(false)
+const selectedProduct = ref(null)
+const variantForm = reactive({
+  variantName: '',
+  variantValue: '',
+  quantity: 0,
+  price: 0,
+  isActive: true,
+})
+const variantSuccessMessage = ref('')
+const variantErrorMessage = ref('')
+const variantLoading = ref(false)
+const variantFormRef = ref(null)
+
+// Validation rules
+const variantFormRules = {
+  variantName: {
+    required: true,
+    message: 'Vui lòng nhập tên biến thể',
+    trigger: ['blur', 'input'],
+  },
+  variantValue: {
+    required: true,
+    message: 'Vui lòng nhập giá trị biến thể',
+    trigger: ['blur', 'input'],
+  },
+  quantity: {
+    required: true,
+    type: 'number',
+    message: 'Vui lòng nhập số lượng',
+    trigger: ['blur', 'change'],
+  },
+  price: {
+    required: true,
+    type: 'number',
+    message: 'Vui lòng nhập giá',
+    trigger: ['blur', 'change'],
+  },
+}
+
+// Helper functions
+const formatPrice = (value) => {
+  if (!value) return '0'
+  return new Intl.NumberFormat('vi-VN').format(value)
+}
+
+const parsePrice = (input) => {
+  return parseInt(input.replace(/\D/g, '')) || 0
+}
+
 const fetchProducts = async () => {
   loading.value = true
   try {
@@ -427,6 +580,77 @@ const handleEditImageChange = (event) => {
   if (file) {
     editForm.productImage = file
     editForm.previewImage = URL.createObjectURL(file)
+  }
+}
+
+// Variant methods
+const openAddVariantDialog = (product) => {
+  selectedProduct.value = product
+  showAddVariantDialog.value = true
+  resetVariantForm()
+}
+
+const closeAddVariantDialog = () => {
+  showAddVariantDialog.value = false
+  selectedProduct.value = null
+  resetVariantForm()
+}
+
+const resetVariantForm = () => {
+  variantForm.variantName = ''
+  variantForm.variantValue = ''
+  variantForm.quantity = 0
+  variantForm.price = 0
+  variantForm.isActive = true
+  variantSuccessMessage.value = ''
+  variantErrorMessage.value = ''
+}
+
+
+
+const addVariant = async () => {
+  if (!variantFormRef.value) return
+
+  try {
+    await variantFormRef.value.validate()
+    variantLoading.value = true
+    variantErrorMessage.value = ''
+
+    const variantData = {
+      variantName: variantForm.variantName.trim(),
+      variantValue: variantForm.variantValue.trim(),
+      quantity: variantForm.quantity,
+      price: variantForm.price,
+      isActive: variantForm.isActive,
+      productId: selectedProduct.value.id
+    }
+
+    const response = await axios.post('/api/product-variants/create', variantData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (response.data.message) {
+      variantSuccessMessage.value = response.data.message
+      setTimeout(() => {
+        closeAddVariantDialog()
+      }, 2000)
+    } else {
+      variantErrorMessage.value = 'Thêm biến thể thất bại'
+    }
+  } catch (error) {
+    if (error.errors) {
+      variantErrorMessage.value = 'Vui lòng kiểm tra lại thông tin'
+    } else if (error.response?.data?.message) {
+      variantErrorMessage.value = error.response.data.message
+    } else if (error.response?.data?.errorMessage) {
+      variantErrorMessage.value = error.response.data.errorMessage
+    } else {
+      variantErrorMessage.value = 'Không thể thêm biến thể'
+    }
+  } finally {
+    variantLoading.value = false
   }
 }
 
@@ -594,12 +818,11 @@ onMounted(() => {
   min-width: 1200px;
   border: 1px solid #e5e7eb;
   border-radius: 4px;
-  overflow: hidden;
 }
 
 .table-header {
   display: grid;
-  grid-template-columns: 250px 150px 150px 120px 300px 100px 200px;
+  grid-template-columns: 250px 150px 150px 120px 300px 100px 150px 150px;
   background-color: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -622,7 +845,7 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 250px 150px 150px 120px 300px 100px 200px;
+  grid-template-columns: 250px 150px 150px 120px 300px 100px 150px 150px;
   border-bottom: 1px solid #f3f4f6;
   transition: background-color 0.2s;
 }
@@ -729,6 +952,84 @@ onMounted(() => {
 .action-btn-restore:hover {
   background-color: #059669;
 }
+
+.action-btn-variant {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.action-btn-variant:hover {
+  background-color: #7c3aed;
+}
+
+/* Icon Action Buttons */
+.action-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn-icon:hover {
+  background-color: #2563eb;
+}
+
+.action-btn-icon-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn-icon-delete:hover {
+  background-color: #dc2626;
+}
+
+.action-btn-icon-restore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-btn-icon-restore:hover {
+  background-color: #059669;
+}
+
+
 
 /* Pagination Styles */
 .pagination-container {

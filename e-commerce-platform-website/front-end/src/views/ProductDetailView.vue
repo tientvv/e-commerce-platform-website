@@ -129,26 +129,35 @@
               <h1 class="text-xl font-bold text-gray-800 mb-2">{{ product.name }}</h1>
 
               <!-- Rating -->
-              <div class="flex items-center mb-4">
-                <div class="flex items-center mr-2">
-                  <Star
-                    v-for="i in 5"
-                    :key="i"
-                    :class="i <= (product.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'"
-                    class="w-5 h-5"
-                  />
+              <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center mr-4">
+                  <div class="flex items-center">
+                    <Star
+                      v-for="i in 5"
+                      :key="i"
+                      :class="i <= averageRating ? 'text-yellow-400 fill-current' : 'text-gray-300'"
+                      class="w-6 h-6"
+                    />
+                  </div>
+                  <div class="ml-3">
+                    <div class="text-xl font-bold text-gray-800">
+                      {{ averageRating.toFixed(1) }}
+                    </div>
+                    <div class="text-sm text-gray-500">trên 5 sao</div>
+                  </div>
                 </div>
-                <span class="text-sm text-gray-600">
-                  {{ product.rating || 0 }}/5 ({{ product.reviewCount || 0 }} đánh giá)
-                </span>
-                <div class="ml-4 flex items-center space-x-4 text-sm text-gray-600">
+                <div class="flex flex-col ml-4">
+                  <span class="text-sm font-semibold text-gray-700">
+                    {{ reviews.length }} đánh giá
+                  </span>
+                  <span class="text-xs text-gray-500">
+                    {{ product?.soldCount || 0 }} đã bán
+                  </span>
+                </div>
+                <div class="ml-6 flex items-center space-x-4 text-sm text-gray-600">
                   <div class="flex items-center">
                     <Eye class="w-4 h-4 mr-1" />
                     <span>{{ product.viewCount || 0 }} lượt xem</span>
-                  </div>
-                  <div class="flex items-center">
-                    <ShoppingCart class="w-4 h-4 mr-1" />
-                    <span>{{ product.soldCount || 0 }} đã bán</span>
                   </div>
                 </div>
               </div>
@@ -198,13 +207,7 @@
                     <div class="voucher-right">
                       <div class="discount-info">
                         <div class="discount-title">
-                          <span v-if="product.discountType === 'PERCENTAGE' && product.discountPercentage > 0">
-                            {{ product.discountName || 'Mã giảm giá' }} - Giảm {{ product.discountPercentage }}%
-                          </span>
-                          <span v-else-if="product.discountType === 'FIXED' && product.discountAmount > 0">
-                            {{ product.discountName || 'Mã giảm giá' }} - Giảm {{ formatPrice(product.discountAmount) }}
-                          </span>
-                          <span v-else>
+                          <span>
                             {{ product.discountName || 'Mã giảm giá' }}
                           </span>
                         </div>
@@ -359,6 +362,27 @@
               </div>
             </div>
 
+            <!-- Reviews Section -->
+            <div class="border-t border-gray-200 pt-6">
+              <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-semibold text-gray-800">Đánh giá sản phẩm</h3>
+                <button
+                  v-if="canReview"
+                  @click="openReviewDialog"
+                  class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                >
+                  <Star class="w-4 h-4" />
+                  <span>Viết đánh giá</span>
+                </button>
+              </div>
+
+              <ReviewList
+                :reviews="reviews"
+                :is-shop-owner="isShopOwner"
+                @review-updated="onReviewUpdated"
+              />
+            </div>
+
 
           </div>
         </div>
@@ -384,6 +408,18 @@
       </div>
     </div>
 
+    <!-- Review Dialog -->
+    <ReviewDialog
+      v-model:show="showReviewDialog"
+      :product-id="product?.id"
+      :product-name="product?.name"
+      :product-image="product?.productImage"
+      :variant-name="selectedVariant?.variantName"
+      :variant-value="selectedVariant?.variantValue"
+      :product-variant-id="selectedVariant?.id"
+      @review-submitted="onReviewSubmitted"
+    />
+
     <FooterView />
   </div>
 </template>
@@ -392,9 +428,11 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import axios from 'axios'
-import { Package, AlertCircle, ChevronRight, Star, Store, Eye, ShoppingCart, Heart, Plus, Minus, Check, X } from 'lucide-vue-next'
+import { Package, AlertCircle, ChevronRight, Star, Store, Eye, Heart, Plus, Minus, Check, X } from 'lucide-vue-next'
 import NavbarView from './components/NavbarView.vue'
 import FooterView from './components/FooterView.vue'
+import ReviewDialog from '../components/ReviewDialog.vue'
+import ReviewList from '../components/ReviewList.vue'
 import { useCart } from '../composables/useCart'
 
 const route = useRoute()
@@ -413,7 +451,29 @@ const currentImage = ref('')
 const isInWishlist = ref(false)
 const wishlistCount = ref(0)
 
+// Review state
+const reviews = ref([])
+const showReviewDialog = ref(false)
+const canReview = ref(false)
+
+// Check if current user is shop owner
+const isShopOwner = computed(() => {
+  if (!product.value || !product.value.shopId) return false
+  // TODO: Implement proper shop owner check
+  // For now, return false - you'll need to implement this based on your auth system
+  return false
+})
+
 const { addItem } = useCart()
+
+// Computed properties
+const averageRating = computed(() => {
+  if (reviews.value.length === 0) {
+    return product.value?.rating || 0
+  }
+  const totalRating = reviews.value.reduce((sum, review) => sum + review.rating, 0)
+  return totalRating / reviews.value.length
+})
 
 // Computed properties for stock status
 const isOutOfStock = computed(() => {
@@ -457,6 +517,8 @@ const addToCartButtonText = computed(() => {
   }
   return 'Thêm vào giỏ hàng'
 })
+
+
 
 const getSelectedVariantQuantity = () => {
   if (selectedVariant.value) {
@@ -520,6 +582,10 @@ const fetchProduct = async () => {
       console.log('Could not get wishlist count')
       wishlistCount.value = 0
     }
+
+    // Fetch reviews and check review permission
+    await fetchReviews()
+    await checkCanReview()
   } catch (err) {
     console.error('Error fetching product:', err)
     error.value = true
@@ -654,6 +720,7 @@ const handleAddToCart = () => {
     productImage: product.value.productImage,
     brand: product.value.brand,
     shopName: product.value.shopName,
+    shopId: product.value.shopId,
     minPrice: product.value.minPrice,
     maxPrice: product.value.maxPrice
   }
@@ -776,6 +843,51 @@ const getSelectedVariantImages = () => {
 onMounted(() => {
   fetchProduct()
 })
+
+// Review functions
+const fetchReviews = async () => {
+  if (!product.value?.id) return
+
+  try {
+    const response = await axios.get(`/api/reviews/product/${product.value.id}`)
+    if (response.data.success) {
+      reviews.value = response.data.reviews
+    }
+  } catch (error) {
+    console.error('Error fetching reviews:', error)
+  }
+}
+
+const checkCanReview = async () => {
+  if (!product.value?.id) return
+
+  try {
+    const response = await axios.get(`/api/reviews/product/${product.value.id}/can-review`)
+    if (response.data.success) {
+      canReview.value = response.data.canReview
+    }
+  } catch (error) {
+    console.error('Error checking review permission:', error)
+  }
+}
+
+const openReviewDialog = () => {
+  showReviewDialog.value = true
+}
+
+const onReviewSubmitted = (review) => {
+  // Thêm review mới vào danh sách
+  reviews.value.unshift(review)
+  canReview.value = false // Không thể đánh giá nữa
+}
+
+const onReviewUpdated = (updatedReview) => {
+  // Cập nhật review trong danh sách
+  const index = reviews.value.findIndex(r => r.id === updatedReview.id)
+  if (index !== -1) {
+    reviews.value[index] = updatedReview
+  }
+}
 
 // Watch for route changes to reload product data
 watch(() => route.params.id, (newId, oldId) => {

@@ -80,12 +80,27 @@
               <h3 class="product-name">{{ product.name }}</h3>
               <p class="product-brand">{{ product.brand }}</p>
 
+              <!-- Rating -->
+              <div class="flex items-center mb-2">
+                <div class="flex items-center mr-1">
+                  <Star
+                    v-for="i in 5"
+                    :key="i"
+                    :class="i <= (product.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'"
+                    class="w-3 h-3"
+                  />
+                </div>
+                <span class="text-xs text-gray-500">
+                  {{ product.rating?.toFixed(1) || '0.0' }} ({{ product.reviewCount || 0 }} đánh giá)
+                </span>
+              </div>
+
               <!-- Price -->
               <div class="mb-2">
                 <!-- Price Range for products with variants -->
                 <div v-if="product.maxPrice && product.maxPrice > product.minPrice" class="flex flex-col">
                   <div class="flex items-center">
-                    <span class="text-lg font-bold text-blue-600 whitespace-nowrap">
+                    <span class="text-lg font-bold text-green-600 whitespace-nowrap">
                       {{ formatPrice(getDiscountedPrice(product)) }} - {{ formatPrice(getDiscountedMaxPrice(product)) }}
                     </span>
                   </div>
@@ -161,6 +176,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from '~/utils/axios'
+import { Star } from 'lucide-vue-next'
 import NavbarView from './components/NavbarView.vue'
 import FooterView from './components/FooterView.vue'
 

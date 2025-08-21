@@ -33,6 +33,7 @@
               <div>
                 <h1 class="text-2xl font-bold text-gray-900">Đơn hàng #{{ order.id }}</h1>
                 <p class="text-gray-600 mt-1">Ngày đặt: {{ formatDate(order.orderDate) }}</p>
+                <p v-if="order.shopName" class="text-gray-600 mt-1">Cửa hàng: {{ order.shopName }}</p>
               </div>
               <div class="text-right">
                 <span :class="getStatusClass(order.orderStatus)" class="px-3 py-1 rounded-full text-sm font-medium">
@@ -61,8 +62,8 @@
                 </div>
                 <div class="flex-1">
                   <h3 class="font-medium text-gray-900">{{ item.productName }}</h3>
-                  <p v-if="item.variantName" class="text-sm text-gray-600">
-                    {{ item.variantName }}: {{ item.variantValue }}
+                  <p v-if="formatVariantInfo(item.variantName, item.variantValue)" class="text-sm text-gray-600">
+                    {{ formatVariantInfo(item.variantName, item.variantValue) }}
                   </p>
                   <p class="text-sm text-gray-600">Số lượng: {{ item.quantity }}</p>
                 </div>
@@ -148,6 +149,29 @@ const formatPrice = (price) => {
     style: 'currency',
     currency: 'VND',
   }).format(price)
+}
+
+const formatVariantInfo = (variantName, variantValue) => {
+  // Kiểm tra và làm sạch dữ liệu
+  const cleanVariantName = variantName ? variantName.trim() : ''
+  const cleanVariantValue = variantValue ? variantValue.trim() : ''
+
+  if (!cleanVariantName) {
+    return ''
+  }
+
+  // Nếu variantName là "Màu sắc" hoặc "Color", hiển thị rõ ràng hơn
+  if (cleanVariantName.toLowerCase().includes('màu') || cleanVariantName.toLowerCase().includes('color')) {
+    return `Màu sắc: ${cleanVariantValue || 'Không xác định'}`
+  }
+
+  // Nếu có cả variantName và variantValue
+  if (cleanVariantValue) {
+    return `${cleanVariantName}: ${cleanVariantValue}`
+  }
+
+  // Chỉ có variantName
+  return cleanVariantName
 }
 
 const formatDate = (dateString) => {

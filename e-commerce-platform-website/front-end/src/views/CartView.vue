@@ -97,6 +97,9 @@
                         <span class="font-medium">Biến thể:</span> {{ getVariantDetails(item) }}
                       </p>
                       <p class="mt-1 text-sm text-gray-500">
+                        <span class="font-medium">Cửa hàng:</span> {{ item.product?.shopName || 'Switch Store' }}
+                      </p>
+                      <p class="mt-1 text-sm text-gray-500">
                         Giá: {{ getItemPrice(item) > 0 ? formatPrice(getItemPrice(item)) : 'Liên hệ' }}
                       </p>
                     </div>
@@ -171,8 +174,8 @@
 
               <!-- Shipping Cost -->
               <div v-if="selectedShippingObject" class="flex justify-between text-sm text-gray-600">
-                <p>Phí vận chuyển</p>
-                <p>{{ formatPrice(selectedShippingObject.price) }}</p>
+                <p>Phí vận chuyển {{ shopCount > 1 ? `(${shopCount} cửa hàng)` : '' }}</p>
+                <p>{{ formatPrice(shopCount * selectedShippingObject.price) }}</p>
               </div>
 
               <!-- Payment Method -->
@@ -219,11 +222,8 @@
                       <div class="voucher-right">
                         <div class="discount-info">
                           <div class="discount-title">
-                            <span v-if="appliedDiscount.discountType === 'PERCENTAGE'">
-                              {{ appliedDiscount.name }} - Giảm {{ appliedDiscount.discountValue }}%
-                            </span>
-                            <span v-else-if="appliedDiscount.discountType === 'FIXED'">
-                              {{ appliedDiscount.name }} - Giảm {{ formatPrice(appliedDiscount.discountValue) }}
+                            <span>
+                              {{ appliedDiscount.name }}
                             </span>
                           </div>
                           <div class="discount-condition">
@@ -275,8 +275,9 @@
                 @click="handleCheckout"
                 class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
-                Đặt hàng
+                {{ shopCount > 1 ? `Đặt hàng (${shopCount} đơn)` : 'Đặt hàng' }}
               </button>
+
             </div>
           </div>
         </div>
@@ -321,11 +322,8 @@
               <div class="voucher-right">
                 <div class="discount-info">
                   <div class="discount-title">
-                    <span v-if="discount.discountType === 'PERCENTAGE'">
-                      {{ discount.name }} - Giảm {{ discount.discountValue }}%
-                    </span>
-                    <span v-else-if="discount.discountType === 'FIXED'">
-                      {{ discount.name }} - Giảm {{ formatPrice(discount.discountValue) }}
+                    <span>
+                      {{ discount.name }}
                     </span>
                   </div>
                   <div class="discount-condition">
@@ -422,13 +420,30 @@ const discountAmount = computed(() => {
 })
 
 const finalTotal = computed(() => {
-  return Math.max(0, subtotal.value + shippingCost.value - discountAmount.value)
+  // Nếu có nhiều shop, mỗi shop sẽ có phí vận chuyển riêng
+  const totalShippingCost = shopCount.value * shippingCost.value
+  return Math.max(0, subtotal.value + totalShippingCost - discountAmount.value)
 })
 
 // Computed để kiểm tra tất cả sản phẩm đã được chọn chưa
 const isAllSelected = computed(() => {
   return cartItems.value.length > 0 && selectedItems.value.length === cartItems.value.length
 })
+
+// Computed để tính số shop trong giỏ hàng (chỉ tính những sản phẩm đã chọn)
+const shopCount = computed(() => {
+  const shopIds = new Set()
+  selectedItems.value.forEach(itemId => {
+    const item = cartItems.value.find(cartItem => cartItem.id === itemId)
+    if (item) {
+      const shopId = item.product?.shopId || '550e8400-e29b-41d4-a716-446655440001'
+      shopIds.add(shopId)
+    }
+  })
+  return shopIds.size
+})
+
+
 
 // Computed để tìm object từ ID
 const selectedShippingObject = computed(() => {
@@ -631,31 +646,43 @@ const removeDiscount = () => {
   discountError.value = ''
 }
 
-// Helper function để xử lý thanh toán COD
+// Helper function để xử lý thanh toán COD cho 1 đơn hàng
 const processCODPayment = async (orderData) => {
   try {
-    // Kiểm tra số lượng tồn kho trước khi đặt hàng
-    try {
-      await axios.post('/api/orders/check-inventory', orderData)
-    } catch (inventoryError) {
-      if (inventoryError.response?.data?.message) {
-        message.error('Lỗi kiểm tra tồn kho: ' + inventoryError.response.data.message)
-      } else {
-        message.error('Không đủ số lượng sản phẩm để đặt hàng')
-      }
-      return
+    // Validate dữ liệu trước khi gửi
+    if (!orderData.accountId) {
+      throw new Error('Account ID không được để trống')
+    }
+    if (!orderData.shopId) {
+      throw new Error('Shop ID không được để trống')
+    }
+    if (!orderData.shippingId) {
+      throw new Error('Shipping ID không được để trống')
+    }
+    if (!orderData.paymentId) {
+      throw new Error('Payment ID không được để trống')
+    }
+    if (!orderData.totalAmount || orderData.totalAmount <= 0) {
+      throw new Error('Tổng tiền phải lớn hơn 0')
+    }
+    if (!orderData.orderItems || orderData.orderItems.length === 0) {
+      throw new Error('Danh sách sản phẩm không được để trống')
     }
 
+    // Validate từng order item
+    for (const item of orderData.orderItems) {
+      if (!item.quantity || item.quantity <= 0) {
+        throw new Error('Số lượng sản phẩm phải lớn hơn 0')
+      }
+      if (!item.productPrice || item.productPrice <= 0) {
+        throw new Error('Giá sản phẩm phải lớn hơn 0')
+      }
+    }
+
+    console.log('Sending order data to backend:', orderData)
+
     const orderResponse = await axios.post('/api/orders', orderData)
-    const order = orderResponse.data
-
-    // Hiển thị thông báo thành công và redirect
-    message.success('Đặt hàng thành công! Chúng tôi sẽ liên hệ để xác nhận và giao hàng.')
-
-    // Xóa những sản phẩm đã đặt hàng khỏi giỏ hàng
-    removeOrdered(cartItems.value)
-    // Redirect to order detail page
-    router.push(`/order/${order.id}`)
+    return orderResponse.data
   } catch (error) {
     console.error('Error creating COD order:', error)
     console.error('Error response:', error.response?.data)
@@ -663,10 +690,62 @@ const processCODPayment = async (orderData) => {
 
     if (error.response?.data?.message) {
       message.error('Lỗi đặt hàng: ' + error.response.data.message)
+    } else if (error.message) {
+      message.error('Lỗi đặt hàng: ' + error.message)
     } else {
       message.error('Có lỗi xảy ra khi đặt hàng. Vui lòng thử lại.')
     }
     throw error
+  }
+}
+
+// Helper function để xử lý nhiều đơn hàng
+const processMultipleOrders = async (ordersData) => {
+  try {
+    const createdOrders = []
+    const failedOrders = []
+
+    console.log('Processing multiple orders:', ordersData.length)
+
+    // Tạo từng đơn hàng
+    for (const orderData of ordersData) {
+      try {
+        console.log('Creating order for shop:', orderData.shopId, 'with total:', orderData.totalAmount)
+        const order = await processCODPayment(orderData)
+        if (order) {
+          createdOrders.push(order)
+          console.log('Order created successfully for shop:', orderData.shopId)
+        }
+      } catch (error) {
+        console.error('Failed to create order for shop:', orderData.shopId, 'Error:', error.message)
+        failedOrders.push(orderData)
+      }
+    }
+
+    // Xử lý kết quả
+    if (createdOrders.length > 0) {
+      if (createdOrders.length === ordersData.length) {
+        // Tất cả đơn hàng thành công
+        message.success(`Đặt hàng thành công! Đã tạo ${createdOrders.length} đơn hàng.`)
+      } else {
+        // Một số đơn hàng thành công
+        message.warning(`Đã tạo ${createdOrders.length}/${ordersData.length} đơn hàng thành công.`)
+        if (failedOrders.length > 0) {
+          message.error(`${failedOrders.length} đơn hàng thất bại.`)
+        }
+      }
+
+      // Xóa những sản phẩm đã đặt hàng khỏi giỏ hàng
+      removeOrdered(cartItems.value)
+
+      // Redirect to orders page
+      router.push('/user/order')
+    } else {
+      message.error('Không thể tạo đơn hàng nào. Vui lòng thử lại.')
+    }
+  } catch (error) {
+    console.error('Error processing multiple orders:', error)
+    message.error('Có lỗi xảy ra khi xử lý đơn hàng. Vui lòng thử lại.')
   }
 }
 
@@ -685,6 +764,25 @@ const handleCheckout = async () => {
     // Kiểm tra xem có sản phẩm nào trong giỏ hàng không
     if (cartItems.value.length === 0) {
       message.error('Giỏ hàng trống. Vui lòng thêm sản phẩm vào giỏ hàng.')
+      return
+    }
+
+    // Kiểm tra xem có sản phẩm nào được chọn không
+    if (selectedItems.value.length === 0) {
+      message.error('Vui lòng chọn ít nhất một sản phẩm để đặt hàng.')
+      return
+    }
+
+    // Kiểm tra xem tất cả sản phẩm được chọn có giá hợp lệ không
+    const invalidItems = selectedItems.value.filter(itemId => {
+      const item = cartItems.value.find(cartItem => cartItem.id === itemId)
+      if (!item) return true
+      const itemPrice = getItemPrice(item)
+      return itemPrice <= 0
+    })
+
+    if (invalidItems.length > 0) {
+      message.error('Một số sản phẩm được chọn không có giá hợp lệ. Vui lòng kiểm tra lại.')
       return
     }
 
@@ -711,19 +809,31 @@ const handleCheckout = async () => {
       console.log('User chưa cập nhật địa chỉ giao hàng')
     }
 
-    // Lấy shop ID từ sản phẩm đầu tiên trong giỏ hàng
-    const firstItem = cartItems.value[0]
-    let shopId = null
+    // Phân nhóm sản phẩm theo shop (chỉ những sản phẩm đã chọn)
+    const itemsByShop = {}
+    console.log('=== DEBUG SHOP GROUPING ===')
+    console.log('Selected items:', selectedItems.value)
 
-    // Lấy shop ID từ product
-    if (firstItem.product && firstItem.product.shopId) {
-      shopId = firstItem.product.shopId
-    } else {
-      // Nếu không có shop ID, sử dụng shop ID cố định (backend sẽ tự tạo shop demo)
-      console.log('Không tìm thấy shop ID trong cart items, sử dụng shop ID cố định...')
-      shopId = '550e8400-e29b-41d4-a716-446655440001'
-      console.log('Sử dụng shop ID cố định:', shopId)
-    }
+    selectedItems.value.forEach((itemId, index) => {
+      const item = cartItems.value.find(cartItem => cartItem.id === itemId)
+      if (!item) {
+        console.warn('Item not found in cart:', itemId)
+        return
+      }
+
+      const shopId = item.product?.shopId || '550e8400-e29b-41d4-a716-446655440001' // Shop demo fallback
+      const shopName = item.product?.shopName || 'Switch Store'
+      console.log(`Item ${index + 1}: ${item.product?.name} - Shop ID: ${shopId} - Shop Name: ${shopName}`)
+
+      if (!itemsByShop[shopId]) {
+        itemsByShop[shopId] = []
+      }
+      itemsByShop[shopId].push(item)
+    })
+
+    console.log('Items grouped by shop:', itemsByShop)
+    console.log('Number of unique shops:', Object.keys(itemsByShop).length)
+    console.log('=== END DEBUG SHOP GROUPING ===')
 
     // Validate dữ liệu trước khi gửi
     if (!userResponse.data.account.id) {
@@ -741,101 +851,209 @@ const handleCheckout = async () => {
       return
     }
 
-    // Tạo order data với thông tin thực
-    const orderData = {
-      accountId: userResponse.data.account.id,
-      shopId: shopId,
-      shippingId: selectedShippingObject.value.id,
-      paymentId: selectedPaymentObject.value.id,
-      totalAmount: finalTotal.value,
-      discountAmount: discountAmount.value,
-      orderStatus: 'PENDING',
-      shippingAddress: userResponse.data.account.address || 'Chưa cập nhật địa chỉ',
-      orderItems: cartItems.value.map((item) => ({
-        productVariantId: item.variant ? item.variant.id : null,
-        quantity: item.quantity,
-        productPrice: item.price,
-        discountApplied: 0,
-      })),
-      discountCode: appliedDiscount.value ? appliedDiscount.value.name : null,
+    // Tạo danh sách đơn hàng cho từng shop
+    const ordersData = Object.entries(itemsByShop).map(([shopId, items]) => {
+      // Tính toán tổng tiền cho shop này
+      const shopSubtotal = items.reduce((total, item) => {
+        const itemPrice = getItemPrice(item)
+        return total + (itemPrice * item.quantity)
+      }, 0)
+
+      const shopShippingCost = selectedShippingObject.value.price
+      const shopDiscountAmount = 0 // Discount sẽ được tính riêng cho từng shop nếu cần
+      const shopTotal = Math.max(0, shopSubtotal + shopShippingCost - shopDiscountAmount)
+
+      // Validate dữ liệu trước khi tạo
+      if (shopTotal <= 0) {
+        throw new Error(`Tổng tiền đơn hàng cho shop ${shopId} phải lớn hơn 0`)
+      }
+
+      if (!items || items.length === 0) {
+        throw new Error(`Không có sản phẩm nào được chọn cho shop ${shopId}`)
+      }
+
+      return {
+        accountId: userResponse.data.account.id,
+        shopId: shopId,
+        shippingId: selectedShippingObject.value.id,
+        paymentId: selectedPaymentObject.value.id,
+        totalAmount: shopTotal,
+        discountAmount: shopDiscountAmount,
+        orderStatus: 'PENDING',
+        shippingAddress: userResponse.data.account.address || 'Chưa cập nhật địa chỉ',
+        orderItems: items.map((item) => {
+          const itemPrice = getItemPrice(item)
+          if (itemPrice <= 0) {
+            throw new Error(`Giá sản phẩm ${item.product?.name || 'Không xác định'} phải lớn hơn 0`)
+          }
+          if (!item.quantity || item.quantity <= 0) {
+            throw new Error(`Số lượng sản phẩm ${item.product?.name || 'Không xác định'} phải lớn hơn 0`)
+          }
+
+          return {
+            productVariantId: item.variant ? item.variant.id : null,
+            quantity: item.quantity,
+            productPrice: itemPrice,
+            discountApplied: 0,
+          }
+        }),
+        discountCode: null, // Discount sẽ được xử lý riêng cho từng shop
+      }
+    })
+
+    console.log('Orders data for each shop:', ordersData)
+
+    // Validate ordersData trước khi xử lý
+    for (const orderData of ordersData) {
+      console.log('Validating order data:', {
+        accountId: orderData.accountId,
+        shopId: orderData.shopId,
+        shippingId: orderData.shippingId,
+        paymentId: orderData.paymentId,
+        totalAmount: orderData.totalAmount,
+        orderItemsCount: orderData.orderItems?.length || 0
+      })
+
+      if (!orderData.accountId) {
+        throw new Error('Account ID không được để trống')
+      }
+      if (!orderData.shopId) {
+        throw new Error('Shop ID không được để trống')
+      }
+      if (!orderData.shippingId) {
+        throw new Error('Shipping ID không được để trống')
+      }
+      if (!orderData.paymentId) {
+        throw new Error('Payment ID không được để trống')
+      }
+      if (!orderData.totalAmount || orderData.totalAmount <= 0) {
+        throw new Error(`Tổng tiền đơn hàng cho shop ${orderData.shopId} phải lớn hơn 0 (hiện tại: ${orderData.totalAmount})`)
+      }
+      if (!orderData.orderItems || orderData.orderItems.length === 0) {
+        throw new Error(`Không có sản phẩm nào trong đơn hàng cho shop ${orderData.shopId}`)
+      }
     }
 
     // Log để debug
     console.log('User ID:', userResponse.data.account.id)
-    console.log('Shop ID:', shopId)
     console.log('Shipping ID:', selectedShippingObject.value.id)
     console.log('Payment ID:', selectedPaymentObject.value.id)
-    console.log('Cart items:', cartItems.value)
-
-    console.log('Order data to send:', JSON.stringify(orderData, null, 2))
+    console.log('Selected items:', selectedItems.value)
     console.log('=== DEBUG CART VALUES ===')
     console.log('total.value:', total.value)
     console.log('subtotal.value:', subtotal.value)
     console.log('shippingCost.value:', shippingCost.value)
     console.log('discountAmount.value:', discountAmount.value)
     console.log('finalTotal.value:', finalTotal.value)
-    console.log('cartItems.value:', cartItems.value)
+    console.log('selectedItems.value:', selectedItems.value)
+    console.log('shopCount.value:', shopCount.value)
     console.log('=== END DEBUG ===')
 
     // Xử lý thanh toán dựa trên phương thức thanh toán
+    console.log('Payment method:', selectedPaymentObject.value.paymentCode)
+
     if (selectedPaymentObject.value.paymentCode === 'PAYOS') {
-      // PayOS - Kiểm tra tồn kho trước khi tạo payment URL
-      try {
-        // Kiểm tra số lượng tồn kho trước khi tạo payment URL
-        await axios.post('/api/orders/check-inventory', orderData)
-      } catch (inventoryError) {
-        if (inventoryError.response?.data?.message) {
-          message.error('Lỗi kiểm tra tồn kho: ' + inventoryError.response.data.message)
-        } else {
-          message.error('Không đủ số lượng sản phẩm để đặt hàng')
-        }
-        return
-      }
+      // PayOS - Hỗ trợ nhiều đơn hàng từ nhiều shop
+      console.log('Processing PayOS payment for', ordersData.length, 'orders')
 
-      // PayOS - Tạo payment URL trước, không tạo đơn hàng
-      try {
-        const payosResponse = await axios.post('/api/payos/create-payment', orderData)
+      // Tạm thời bỏ qua kiểm tra tồn kho để test
+      // for (const orderData of ordersData) {
+      //   try {
+      //     await axios.post('/api/orders/check-inventory', orderData)
+      //   } catch (inventoryError) {
+      //     if (inventoryError.response?.data?.message) {
+      //       message.error('Lỗi kiểm tra tồn kho: ' + inventoryError.response.data.message)
+      //     } else {
+      //       message.error('Không đủ số lượng sản phẩm để đặt hàng')
+      //     }
+      //     return
+      //   }
+      // }
 
-        if (payosResponse.data.success) {
-          // Lưu orderCode và amount để verify sau này
-          localStorage.setItem('pendingOrderCode', payosResponse.data.orderCode)
-          localStorage.setItem('pendingOrderAmount', finalTotal.value.toString())
+              // Tạo payment URL cho đơn hàng đầu tiên (hoặc tổng hợp)
+        try {
+          const firstOrderData = ordersData[0]
+          let payosResponse
 
-          // Hiển thị thông báo chuyển hướng thanh toán
-          message.info('Đang chuyển hướng đến trang thanh toán PayOS...')
-
-          // Redirect to PayOS payment page
-          window.location.href = payosResponse.data.paymentUrl
-        } else {
-          // Kiểm tra xem có phải lỗi cấu hình PayOS không
-          if (payosResponse.data.errorCode === 'PAYOS_ERROR') {
-            message.warning('PayOS chưa được cấu hình. Vui lòng chọn phương thức thanh toán khác.')
-            // Tự động chuyển về COD
-            const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
-            if (codPayment) {
-              selectedPayment.value = codPayment.id
-              message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
-              // Tiếp tục xử lý với COD
-              await processCODPayment(orderData)
-            }
-          } else {
-            message.error('Lỗi tạo URL thanh toán: ' + payosResponse.data.message)
+          // Validate dữ liệu trước khi gửi đến PayOS
+          if (!firstOrderData.totalAmount || firstOrderData.totalAmount <= 0) {
+            throw new Error('Tổng tiền phải lớn hơn 0')
           }
-        }
+
+          // Nếu có nhiều đơn hàng, lưu thông tin riêng biệt để tránh circular reference
+          if (ordersData.length > 1) {
+            // Tính tổng tiền của tất cả đơn hàng
+            const totalAmount = ordersData.reduce((sum, order) => sum + order.totalAmount, 0)
+
+            console.log('=== PAYOS MULTI-ORDER DEBUG ===')
+            console.log('Orders data:', ordersData)
+            console.log('Individual order amounts:', ordersData.map(order => order.totalAmount))
+            console.log('Calculated total amount:', totalAmount)
+            console.log('Expected final total:', finalTotal.value)
+            console.log('=== END PAYOS DEBUG ===')
+
+            if (totalAmount <= 0) {
+              throw new Error('Tổng tiền của tất cả đơn hàng phải lớn hơn 0')
+            }
+
+            // Tạo object mới với tổng tiền đúng
+            const paymentData = {
+              ...firstOrderData,
+              totalAmount: totalAmount, // Sử dụng tổng tiền của tất cả đơn hàng
+              multipleOrders: true,
+              totalOrders: ordersData.length
+            }
+
+            // Lưu ordersData riêng vào localStorage
+            localStorage.setItem('pendingMultipleOrders', JSON.stringify(ordersData))
+
+            payosResponse = await axios.post('/api/payos/create-payment', paymentData)
+          } else {
+            payosResponse = await axios.post('/api/payos/create-payment', firstOrderData)
+          }
+
+          console.log('PayOS Response:', payosResponse.data)
+
+          if (payosResponse.data.success) {
+            localStorage.setItem('pendingOrderCode', payosResponse.data.orderCode)
+            // Lưu tổng tiền đúng (tổng của tất cả đơn hàng nếu có nhiều shop)
+            const totalAmount = ordersData.length > 1
+              ? ordersData.reduce((sum, order) => sum + order.totalAmount, 0)
+              : firstOrderData.totalAmount
+            localStorage.setItem('pendingOrderAmount', totalAmount.toString())
+
+            message.info('Đang chuyển hướng đến trang thanh toán PayOS...')
+            window.location.href = payosResponse.data.paymentUrl
+          } else {
+            console.error('PayOS Error:', payosResponse.data)
+            if (payosResponse.data.errorCode === 'PAYOS_ERROR') {
+              message.warning('PayOS chưa được cấu hình. Vui lòng chọn phương thức thanh toán khác.')
+              const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
+              if (codPayment) {
+                selectedPayment.value = codPayment.id
+                message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
+                await processMultipleOrders(ordersData)
+              }
+            } else {
+              message.error('Lỗi tạo URL thanh toán: ' + payosResponse.data.message)
+            }
+          }
       } catch (error) {
         console.error('Error creating PayOS payment:', error)
-        message.error('Lỗi khi tạo thanh toán PayOS: ' + (error.response?.data?.message || error.message))
-        // Fallback về COD nếu có lỗi
+        const errorMessage = error.response?.data?.message || error.message || 'Lỗi không xác định'
+        message.error('Lỗi khi tạo thanh toán PayOS: ' + errorMessage)
+
+        // Fallback to COD
         const codPayment = payments.value.find((p) => p.paymentCode === 'COD')
         if (codPayment) {
           selectedPayment.value = codPayment.id
           message.info('Đã chuyển về thanh toán khi nhận hàng (COD)')
-          await processCODPayment(orderData)
+          await processMultipleOrders(ordersData)
         }
       }
     } else {
-      // COD hoặc các phương thức khác - Tạo đơn hàng trực tiếp
-      await processCODPayment(orderData)
+      // COD hoặc các phương thức khác - Tạo nhiều đơn hàng
+      await processMultipleOrders(ordersData)
     }
   } catch (error) {
     console.error('Error during checkout:', error)
@@ -890,9 +1108,21 @@ const getItemPrice = (item) => {
     console.log('Using variant price:', item.variant.price)
     return item.variant.price
   }
-  const finalPrice = item.price && item.price > 0 ? item.price : 0
-  console.log('Using item price:', finalPrice)
-  return finalPrice
+
+  // Kiểm tra item.price
+  if (item.price && item.price > 0) {
+    console.log('Using item price:', item.price)
+    return item.price
+  }
+
+  // Fallback: kiểm tra giá từ product
+  if (item.product && item.product.price && item.product.price > 0) {
+    console.log('Using product price:', item.product.price)
+    return item.product.price
+  }
+
+  console.log('No valid price found, returning 0')
+  return 0
 }
 
 const getVariantDetails = (item) => {

@@ -39,6 +39,11 @@ public class Review {
     @Column(name = "comment")
     private String comment;
 
+    @Nationalized
+    @Lob
+    @Column(name = "reply")
+    private String reply;
+
     @Column(name = "review_date")
     private OffsetDateTime reviewDate;
 

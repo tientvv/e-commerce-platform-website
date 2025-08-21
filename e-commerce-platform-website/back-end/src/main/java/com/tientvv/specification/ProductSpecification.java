@@ -19,43 +19,14 @@ public class ProductSpecification {
             if (query != null && !query.trim().isEmpty()) {
                 String searchTerm = "%" + query.toLowerCase() + "%";
                 
-                // Search trong name - sử dụng function để chuyển đổi NCLOB
-                Predicate namePredicate = criteriaBuilder.like(
-                    criteriaBuilder.function("LOWER", String.class, 
-                        criteriaBuilder.function("TO_CHAR", String.class, root.get("name"))
-                    ), 
-                    searchTerm
-                );
-                
-                // Search trong brand - sử dụng function để chuyển đổi NCLOB
-                Predicate brandPredicate = criteriaBuilder.like(
-                    criteriaBuilder.function("LOWER", String.class, 
-                        criteriaBuilder.function("TO_CHAR", String.class, root.get("brand"))
-                    ), 
-                    searchTerm
-                );
-                
-                // Search trong description - sử dụng function để chuyển đổi NCLOB
-                Predicate descriptionPredicate = criteriaBuilder.like(
-                    criteriaBuilder.function("LOWER", String.class, 
-                        criteriaBuilder.function("TO_CHAR", String.class, root.get("description"))
-                    ), 
-                    searchTerm
-                );
-                
-                // Search trong category name
+                // Search trong category name (tránh NCLOB fields)
                 Predicate categoryPredicate = criteriaBuilder.like(
                     criteriaBuilder.lower(root.join("category").get("name")), 
                     searchTerm
                 );
                 
-                // Kết hợp tất cả điều kiện search với OR
-                Predicate searchPredicate = criteriaBuilder.or(
-                    namePredicate, 
-                    brandPredicate, 
-                    descriptionPredicate, 
-                    categoryPredicate
-                );
+                // Kết hợp điều kiện search
+                Predicate searchPredicate = categoryPredicate;
                 
                 predicates.add(searchPredicate);
             } else {

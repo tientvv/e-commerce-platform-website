@@ -57,9 +57,8 @@ public class PayOSController {
                 return ResponseEntity.badRequest().body(errorResponse);
             }
 
-            // Tạo đơn hàng thật ngay lập tức với trạng thái PENDING
-            var order = orderService.createOrder(orderData);
-            String orderCode = order.getId().toString();
+            // Tạo orderCode tạm thời cho PayOS (không tạo đơn hàng thật)
+            String orderCode = UUID.randomUUID().toString();
 
             // Tính tổng tiền (PayOS yêu cầu số tiền là VND, không có phần thập phân)
             Long amount = orderData.getTotalAmount().longValue();
@@ -82,11 +81,10 @@ public class PayOSController {
                 log.info("PayOS payment URL created successfully: {}", result.get("paymentUrl"));
                 return ResponseEntity.ok(response);
             } else {
-                // Nếu có lỗi PayOS, đơn hàng vẫn được tạo với trạng thái PENDING
+                // Nếu có lỗi PayOS
                 Map<String, Object> errorResponse = new HashMap<>();
                 errorResponse.put("success", false);
                 errorResponse.put("message", result.get("message"));
-                errorResponse.put("orderId", order.getId());
                 errorResponse.put("orderCode", orderCode);
                 if (result.containsKey("errorCode")) {
                     errorResponse.put("errorCode", result.get("errorCode"));
@@ -202,10 +200,10 @@ public class PayOSController {
 
             Map<String, Object> response = new HashMap<>();
             if (shouldMarkAsPaid) {
-                // Cập nhật trạng thái transaction thành SUCCESS (không thay đổi order status)
+                // Cập nhật trạng thái transaction thành SUCCESS và order status thành PROCESSED
                 var updatedOrder = orderService.updateTransactionStatus(order.getId(), "SUCCESS");
                 
-                log.info("Updated transaction status to SUCCESS for order {}", order.getId());
+                log.info("Updated transaction status to SUCCESS and order status to PROCESSED for order {}", order.getId());
                 
                 // Kiểm tra xem transaction có được cập nhật không
                 List<Transaction> transactions = transactionRepository.findByOrderId(order.getId());
@@ -220,7 +218,7 @@ public class PayOSController {
                 response.put("orderId", order.getId().toString());
                 response.put("orderCode", orderCode);
                 response.put("transactionCode", transactionCode);
-                response.put("orderStatus", order.getOrderStatus()); // Keep original order status
+                response.put("orderStatus", "PROCESSED"); // Updated order status
                 response.put("transactionStatus", "SUCCESS"); // Set transaction status
                 response.put("transactionCount", transactions.size());
             } else if (shouldMarkAsCancelled) {
@@ -329,15 +327,15 @@ public class PayOSController {
             String newStatus = null;
             switch (status) {
                 case "PAID":
-                    // Chỉ cập nhật transaction status thành SUCCESS, không thay đổi order status
+                    // Cập nhật transaction status thành SUCCESS và order status thành PROCESSED
                     var updatedOrder = orderService.updateTransactionStatus(order.getId(), "SUCCESS");
-                    log.info("Updated transaction status to SUCCESS for order {} based on PayOS callback", order.getId());
+                    log.info("Updated transaction status to SUCCESS and order status to PROCESSED for order {} based on PayOS callback", order.getId());
                     
                     return ResponseEntity.ok(Map.of(
                         "success", true,
-                        "message", "Transaction status updated successfully",
+                        "message", "Transaction and order status updated successfully",
                         "orderId", order.getId(),
-                        "orderStatus", order.getOrderStatus(),
+                        "orderStatus", "PROCESSED",
                         "transactionStatus", "SUCCESS",
                         "payosStatus", status
                     ));

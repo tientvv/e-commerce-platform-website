@@ -52,8 +52,8 @@ const loading = ref(false)
 const formRef = ref(null)
 
 const form = ref({
-  username: 'tientvv',
-  password: '123456',
+  username: '',
+  password: '',
 })
 
 const login = async () => {

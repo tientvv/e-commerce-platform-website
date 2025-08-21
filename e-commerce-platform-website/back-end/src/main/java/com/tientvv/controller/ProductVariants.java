@@ -93,6 +93,15 @@ public class ProductVariants {
         UUID uuid = UUID.fromString(productId);
         variants = productVariantService.getProductVariantsByProductId(uuid);
       }
+      
+      // Log để debug
+      System.out.println("Product variants for product ID: " + productId);
+      for (ProductVariantDto variant : variants) {
+        System.out.println("  - Variant ID: " + variant.getId());
+        System.out.println("  - VariantName: " + variant.getVariantName());
+        System.out.println("  - VariantValue: " + variant.getVariantValue());
+      }
+      
       response.put("variants", variants);
     } catch (Exception e) {
       response.put("message", e.getMessage());
@@ -105,6 +114,22 @@ public class ProductVariants {
     Map<String, Object> response = new HashMap<>();
     try {
       List<ProductVariantDto> variants = productVariantService.getAllProductVariants();
+      
+      // Debug: Log all variants to check data
+      System.out.println("=== DEBUG ALL PRODUCT VARIANTS ===");
+      System.out.println("Total variants: " + variants.size());
+      for (ProductVariantDto variant : variants) {
+        System.out.println("Variant ID: " + variant.getId());
+        System.out.println("  - Product ID: " + variant.getProductId());
+        System.out.println("  - VariantName: " + variant.getVariantName());
+        System.out.println("  - VariantValue: " + variant.getVariantValue());
+        System.out.println("  - Price: " + variant.getPrice());
+        System.out.println("  - Quantity: " + variant.getQuantity());
+        System.out.println("  - IsActive: " + variant.getIsActive());
+        System.out.println("---");
+      }
+      System.out.println("=== END DEBUG ALL PRODUCT VARIANTS ===");
+      
       response.put("variants", variants);
     } catch (Exception e) {
       response.put("message", e.getMessage());
@@ -146,6 +171,59 @@ public class ProductVariants {
       response.put("message", "Xóa biến thể sản phẩm thành công!");
     } catch (Exception e) {
       response.put("message", e.getMessage());
+    }
+    return response;
+  }
+
+  @PostMapping("/fix-variant-data")
+  public Map<String, Object> fixVariantData(HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    Account account = (Account) session.getAttribute("account");
+    if (account == null) {
+      response.put("message", "Bạn chưa đăng nhập!");
+      return response;
+    }
+
+    try {
+      // Lấy tất cả variants
+      List<ProductVariantDto> variants = productVariantService.getAllProductVariants();
+      int fixedCount = 0;
+      
+      System.out.println("=== FIXING VARIANT DATA ===");
+      for (ProductVariantDto variant : variants) {
+        boolean needsUpdate = false;
+        UpdateProductVariantDto updateDto = new UpdateProductVariantDto();
+        
+        // Kiểm tra và sửa variantName
+        if (variant.getVariantName() == null || variant.getVariantName().trim().isEmpty()) {
+          updateDto.setVariantName("Loại");
+          needsUpdate = true;
+          System.out.println("Fixing variantName for variant ID: " + variant.getId());
+        }
+        
+        // Kiểm tra và sửa variantValue
+        if (variant.getVariantValue() == null || variant.getVariantValue().trim().isEmpty()) {
+          updateDto.setVariantValue("Mặc định");
+          needsUpdate = true;
+          System.out.println("Fixing variantValue for variant ID: " + variant.getId());
+        }
+        
+        // Cập nhật nếu cần
+        if (needsUpdate) {
+          productVariantService.updateProductVariant(variant.getId(), updateDto);
+          fixedCount++;
+        }
+      }
+      
+      System.out.println("Fixed " + fixedCount + " variants");
+      System.out.println("=== END FIXING VARIANT DATA ===");
+      
+      response.put("success", true);
+      response.put("message", "Đã sửa " + fixedCount + " biến thể sản phẩm");
+      response.put("fixedCount", fixedCount);
+    } catch (Exception e) {
+      response.put("success", false);
+      response.put("message", "Lỗi sửa dữ liệu: " + e.getMessage());
     }
     return response;
   }

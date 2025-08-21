@@ -252,14 +252,22 @@ public class OrderService {
       order.setDeliveredDate(OffsetDateTime.now());
     } else if ("CANCELLED".equals(status)) {
       order.setCancelledDate(OffsetDateTime.now());
+      
+      // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
+      List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+      for (Transaction transaction : transactions) {
+        transaction.setTransactionStatus("CANCELLED");
+        transaction.setTransactionDate(OffsetDateTime.now());
+        transactionRepository.save(transaction);
+      }
     }
 
     order = orderRepository.save(order);
 
     List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-    List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+    List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
 
-    return convertToDto(order, orderItems, transactions);
+    return convertToDto(order, orderItems, updatedTransactions);
   }
 
   @Transactional
@@ -276,9 +284,12 @@ public class OrderService {
       String oldStatus = transaction.getTransactionStatus();
       System.out.println("Transaction " + transaction.getId() + " current status: " + oldStatus);
 
-      // Nếu transaction chuyển từ PENDING sang SUCCESS, trừ số lượng sản phẩm
+      // Nếu transaction chuyển từ PENDING sang SUCCESS, trừ số lượng sản phẩm và cập nhật order status
       if ("PENDING".equals(oldStatus) && "SUCCESS".equals(transactionStatus)) {
         deductProductQuantities(orderId);
+        // Cập nhật order status thành PROCESSED khi thanh toán thành công
+        order.setOrderStatus("PROCESSED");
+        orderRepository.save(order);
       }
 
       // Cập nhật transaction status
@@ -347,11 +358,26 @@ public class OrderService {
         .orElseThrow(() -> new RuntimeException("Order not found or does not belong to this shop"));
 
     order.setOrderStatus(status);
-    orderRepository.save(order);
+
+    if ("DELIVERED".equals(status)) {
+      order.setDeliveredDate(OffsetDateTime.now());
+    } else if ("CANCELLED".equals(status)) {
+      order.setCancelledDate(OffsetDateTime.now());
+      
+      // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
+      List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+      for (Transaction transaction : transactions) {
+        transaction.setTransactionStatus("CANCELLED");
+        transaction.setTransactionDate(OffsetDateTime.now());
+        transactionRepository.save(transaction);
+      }
+    }
+
+    order = orderRepository.save(order);
 
     List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-    List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
-    return convertToDto(order, orderItems, transactions);
+    List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
+    return convertToDto(order, orderItems, updatedTransactions);
   }
 
   public Map<String, Object> getShopOrderStatistics() {
@@ -715,20 +741,32 @@ public class OrderService {
 
           if (item.getProductVariant() != null) {
             itemDto.setProductVariantId(item.getProductVariant().getId());
+            itemDto.setProductId(item.getProductVariant().getProduct().getId()); // Add product ID
             itemDto.setProductName(item.getProductVariant().getProduct().getName());
             // Set product image with fallback
             String productImage = item.getProductVariant().getProduct().getProductImage();
             itemDto
                 .setProductImage(productImage != null && !productImage.isEmpty() ? productImage : "/placeholder.png");
-            itemDto.setVariantName(item.getProductVariant().getVariantName());
-            itemDto.setVariantValue(item.getProductVariant().getVariantValue());
+            
+            // Set variant information with validation
+            String variantName = item.getProductVariant().getVariantName();
+            String variantValue = item.getProductVariant().getVariantValue();
+            
+            // Log để debug
+            System.out.println("Variant info for order item: " + item.getId());
+            System.out.println("  - VariantName: " + variantName);
+            System.out.println("  - VariantValue: " + variantValue);
+            
+            itemDto.setVariantName(variantName != null ? variantName : "");
+            itemDto.setVariantValue(variantValue != null ? variantValue : "");
           } else {
             // For products without variants, set default values
             itemDto.setProductVariantId(null);
+            itemDto.setProductId(null);
             itemDto.setProductName("Sản phẩm không xác định");
             itemDto.setProductImage("/placeholder.png");
-            itemDto.setVariantName(null);
-            itemDto.setVariantValue(null);
+            itemDto.setVariantName("");
+            itemDto.setVariantValue("");
           }
 
           itemDto.setQuantity(item.getQuantity());

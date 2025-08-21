@@ -68,6 +68,21 @@
             <h3 class="product-name">{{ product.name || 'Sản phẩm' }}</h3>
             <p class="product-brand">{{ product.brand || 'Thương hiệu' }}</p>
 
+            <!-- Rating -->
+            <div class="flex items-center mb-2">
+              <div class="flex items-center mr-1">
+                <Star
+                  v-for="i in 5"
+                  :key="i"
+                  :class="i <= (product.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'"
+                  class="w-3 h-3"
+                />
+              </div>
+              <span class="text-xs text-gray-500">
+                {{ product.rating?.toFixed(1) || '0.0' }} ({{ product.reviewCount || 0 }} đánh giá)
+              </span>
+            </div>
+
             <!-- Price -->
             <div class="mb-2">
               <!-- Price Range for products with variants -->
@@ -130,6 +145,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import { Star } from 'lucide-vue-next'
 
 // Reactive data
 const router = useRouter()

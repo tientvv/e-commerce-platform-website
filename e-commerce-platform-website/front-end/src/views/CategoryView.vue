@@ -255,7 +255,9 @@
                       class="w-3 h-3"
                     />
                   </div>
-                  <span class="text-xs text-gray-500">({{ product.reviewCount || 0 }})</span>
+                  <span class="text-xs text-gray-500">
+                    {{ product.rating?.toFixed(1) || '0.0' }} ({{ product.reviewCount || 0 }} đánh giá)
+                  </span>
                 </div>
 
                 <div class="flex items-center justify-between">

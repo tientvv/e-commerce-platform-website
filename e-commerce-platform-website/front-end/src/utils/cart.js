@@ -40,6 +40,7 @@ export const addToCart = (product, variant = null, quantity = 1) => {
       mainImage: product.mainImage || product.productImage,
       brand: product.brand,
       shopName: product.shopName,
+      shopId: product.shopId,
     },
     variant: variant
       ? {

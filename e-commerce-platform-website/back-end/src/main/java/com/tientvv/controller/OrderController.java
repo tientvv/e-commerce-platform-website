@@ -44,6 +44,20 @@ public class OrderController {
       System.out.println("Getting order by ID: " + orderId);
       OrderDto order = orderService.getOrderById(orderId);
       System.out.println("Found order: " + order.getId() + ", status: " + order.getOrderStatus());
+      
+      // Debug: Log order items variant information
+      if (order.getOrderItems() != null) {
+        System.out.println("Order items count: " + order.getOrderItems().size());
+        for (int i = 0; i < order.getOrderItems().size(); i++) {
+          OrderDto.OrderItemDto item = order.getOrderItems().get(i);
+          System.out.println("Item " + (i + 1) + ":");
+          System.out.println("  - ProductName: " + item.getProductName());
+          System.out.println("  - VariantName: " + item.getVariantName());
+          System.out.println("  - VariantValue: " + item.getVariantValue());
+          System.out.println("  - ProductVariantId: " + item.getProductVariantId());
+        }
+      }
+      
       Map<String, Object> response = new HashMap<>();
       response.put("success", true);
       response.put("data", order);
@@ -81,6 +95,26 @@ public class OrderController {
       }
 
       List<OrderDto> orders = orderService.getOrdersByAccountId(currentUser.getId());
+      
+      // Debug: Log variant information for all orders
+      System.out.println("=== DEBUG MY ORDERS ===");
+      System.out.println("Total orders: " + orders.size());
+      for (int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
+        OrderDto order = orders.get(orderIndex);
+        System.out.println("Order " + (orderIndex + 1) + " (ID: " + order.getId() + "):");
+        if (order.getOrderItems() != null) {
+          System.out.println("  Order items count: " + order.getOrderItems().size());
+          for (int itemIndex = 0; itemIndex < order.getOrderItems().size(); itemIndex++) {
+            OrderDto.OrderItemDto item = order.getOrderItems().get(itemIndex);
+            System.out.println("    Item " + (itemIndex + 1) + ":");
+            System.out.println("      - ProductName: " + item.getProductName());
+            System.out.println("      - VariantName: " + item.getVariantName());
+            System.out.println("      - VariantValue: " + item.getVariantValue());
+            System.out.println("      - ProductVariantId: " + item.getProductVariantId());
+          }
+        }
+      }
+      System.out.println("=== END DEBUG MY ORDERS ===");
       
       Map<String, Object> response = new HashMap<>();
       response.put("success", true);

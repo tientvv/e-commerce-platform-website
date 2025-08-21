@@ -672,36 +672,8 @@ public class ProductController {
       System.out.println("=== SEARCH DEBUG ===");
       System.out.println("Query received: '" + query + "'");
 
-      // Sử dụng search đơn giản thay vì Specification để tránh lỗi NCLOB
-      List<Product> allProducts = productRepository.findAll();
-      List<Product> searchResults = allProducts.stream()
-          .filter(p -> p.getIsActive() &&
-              (p.getName() != null && p.getName().toLowerCase().contains(query.toLowerCase()) ||
-                  p.getBrand() != null && p.getBrand().toLowerCase().contains(query.toLowerCase()) ||
-                  p.getDescription() != null && p.getDescription().toLowerCase().contains(query.toLowerCase())))
-          .collect(Collectors.toList());
-
-      System.out.println("Found " + searchResults.size() + " products matching '" + query + "'");
-      searchResults.forEach(p -> System.out.println("  - " + p.getName()));
-
-      // Convert sang DTO với logic discount tốt nhất
-      List<ProductDisplayDto> resultDtos = searchResults.stream()
-          .map(product -> {
-            try {
-              // Sử dụng query có logic discount tốt nhất thay vì convertToProductDisplayDto
-              List<ProductDisplayDto> productsWithDiscount = productRepository.findActiveProductsWithPricingByCategoryId(product.getCategory().getId(), OffsetDateTime.now());
-              ProductDisplayDto productDto = productsWithDiscount.stream()
-                      .filter(p -> p.getId().equals(product.getId()))
-                      .findFirst()
-                      .orElse(productService.convertToProductDisplayDto(product));
-              return productDto;
-            } catch (Exception e) {
-              System.err.println("Error converting product " + product.getId() + ": " + e.getMessage());
-              return null;
-            }
-          })
-          .filter(dto -> dto != null)
-          .collect(Collectors.toList());
+      // Sử dụng method searchProducts đã được cập nhật trong ProductService
+      List<ProductDisplayDto> resultDtos = productService.searchProducts(query);
 
       System.out.println("Final DTO results: " + resultDtos.size());
       System.out.println("=== END SEARCH DEBUG ===");

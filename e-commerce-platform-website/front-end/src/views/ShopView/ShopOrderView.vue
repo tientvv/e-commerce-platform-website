@@ -212,6 +212,7 @@
                             <div class="header-cell">Trạng thái thanh toán</div>
                             <div class="header-cell">Phương thức thanh toán</div>
                             <div class="header-cell">Ngày đặt</div>
+                            <div class="header-cell">Hủy Đơn</div>
                             <div class="header-cell">Thao tác</div>
                           </div>
 
@@ -235,6 +236,18 @@
                               </div>
                               <div class="table-cell whitespace-nowrap overflow-hidden text-ellipsis">{{ order.paymentName || 'N/A' }}</div>
                               <div class="table-cell">{{ formatDate(order.orderDate) }}</div>
+                              <div class="table-cell">
+                                <button
+                                  v-if="order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'DELIVERED'"
+                                  @click="cancelOrder(order.id)"
+                                  class="action-btn-cancel"
+                                  :disabled="order.orderStatus === 'CANCELLED'"
+                                >
+                                  <XCircle class="w-4 h-4" />
+                                  Hủy
+                                </button>
+                                <span v-else class="text-gray-400 text-sm">-</span>
+                              </div>
                               <div class="table-cell">
                                 <button @click="viewOrderDetail(order)" class="action-btn">
                                   <Eye class="w-4 h-4" />
@@ -372,7 +385,9 @@
               </div>
               <div class="flex-1">
                 <div class="font-medium text-gray-900">{{ item.productName }}</div>
-                <div class="text-sm text-gray-600">{{ item.variantName }}</div>
+                <div v-if="formatVariantInfo(item.variantName, item.variantValue)" class="text-sm text-gray-600">
+                  {{ formatVariantInfo(item.variantName, item.variantValue) }}
+                </div>
                 <div class="text-sm text-gray-500">{{ formatCurrency(item.productPrice) }} x {{ item.quantity }}</div>
               </div>
               <div class="font-semibold text-gray-900">
@@ -383,7 +398,7 @@
         </div>
 
         <!-- Status Update -->
-        <div class="space-y-4">
+        <div v-if="selectedOrder.orderStatus !== 'CANCELLED'" class="space-y-4">
         <div>
             <h4 class="text-md font-semibold mb-3">Cập nhật trạng thái đơn hàng</h4>
           <div class="flex gap-3 items-end">
@@ -392,12 +407,11 @@
               :options="statusOptions"
               placeholder="Chọn trạng thái mới"
               class="flex-1"
-                :disabled="selectedOrder.orderStatus === 'CANCELLED'"
             />
             <n-button
               @click="updateOrderStatus"
               :loading="updatingStatus"
-                :disabled="!newStatus || newStatus === selectedOrder.orderStatus || selectedOrder.orderStatus === 'CANCELLED'"
+                :disabled="!newStatus || newStatus === selectedOrder.orderStatus"
                 type="primary"
               >
                 Cập nhật
@@ -413,17 +427,25 @@
                 :options="paymentStatusOptions"
                 placeholder="Chọn trạng thái thanh toán mới"
                 class="flex-1"
-                :disabled="selectedOrder.orderStatus === 'CANCELLED' || selectedOrder.paymentName === 'Thanh toán bằng ngân hàng'"
+                :disabled="selectedOrder.paymentName === 'Thanh toán bằng ngân hàng'"
               />
               <n-button
                 @click="updatePaymentStatus"
                 :loading="updatingPaymentStatus"
-                :disabled="!newPaymentStatus || newPaymentStatus === selectedOrder.transactionStatus || selectedOrder.orderStatus === 'CANCELLED' || selectedOrder.paymentName === 'Thanh toán bằng ngân hàng'"
+                :disabled="!newPaymentStatus || newPaymentStatus === selectedOrder.transactionStatus || selectedOrder.paymentName === 'Thanh toán bằng ngân hàng'"
               type="primary"
             >
               Cập nhật
             </n-button>
             </div>
+          </div>
+        </div>
+
+        <!-- Thông báo khi đơn hàng đã hủy -->
+        <div v-else class="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div class="flex items-center">
+            <XCircle class="w-5 h-5 text-red-500 mr-2" />
+            <span class="text-red-700 font-medium">Đơn hàng này đã bị hủy và không thể cập nhật trạng thái</span>
           </div>
         </div>
       </div>
@@ -489,7 +511,6 @@ const statusOptions = [
   { label: 'Chờ lấy hàng', value: 'READY_FOR_PICKUP' },
   { label: 'Đang giao hàng', value: 'IN_TRANSIT' },
   { label: 'Đã giao hàng', value: 'DELIVERED' },
-  { label: 'Đã hủy', value: 'CANCELLED' },
 ]
 
 const paymentOptions = [
@@ -576,6 +597,22 @@ const viewOrderDetail = (order) => {
   newStatus.value = order.orderStatus
   newPaymentStatus.value = order.transactionStatus || 'PENDING'
   showOrderDetail.value = true
+
+  // Debug: Log variant information for order items
+  console.log('=== DEBUG SHOP ORDER DETAIL ===')
+  if (order.orderItems) {
+    console.log(`Order items count: ${order.orderItems.length}`)
+    for (let i = 0; i < order.orderItems.length; i++) {
+      const item = order.orderItems[i]
+      console.log(`Item ${i + 1}:`)
+      console.log(`  - ProductName: ${item.productName}`)
+      console.log(`  - VariantName: ${item.variantName}`)
+      console.log(`  - VariantValue: ${item.variantValue}`)
+      console.log(`  - ProductVariantId: ${item.productVariantId}`)
+      console.log(`  - Formatted variant: ${formatVariantInfo(item.variantName, item.variantValue)}`)
+    }
+  }
+  console.log('=== END DEBUG SHOP ORDER DETAIL ===')
 }
 
 const updateOrderStatus = async () => {
@@ -599,6 +636,26 @@ const updateOrderStatus = async () => {
     message.error('Lỗi cập nhật trạng thái đơn hàng')
   } finally {
     updatingStatus.value = false
+  }
+}
+
+const cancelOrder = async (orderId) => {
+  if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return
+
+  try {
+    const response = await axios.put(`/api/shop/orders/${orderId}/status`, {
+      status: 'CANCELLED',
+    })
+
+    if (response.data.success) {
+      message.success('Hủy đơn hàng thành công')
+      loadOrders() // Reload to update statistics
+    } else {
+      message.error(response.data.message || 'Lỗi hủy đơn hàng')
+    }
+  } catch (error) {
+    console.error('Error cancelling order:', error)
+    message.error('Lỗi hủy đơn hàng')
   }
 }
 
@@ -727,6 +784,29 @@ const formatCurrency = (amount) => {
     style: 'currency',
     currency: 'VND',
   }).format(amount)
+}
+
+const formatVariantInfo = (variantName, variantValue) => {
+  // Kiểm tra và làm sạch dữ liệu
+  const cleanVariantName = variantName ? variantName.trim() : ''
+  const cleanVariantValue = variantValue ? variantValue.trim() : ''
+
+  if (!cleanVariantName) {
+    return ''
+  }
+
+  // Nếu variantName là "Màu sắc" hoặc "Color", hiển thị rõ ràng hơn
+  if (cleanVariantName.toLowerCase().includes('màu') || cleanVariantName.toLowerCase().includes('color')) {
+    return `Màu sắc: ${cleanVariantValue || 'Không xác định'}`
+  }
+
+  // Nếu có cả variantName và variantValue
+  if (cleanVariantValue) {
+    return `${cleanVariantName}: ${cleanVariantValue}`
+  }
+
+  // Chỉ có variantName
+  return cleanVariantName
 }
 
 const formatDate = (date) => {
@@ -939,7 +1019,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 120px;
+  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 100px 120px;
   background-color: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -962,7 +1042,7 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 120px;
+  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 100px 120px;
   border-bottom: 1px solid #f3f4f6;
   transition: background-color 0.2s;
 }
@@ -1039,6 +1119,33 @@ onMounted(() => {
 
 .action-btn:hover {
   background-color: #2563eb;
+}
+
+.action-btn-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.action-btn-cancel:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.action-btn-cancel:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* Pagination */

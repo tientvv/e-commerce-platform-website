@@ -13,7 +13,7 @@
             </template>
           </n-result>
         </div>
-        <RouterView v-else />
+        <RouterView v-else :key="route.fullPath" />
       </n-spin>
     </n-layout-content>
   </n-layout>
@@ -22,11 +22,12 @@
 <script setup>
 import axios from '../../utils/axios'
 import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import MenuBarView from '../ShopView/MenuBarView.vue'
 import { NLayout, NLayoutSider, NLayoutContent, NSpin, NResult, NButton } from 'naive-ui'
 
 const router = useRouter()
+const route = useRoute()
 const shop = ref(null)
 const message = ref('')
 const loading = ref(true)

@@ -36,6 +36,7 @@ public class OrderDto {
   @Data
   public static class OrderItemDto {
     private UUID id;
+    private UUID productId; // Add product ID
     private UUID productVariantId;
     private String productName;
     private String productImage;

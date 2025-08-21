@@ -6,10 +6,12 @@ import com.tientvv.dto.account.*;
 import com.tientvv.model.Account;
 import com.tientvv.repository.AccountRepository;
 import com.tientvv.service.AccountService;
+import com.tientvv.service.ImageUploadService;
 import jakarta.servlet.http.HttpSession;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api")
@@ -20,6 +22,9 @@ public class AccountController {
 
   @Autowired
   private AccountRepository accountRepository;
+
+  @Autowired
+  private ImageUploadService imageUploadService;
 
   @PostMapping("/logout")
   public Map<String, Object> logout(HttpSession session) {
@@ -245,6 +250,50 @@ public class AccountController {
       Map<String, Object> response = Map.of(
         "success", false,
         "message", e.getMessage()
+      );
+      return ResponseEntity.badRequest().body(response);
+    }
+  }
+
+  @PutMapping("/account/update-profile-image")
+  public ResponseEntity<Map<String, Object>> updateProfileImage(@RequestParam("profileImage") MultipartFile profileImage, HttpSession session) {
+    try {
+      Account account = (Account) session.getAttribute("account");
+      if (account == null) {
+        Map<String, Object> response = Map.of(
+          "success", false,
+          "message", "Bạn chưa đăng nhập!"
+        );
+        return ResponseEntity.badRequest().body(response);
+      }
+
+      if (profileImage.isEmpty()) {
+        Map<String, Object> response = Map.of(
+          "success", false,
+          "message", "Vui lòng chọn ảnh để tải lên!"
+        );
+        return ResponseEntity.badRequest().body(response);
+      }
+
+      // Upload image to Cloudinary
+      String imageUrl = imageUploadService.uploadImage(profileImage);
+      
+      // Update account with new profile image
+      account.setAccountsImage(imageUrl);
+      accountRepository.save(account);
+      
+      // Update session
+      session.setAttribute("account", account);
+      
+      Map<String, Object> response = Map.of(
+        "success", true,
+        "message", "Cập nhật ảnh đại diện thành công"
+      );
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      Map<String, Object> response = Map.of(
+        "success", false,
+        "message", "Có lỗi xảy ra khi cập nhật ảnh: " + e.getMessage()
       );
       return ResponseEntity.badRequest().body(response);
     }

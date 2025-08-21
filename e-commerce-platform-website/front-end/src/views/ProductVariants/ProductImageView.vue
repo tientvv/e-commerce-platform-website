@@ -1,137 +1,40 @@
 <template>
   <n-space vertical :size="24">
-    <!-- Form tạo ảnh mới -->
-    <n-card title="Thêm Ảnh Mới" size="small">
-      <n-form ref="formRef" :model="newImage" :rules="formRules" label-placement="top" @submit.prevent="createImage">
-        <n-grid :cols="2" :x-gap="16" :y-gap="16">
-          <n-form-item-gi label="Sản phẩm" path="productId">
-            <n-select
-              v-model:value="newImage.productId"
-              placeholder="Chọn sản phẩm"
-              :options="productOptions"
-              @update:value="loadVariantsForProduct"
-              filterable
-            />
-          </n-form-item-gi>
-
-          <n-form-item-gi label="Biến thể (Tùy chọn)" path="productVariantId">
-            <n-select
-              v-model:value="newImage.productVariantId"
-              placeholder="Không có biến thể"
-              :options="variantOptions"
-              clearable
-              filterable
-              :disabled="!newImage.productId"
-            />
-          </n-form-item-gi>
-
-          <n-form-item-gi label="Chọn file ảnh" path="file" :span="2">
-            <div class="upload-container">
-              <n-space vertical :size="12">
-                <n-upload
-                  ref="uploadRef"
-                  :max="1"
-                  :default-upload="false"
-                  accept="image/*"
-                  @change="handleFileChange"
-                  :show-file-list="false"
-                  :disabled="isLoading"
-                >
-                  <n-button type="primary" ghost :loading="isLoading" style="width: 100%; height: 40px">
-                    <template #icon>
-                      <n-icon><Upload /></n-icon>
-                    </template>
-                    {{ isLoading ? 'Đang tải lên...' : 'Tải lên' }}
-                  </n-button>
-                </n-upload>
-
-                <!-- Preview selected file -->
-                <div v-if="selectedFile" class="file-preview">
-                  <div class="preview-card">
-                    <div class="file-info">
-                      <n-avatar
-                        :size="40"
-                        :src="selectedFilePreview"
-                        fallback-src="/default-image.png"
-                        class="file-avatar"
-                      />
-                      <div class="file-details">
-                        <n-text strong class="file-name">{{ selectedFile.name }}</n-text>
-                        <n-text depth="3" class="file-size">{{ formatFileSize(selectedFile.size) }}</n-text>
-                      </div>
-                      <n-button
-                        size="small"
-                        text
-                        type="error"
-                        @click="clearSelectedFile"
-                        class="remove-btn"
-                        :disabled="isLoading"
-                      >
-                        <template #icon>
-                          <n-icon><X /></n-icon>
-                        </template>
-                      </n-button>
-                    </div>
-                  </div>
-                </div>
-              </n-space>
-            </div>
-          </n-form-item-gi>
-        </n-grid>
-
-        <n-space>
-          <n-button
-            type="primary"
-            attr-type="submit"
-            :loading="isLoading"
-            :disabled="!selectedFile || !newImage.productId"
-          >
-            <template #icon>
-              <n-icon><Plus /></n-icon>
-            </template>
-            Thêm Ảnh
-          </n-button>
-          <n-button @click="resetForm">
-            <template #icon>
-              <n-icon><RotateCcw /></n-icon>
-            </template>
-            Đặt lại
-          </n-button>
-        </n-space>
-      </n-form>
-    </n-card>
-
     <!-- Danh sách ảnh -->
     <n-card title="Danh sách Ảnh Sản phẩm" size="small">
       <template #header-extra>
         <n-space>
-          <n-text depth="3">Tổng: {{ images.length }} ảnh</n-text>
+          <n-text depth="3">Tổng: {{ filteredImages.length }} ảnh</n-text>
         </n-space>
       </template>
 
       <!-- Filter -->
       <n-space class="mb-6">
-        <n-select
-          v-model:value="selectedProductId"
-          placeholder="Lọc theo sản phẩm"
-          :options="[{ label: 'Tất cả sản phẩm', value: '' }, ...productOptions]"
-          @update:value="loadImages"
+        <n-input
+          v-model:value="searchKeyword"
+          placeholder="Tìm kiếm sản phẩm..."
           class="w-60"
           clearable
-        />
+          @input="handleSearch"
+        >
+          <template #prefix>
+            <n-icon><Search /></n-icon>
+          </template>
+        </n-input>
         <n-select
           v-model:value="imageType"
           placeholder="Loại ảnh"
           :options="imageTypeOptions"
           @update:value="loadImages"
           class="w-40"
+          style="min-width: 140px;"
         />
       </n-space>
 
       <n-spin :show="loading">
         <!-- Grid ảnh -->
-        <div v-if="!loading && images.length > 0" class="image-grid">
-          <n-card v-for="image in images" :key="image.id" size="small" class="image-card">
+        <div v-if="!loading && filteredImages.length > 0" class="image-grid">
+          <n-card v-for="image in filteredImages" :key="image.id" size="small" class="image-card">
             <template #cover>
               <div class="image-container">
                 <n-image
@@ -163,17 +66,17 @@
               </n-text>
               <div class="mt-2">
                 <n-tag v-if="image.productVariantId" size="small" type="info">
-                  {{ getVariantName(image.productVariantId) }}
+                  {{ getVariantNameComputed(image.productVariantId) }}
                 </n-tag>
                 <n-tag v-else size="small" type="success"> Ảnh chính </n-tag>
               </div>
-              <n-text depth="3" class="text-xs mt-1"> ID: {{ image.id.substring(0, 8) }}... </n-text>
+
             </div>
           </n-card>
         </div>
 
         <!-- Empty state -->
-        <n-empty v-else-if="!loading && images.length === 0" description="Chưa có ảnh nào được thêm">
+        <n-empty v-else-if="!loading && filteredImages.length === 0" description="Chưa có ảnh nào được thêm">
           <template #icon>
             <n-icon size="48" color="#d1d5db">
               <ImageIcon />
@@ -239,18 +142,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from '../../utils/axios'
-import { Plus, RotateCcw, Upload, Edit, Trash2, Image as ImageIcon, X } from 'lucide-vue-next'
+import { Edit, Trash2, Image as ImageIcon, Search } from 'lucide-vue-next'
 import {
   NSpace,
   NCard,
   NForm,
   NFormItem,
-  NFormItemGi,
-  NGrid,
   NSelect,
-  NUpload,
+  NInput,
   NButton,
   NIcon,
   NSpin,
@@ -260,7 +161,6 @@ import {
   NText,
   NTag,
   NButtonGroup,
-  NAvatar,
   useMessage,
   useDialog,
 } from 'naive-ui'
@@ -268,20 +168,17 @@ import {
 const message = useMessage()
 const dialog = useDialog()
 
-// Refs
-const formRef = ref(null)
-const editFormRef = ref(null)
-const uploadRef = ref(null)
 
-// State
+
+const editFormRef = ref(null)
+
 const products = ref([])
 const productVariants = ref([])
 const editVariants = ref([])
 const images = ref([])
 const selectedProductId = ref('')
 const imageType = ref('all')
-const selectedFile = ref(null)
-const isLoading = ref(false)
+const searchKeyword = ref('')
 const loading = ref(false)
 
 // Edit modal state
@@ -294,19 +191,9 @@ const editingImage = ref({
   productVariantId: '',
 })
 
-const newImage = ref({
-  productId: '',
-  productVariantId: '',
-})
 
-// Form validation rules
-const formRules = {
-  productId: {
-    required: true,
-    message: 'Vui lòng chọn sản phẩm',
-    trigger: ['blur', 'change'],
-  },
-}
+
+
 
 const editFormRules = {
   productId: {
@@ -324,12 +211,7 @@ const productOptions = computed(() => {
   }))
 })
 
-const variantOptions = computed(() => {
-  return productVariants.value.map((variant) => ({
-    label: `${variant.variantName}: ${variant.variantValue}`,
-    value: variant.id,
-  }))
-})
+
 
 const editVariantOptions = computed(() => {
   return editVariants.value.map((variant) => ({
@@ -338,10 +220,58 @@ const editVariantOptions = computed(() => {
   }))
 })
 
+// Computed để lọc ảnh theo từ khóa tìm kiếm
+const filteredImages = computed(() => {
+  let filtered = images.value
+
+  // Lọc theo từ khóa tìm kiếm
+  if (searchKeyword.value.trim()) {
+    const foundProduct = products.value.find(product =>
+      product.name.toLowerCase().includes(searchKeyword.value.toLowerCase())
+    )
+    if (foundProduct) {
+      filtered = filtered.filter(img => img.productId === foundProduct.id)
+    } else {
+      filtered = []
+    }
+  }
+
+  return filtered
+})
+
+// Computed để hiển thị tên biến thể với reactive updates
+const getVariantNameComputed = computed(() => {
+  return (variantId) => {
+    if (!variantId) return ''
+
+    // Tìm trong editVariants trước (cho modal chỉnh sửa)
+    let variant = editVariants.value.find((v) => v.id === variantId)
+
+    // Nếu không tìm thấy, tìm trong productVariants
+    if (!variant) {
+      variant = productVariants.value.find((v) => v.id === variantId)
+    }
+
+    // Nếu vẫn không tìm thấy, tìm trong tất cả biến thể đã load
+    if (!variant) {
+      const allVariants = [...productVariants.value, ...editVariants.value]
+      variant = allVariants.find((v) => v.id === variantId)
+    }
+
+    // Nếu tìm thấy biến thể, trả về tên đầy đủ
+    if (variant) {
+      return `${variant.variantName}: ${variant.variantValue}`
+    }
+
+    // Nếu không tìm thấy, trả về tên mặc định
+    return 'Biến thể'
+  }
+})
+
 const imageTypeOptions = [
   { label: 'Tất cả ảnh', value: 'all' },
-  { label: 'Ảnh chính sản phẩm', value: 'main' },
-  { label: 'Ảnh biến thể', value: 'variant' },
+  { label: 'Ảnh chính', value: 'main' },
+  { label: 'Biến thể', value: 'variant' },
 ]
 
 // Methods
@@ -355,19 +285,34 @@ const loadProducts = async () => {
   }
 }
 
-const loadVariantsForProduct = async () => {
-  if (!newImage.value.productId) {
-    productVariants.value = []
-    return
+let searchTimeout = null
+
+const handleSearch = () => {
+  // Clear timeout trước đó
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
   }
-  try {
-    const response = await axios.get(`/api/product-variants/product/${newImage.value.productId}`)
-    productVariants.value = response.data.variants || []
-  } catch (error) {
-    message.error('Không thể tải danh sách biến thể')
-    console.error('Error:', error)
-  }
+
+  // Đợi 300ms sau khi người dùng ngừng gõ
+  searchTimeout = setTimeout(() => {
+    // Tìm sản phẩm theo từ khóa
+    if (searchKeyword.value.trim()) {
+      const foundProduct = products.value.find(product =>
+        product.name.toLowerCase().includes(searchKeyword.value.toLowerCase())
+      )
+      if (foundProduct) {
+        selectedProductId.value = foundProduct.id
+      } else {
+        selectedProductId.value = ''
+      }
+    } else {
+      selectedProductId.value = ''
+    }
+    // Không gọi loadImages() để tránh nháy màn hình
+  }, 300)
 }
+
+
 
 const loadImages = async () => {
   loading.value = true
@@ -414,107 +359,40 @@ const loadImages = async () => {
 const loadAllVariantsForImages = async () => {
   const uniqueProductIds = [...new Set(images.value.map((img) => img.productId))]
 
+  // Clear existing variants to avoid duplicates
+  editVariants.value = []
+
   for (const productId of uniqueProductIds) {
     try {
       const response = await axios.get(`/api/product-variants/product/${productId}`)
       const variants = response.data.variants || []
-
-      variants.forEach((variant) => {
-        if (!editVariants.value.find((v) => v.id === variant.id)) {
-          editVariants.value.push(variant)
-        }
-      })
+      editVariants.value.push(...variants)
     } catch (error) {
       console.error(`Lỗi khi tải biến thể cho sản phẩm ${productId}:`, error)
     }
   }
 }
 
-const handleFileChange = ({ fileList }) => {
-  const file = fileList.length > 0 ? fileList[0].file : null
 
-  if (file) {
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024 // 5MB
-    if (file.size > maxSize) {
-      message.error('Kích thước file không được vượt quá 5MB!')
-      return
+
+// Đảm bảo biến thể được load cho một sản phẩm cụ thể
+const ensureVariantsLoaded = async (productId) => {
+  if (!productId) return
+
+  // Kiểm tra xem biến thể đã được load chưa
+  const existingVariants = editVariants.value.filter(v => v.productId === productId)
+  if (existingVariants.length === 0) {
+    try {
+      const response = await axios.get(`/api/product-variants/product/${productId}`)
+      const variants = response.data.variants || []
+      editVariants.value.push(...variants)
+    } catch (error) {
+      console.error(`Lỗi khi tải biến thể cho sản phẩm ${productId}:`, error)
     }
-  }
-
-  selectedFile.value = file
-}
-
-const clearSelectedFile = () => {
-  // Cleanup preview URL if exists
-  if (selectedFilePreview.value) {
-    URL.revokeObjectURL(selectedFilePreview.value)
-  }
-
-  selectedFile.value = null
-  if (uploadRef.value) {
-    uploadRef.value.clear()
   }
 }
 
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
 
-const selectedFilePreview = computed(() => {
-  if (!selectedFile.value) {
-    return null
-  }
-  return URL.createObjectURL(selectedFile.value)
-})
-
-const createImage = async () => {
-  if (!formRef.value) return
-
-  try {
-    await formRef.value.validate()
-
-    if (!selectedFile.value) {
-      message.error('Vui lòng chọn file ảnh!')
-      return
-    }
-
-    isLoading.value = true
-
-    // Upload ảnh lên Cloudinary
-    const formData = new FormData()
-    formData.append('file', selectedFile.value)
-
-    const uploadResponse = await axios.post('/api/upload-image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-
-    // Tạo product image với URL đã upload
-    const imageData = {
-      productId: newImage.value.productId,
-      productVariantId: newImage.value.productVariantId || null,
-      imageUrl: uploadResponse.data.imageUrl,
-    }
-
-    await axios.post('/api/product-images/create', imageData)
-
-    message.success('Thêm ảnh thành công!')
-    resetForm()
-    await loadImages()
-  } catch (error) {
-    if (error.errors) {
-      message.error('Vui lòng kiểm tra lại thông tin')
-    } else {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra khi upload ảnh!')
-    }
-  } finally {
-    isLoading.value = false
-  }
-}
 
 const confirmDelete = (id, productId) => {
   const productName = getProductName(productId)
@@ -537,29 +415,8 @@ const deleteImage = async (id) => {
   }
 }
 
-const resetForm = () => {
-  // Cleanup previous preview URL if exists
-  if (selectedFilePreview.value) {
-    URL.revokeObjectURL(selectedFilePreview.value)
-  }
-
-  newImage.value = {
-    productId: '',
-    productVariantId: '',
-  }
-  selectedFile.value = null
-  productVariants.value = []
-
-  if (uploadRef.value) {
-    uploadRef.value.clear()
-  }
-  if (formRef.value) {
-    formRef.value.restoreValidation()
-  }
-}
-
 // Edit functions
-const startEditImage = (image) => {
+const startEditImage = async (image) => {
   editingImage.value = {
     id: image.id,
     imageUrl: image.imageUrl,
@@ -568,7 +425,8 @@ const startEditImage = (image) => {
   }
 
   if (image.productId) {
-    loadVariantsForEdit()
+    await ensureVariantsLoaded(image.productId)
+    await loadVariantsForEdit()
   }
 
   isEditModalOpen.value = true
@@ -605,9 +463,10 @@ const updateImage = async () => {
 
     await axios.put(`/api/product-images/update/${editingImage.value.id}`, updateData)
 
-    message.success('Cập nhật thông tin ảnh thành công!')
-    await loadImages()
-    cancelEdit()
+        message.success('Cập nhật thông tin ảnh thành công!')
+
+    // Reload page
+    window.location.reload()
   } catch (error) {
     if (error.errors) {
       message.error('Vui lòng kiểm tra lại thông tin')
@@ -633,27 +492,24 @@ const cancelEdit = () => {
 // Helper functions
 const getProductName = (productId) => {
   const product = products.value.find((p) => p.id === productId)
-  return product ? product.name : `Sản phẩm (${productId.substring(0, 8)}...)`
+  return product ? product.name : 'Sản phẩm'
 }
 
-const getVariantName = (variantId) => {
-  const allVariants = [...productVariants.value, ...editVariants.value]
-  const variant = allVariants.find((v) => v.id === variantId)
-  return variant ? `${variant.variantName}: ${variant.variantValue}` : `Biến thể (${variantId.substring(0, 8)}...)`
-}
+
+
+
+
+
+
 
 // Load data on mount
-onMounted(() => {
-  loadProducts()
-  loadImages()
+onMounted(async () => {
+  await loadProducts()
+  await loadImages()
+  await loadAllVariantsForImages()
 })
 
-onBeforeUnmount(() => {
-  // Cleanup preview URL objects
-  if (selectedFilePreview.value) {
-    URL.revokeObjectURL(selectedFilePreview.value)
-  }
-})
+
 </script>
 
 <style scoped>

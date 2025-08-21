@@ -55,4 +55,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
   // Find by orderCode
   List<Order> findByOrderCode(String orderCode);
+
+  // Check if user has purchased a product
+  @Query("SELECT COUNT(o) > 0 FROM Order o " +
+         "JOIN o.orderItems oi " +
+         "JOIN oi.productVariant pv " +
+         "JOIN pv.product p " +
+         "WHERE o.account.id = :accountId AND p.id = :productId " +
+         "AND o.orderStatus IN ('DELIVERED', 'PAID')")
+  boolean existsByAccountAndProduct(@Param("accountId") UUID accountId, @Param("productId") UUID productId);
 }
