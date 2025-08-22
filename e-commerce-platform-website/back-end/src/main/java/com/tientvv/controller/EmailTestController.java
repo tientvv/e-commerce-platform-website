@@ -18,6 +18,7 @@ public class EmailTestController {
     @Autowired
     private EmailService emailService;
 
+    @SuppressWarnings("unused")
     @Autowired
     private OrderService orderService;
 
