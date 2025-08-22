@@ -1,1 +1,0 @@
-ALTER TABLE reviews ADD COLUMN reply NVARCHAR(MAX);
