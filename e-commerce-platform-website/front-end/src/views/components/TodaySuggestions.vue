@@ -4,7 +4,7 @@
 
     <!-- Loading State -->
     <div v-if="isLoading" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-      <div v-for="i in 6" :key="i" class="animate-pulse">
+      <div v-for="i in 18" :key="i" class="animate-pulse">
         <div class="bg-gray-200 rounded-lg aspect-square mb-2"></div>
         <div class="h-4 bg-gray-200 rounded mb-2"></div>
         <div class="h-3 bg-gray-200 rounded w-3/4"></div>
@@ -153,7 +153,7 @@ const suggestedProducts = ref([])
 const isLoading = ref(false)
 const error = ref(false)
 const errorMessage = ref('')
-const currentDisplayCount = ref(6)
+const currentDisplayCount = ref(18)
 const lastFetchTime = ref(0)
 const CACHE_DURATION = 30 * 60 * 1000
 
@@ -193,7 +193,7 @@ const fetchSuggestedProducts = async () => {
 }
 
 const loadMore = () => {
-  currentDisplayCount.value = Math.min(currentDisplayCount.value + 6, suggestedProducts.value.length)
+  currentDisplayCount.value = Math.min(currentDisplayCount.value + 18, suggestedProducts.value.length)
 }
 
 const goToProduct = (productId) => {

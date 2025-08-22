@@ -224,6 +224,18 @@
             </div>
             <div class="flex space-x-2">
               <button
+                @click="exportInvoice(order.id)"
+                class="px-4 py-2 text-sm border border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+              >
+                Xuất hóa đơn
+              </button>
+              <button
+                @click="downloadInvoice(order.id)"
+                class="px-4 py-2 text-sm border border-purple-300 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+              >
+                Tải hóa đơn
+              </button>
+              <button
                 v-if="order.orderStatus === 'DELIVERED'"
                 @click="openReviewDialog(order)"
                 class="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
@@ -262,6 +274,8 @@ import { RouterLink } from 'vue-router'
 import axios from '../../utils/axios'
 import { Package, ShoppingCart, AlertCircle, Check, Clock, Truck } from 'lucide-vue-next'
 import ReviewDialog from '../../components/ReviewDialog.vue'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 const orders = ref([])
 const loading = ref(true)
@@ -530,6 +544,108 @@ const openReviewDialog = (order) => {
 const onReviewSubmitted = (review) => {
   // Có thể thêm logic cập nhật UI sau khi đánh giá thành công
   console.log('Review submitted:', review)
+}
+
+const exportInvoice = async (orderId) => {
+  try {
+    const response = await axios.get(`/api/orders/${orderId}/invoice`)
+
+    // Tạo một div tạm thời để render HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = response.data
+    tempDiv.style.position = 'absolute'
+    tempDiv.style.left = '-9999px'
+    tempDiv.style.top = '-9999px'
+    document.body.appendChild(tempDiv)
+
+    // Chuyển HTML thành canvas
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    })
+
+    // Tạo PDF
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const imgWidth = 210
+    const pageHeight = 295
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+
+    // Tải PDF
+    pdf.save(`hoa-don-${orderId}.pdf`)
+
+    // Cleanup
+    document.body.removeChild(tempDiv)
+  } catch (err) {
+    console.error('Error exporting invoice:', err)
+    alert('Không thể xuất hóa đơn. Vui lòng thử lại.')
+  }
+}
+
+const downloadInvoice = async (orderId) => {
+  try {
+    const response = await axios.get(`/api/orders/${orderId}/invoice`)
+
+    // Tạo một div tạm thời để render HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = response.data
+    tempDiv.style.position = 'absolute'
+    tempDiv.style.left = '-9999px'
+    tempDiv.style.top = '-9999px'
+    document.body.appendChild(tempDiv)
+
+    // Chuyển HTML thành canvas
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    })
+
+    // Tạo PDF
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const imgWidth = 210
+    const pageHeight = 295
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+
+    // Tải PDF
+    pdf.save(`hoa-don-${orderId}.pdf`)
+
+    // Cleanup
+    document.body.removeChild(tempDiv)
+  } catch (err) {
+    console.error('Error downloading invoice:', err)
+    alert('Không thể tải hóa đơn. Vui lòng thử lại.')
+  }
 }
 
 const cancelOrder = async (orderId) => {

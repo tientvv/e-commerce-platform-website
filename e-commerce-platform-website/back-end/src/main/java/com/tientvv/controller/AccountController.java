@@ -7,6 +7,7 @@ import com.tientvv.model.Account;
 import com.tientvv.repository.AccountRepository;
 import com.tientvv.service.AccountService;
 import com.tientvv.service.ImageUploadService;
+import com.tientvv.service.GoogleAuthService;
 import jakarta.servlet.http.HttpSession;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,9 @@ public class AccountController {
 
   @Autowired
   private ImageUploadService imageUploadService;
+
+  @Autowired
+  private GoogleAuthService googleAuthService;
 
   @PostMapping("/logout")
   public Map<String, Object> logout(HttpSession session) {
@@ -58,6 +62,7 @@ public class AccountController {
     accountInfo.put("address", account.getAddress());
     accountInfo.put("role", account.getRole());
     accountInfo.put("accountsImage", account.getAccountsImage());
+    accountInfo.put("googleId", account.getGoogleId());
     accountInfo.put("createdAt", account.getCreatedAt());
     accountInfo.put("updatedAt", account.getUpdatedAt());
     accountInfo.put("lastLogin", account.getLastLogin());
@@ -91,6 +96,32 @@ public class AccountController {
     }
     session.setAttribute("account", account);
     return response;
+  }
+
+  @PostMapping("/google-login")
+  public Map<String, Object> googleLogin(@RequestBody GoogleLoginDto dto, HttpSession session) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+      System.out.println("Received Google login data: " + dto);
+      
+      if (dto.getGoogleId() == null || dto.getGoogleId().isEmpty()) {
+        response.put("message", "Thông tin Google không hợp lệ!");
+        return response;
+      }
+
+      Account account = googleAuthService.authenticateGoogleUser(dto);
+      session.setAttribute("account", account);
+      
+      response.put("message", "Đăng nhập Google thành công!");
+      response.put("account", account);
+      return response;
+    } catch (Exception e) {
+      System.err.println("Google login error: " + e.getMessage());
+      e.printStackTrace();
+      response.put("message", "Đăng nhập Google thất bại: " + e.getMessage());
+      return response;
+    }
   }
 
   @PostMapping("/register")

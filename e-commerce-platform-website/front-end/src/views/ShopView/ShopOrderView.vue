@@ -211,9 +211,9 @@
                             <div class="header-cell">Trạng thái đơn hàng</div>
                             <div class="header-cell">Trạng thái thanh toán</div>
                             <div class="header-cell">Phương thức thanh toán</div>
-                            <div class="header-cell">Ngày đặt</div>
-                            <div class="header-cell">Hủy Đơn</div>
+                            <div class="header-cell">Hóa đơn</div>
                             <div class="header-cell">Thao tác</div>
+                            <div class="header-cell">Hủy đơn</div>
                           </div>
 
                           <!-- Table Body -->
@@ -221,38 +221,49 @@
                             <div v-for="order in orders" :key="order.id" class="table-row">
                               <div class="table-cell text-center">{{ order.id.substring(0, 8).toUpperCase() }}</div>
                                                       <div class="table-cell text-center">
-                          <div class="font-medium whitespace-nowrap overflow-hidden text-ellipsis">{{ order.accountName || 'N/A' }}</div>
-                        </div>
-                              <div class="table-cell font-semibold">{{ formatCurrency(order.totalAmount) }}</div>
-                              <div class="table-cell">
-                                <span :class="getStatusBadgeClass(order.orderStatus)">
+                                <div class="font-medium whitespace-nowrap overflow-hidden text-ellipsis text-center">{{ order.accountName || 'N/A' }}</div>
+                              </div>
+                              <div class="table-cell font-semibold text-center">{{ formatCurrency(order.totalAmount) }}</div>
+                              <div class="table-cell text-center">
+                                <span :class="getStatusBadgeClass(order.orderStatus)" class="text-center">
                                   {{ getStatusLabel(order.orderStatus) }}
                                 </span>
                               </div>
-                              <div class="table-cell">
-                                <span :class="getPaymentStatusBadgeClass(order.transactionStatus || 'PENDING')">
+                              <div class="table-cell text-center">
+                                <span :class="getPaymentStatusBadgeClass(order.transactionStatus || 'PENDING')" class="text-center">
                                   {{ getPaymentStatusLabel(order.transactionStatus || 'PENDING') }}
                                 </span>
                               </div>
-                              <div class="table-cell whitespace-nowrap overflow-hidden text-ellipsis">{{ order.paymentName || 'N/A' }}</div>
-                              <div class="table-cell">{{ formatDate(order.orderDate) }}</div>
-                              <div class="table-cell">
-                                <button
-                                  v-if="order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'DELIVERED'"
-                                  @click="cancelOrder(order.id)"
-                                  class="action-btn-cancel"
-                                  :disabled="order.orderStatus === 'CANCELLED'"
-                                >
-                                  <XCircle class="w-4 h-4" />
-                                  Hủy
-                                </button>
-                                <span v-else class="text-gray-400 text-sm">-</span>
+                              <div class="table-cell whitespace-nowrap overflow-hidden text-ellipsis text-center">{{ order.paymentName || 'N/A' }}</div>
+                              <div class="table-cell invoice-cell">
+                                <div class="flex flex-row gap-1">
+                                  <button @click="exportInvoice(order.id)" class="action-btn-horizontal">
+                                    <span class="text-xs">Xuất</span>
+                                  </button>
+                                  <button @click="downloadInvoice(order.id)" class="action-btn-horizontal">
+                                    <span class="text-xs">Tải</span>
+                                  </button>
+                                </div>
                               </div>
-                              <div class="table-cell">
-                                <button @click="viewOrderDetail(order)" class="action-btn">
-                                  <Eye class="w-4 h-4" />
-                                  Xem
-                                </button>
+                              <div class="table-cell actions-cell">
+                                <div class="flex flex-row gap-1">
+                                  <button @click="viewOrderDetail(order)" class="action-btn-horizontal">
+                                    <span class="text-xs">Xem</span>
+                                  </button>
+                                </div>
+                              </div>
+                              <div class="table-cell cancel-cell">
+                                <div class="flex flex-row gap-1">
+                                  <button
+                                    v-if="order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'DELIVERED'"
+                                    @click="cancelOrder(order.id)"
+                                    class="action-btn-cancel-horizontal"
+                                    :disabled="order.orderStatus === 'CANCELLED'"
+                                  >
+                                    <span class="text-xs">Hủy</span>
+                                  </button>
+                                  <span v-else class="text-gray-400 text-sm">-</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -456,7 +467,9 @@
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { useMessage, NDatePicker } from 'naive-ui'
-import { Package, Clock, CheckCircle, Truck, XCircle, DollarSign, RefreshCw, Eye, RotateCcw, ArrowLeft } from 'lucide-vue-next'
+import { Package, Clock, CheckCircle, Truck, XCircle, DollarSign, RefreshCw, RotateCcw, ArrowLeft } from 'lucide-vue-next'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 import axios from '~/utils/axios'
 import Swiper from 'swiper'
 import 'swiper/css'
@@ -636,6 +649,112 @@ const updateOrderStatus = async () => {
     message.error('Lỗi cập nhật trạng thái đơn hàng')
   } finally {
     updatingStatus.value = false
+  }
+}
+
+const exportInvoice = async (orderId) => {
+  try {
+    const response = await axios.get(`/api/shop/orders/${orderId}/invoice`)
+
+    // Tạo một div tạm thời để render HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = response.data
+    tempDiv.style.position = 'absolute'
+    tempDiv.style.left = '-9999px'
+    tempDiv.style.top = '-9999px'
+    document.body.appendChild(tempDiv)
+
+    // Chuyển HTML thành canvas
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    })
+
+    // Tạo PDF
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const imgWidth = 210
+    const pageHeight = 295
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+
+    // Tải PDF
+    pdf.save(`hoa-don-${orderId}.pdf`)
+
+    // Cleanup
+    document.body.removeChild(tempDiv)
+
+    message.success('Xuất hóa đơn PDF thành công')
+  } catch (err) {
+    console.error('Error exporting invoice:', err)
+    message.error('Không thể xuất hóa đơn. Vui lòng thử lại.')
+  }
+}
+
+const downloadInvoice = async (orderId) => {
+  try {
+    const response = await axios.get(`/api/shop/orders/${orderId}/invoice`)
+
+    // Tạo một div tạm thời để render HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = response.data
+    tempDiv.style.position = 'absolute'
+    tempDiv.style.left = '-9999px'
+    tempDiv.style.top = '-9999px'
+    document.body.appendChild(tempDiv)
+
+    // Chuyển HTML thành canvas
+    const canvas = await html2canvas(tempDiv, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff'
+    })
+
+    // Tạo PDF
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const imgWidth = 210
+    const pageHeight = 295
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+
+    // Tải PDF
+    pdf.save(`hoa-don-${orderId}.pdf`)
+
+    // Cleanup
+    document.body.removeChild(tempDiv)
+
+    message.success('Tải hóa đơn PDF thành công')
+  } catch (err) {
+    console.error('Error downloading invoice:', err)
+    message.error('Không thể tải hóa đơn. Vui lòng thử lại.')
   }
 }
 
@@ -1019,7 +1138,7 @@ onMounted(() => {
 
 .table-header {
   display: grid;
-  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 100px 120px;
+  grid-template-columns: 150px 250px 120px 180px 180px 200px 100px 80px 80px;
   background-color: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -1030,6 +1149,10 @@ onMounted(() => {
   color: #374151;
   text-align: center;
   border-right: 1px solid #e5e7eb;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .header-cell:last-child {
@@ -1042,7 +1165,7 @@ onMounted(() => {
 
 .table-row {
   display: grid;
-  grid-template-columns: 150px 250px 120px 180px 180px 200px 120px 100px 120px;
+  grid-template-columns: 150px 250px 120px 180px 180px 200px 100px 80px 80px;
   border-bottom: 1px solid #f3f4f6;
   transition: background-color 0.2s;
 }
@@ -1060,6 +1183,8 @@ onMounted(() => {
   border-right: 1px solid #f3f4f6;
   display: flex;
   align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .table-cell:last-child {
@@ -1146,6 +1271,133 @@ onMounted(() => {
 .action-btn-cancel:disabled {
   background-color: #9ca3af;
   cursor: not-allowed;
+}
+
+/* Mini Action Buttons */
+.action-btn-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 40px;
+  white-space: nowrap;
+}
+
+.action-btn-mini:hover {
+  background-color: #2563eb;
+}
+
+.action-btn-cancel-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 40px;
+  white-space: nowrap;
+}
+
+.action-btn-cancel-mini:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.action-btn-cancel-mini:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Horizontal Mini Action Buttons */
+.action-btn-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 3px 5px;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 35px;
+  max-width: 42px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.action-btn-horizontal:hover {
+  background-color: #2563eb;
+}
+
+.action-btn-cancel-horizontal {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px 5px;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 35px;
+  max-width: 42px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.action-btn-cancel-horizontal:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
+.action-btn-cancel-horizontal:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Invoice Cell Width */
+.invoice-cell {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  white-space: nowrap;
+}
+
+/* Actions Cell Width */
+.actions-cell {
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+  white-space: nowrap;
+}
+
+/* Cancel Cell Width */
+.cancel-cell {
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+  white-space: nowrap;
 }
 
 /* Pagination */

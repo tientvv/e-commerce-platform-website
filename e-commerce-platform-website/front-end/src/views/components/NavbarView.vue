@@ -1,5 +1,5 @@
 <template>
-  <n-layout-header bordered class="h-16 p-4 sticky top-0 z-50 bg-white shadow-sm">
+  <n-layout-header bordered class="h-16 p-4 sticky top-0 z-50 bg-white">
     <div class="flex max-w-[1440px] mx-auto items-center justify-between h-full">
       <!-- Logo -->
       <div>

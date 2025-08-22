@@ -48,24 +48,30 @@
 
     <n-divider>hoặc</n-divider>
 
-    <n-button block disabled>
-      <template #icon>
-        <img src="/icon-google.svg" width="20" />
-      </template>
-      Đăng ký Google (Chưa phát triển)
-    </n-button>
+    <div id="google-register-button" class="w-full"></div>
+
+    <n-alert v-if="googleError" type="error" class="mt-4" closable @close="googleError = ''">
+      {{ googleError }}
+    </n-alert>
   </n-form>
 </template>
 
 <script setup>
 import axios from 'axios'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { NForm, NFormItem, NInput, NButton, NAlert, NH2, NText, NDivider, NGrid, NGridItem } from 'naive-ui'
+import { useGoogleAuth } from '../../composables/useGoogleAuth'
+
+const router = useRouter()
 
 const errorMessage = ref('')
 const successMessage = ref('')
 const loading = ref(false)
 const formRef = ref(null)
+const googleError = ref('')
+
+const { handleGoogleLogin, renderGoogleButton } = useGoogleAuth()
 
 const form = ref({
   name: '',
@@ -104,4 +110,67 @@ const registerAccount = async () => {
     loading.value = false
   }
 }
+
+const handleGoogleRegisterSuccess = async (response) => {
+  const result = await handleGoogleLogin(response)
+
+  if (result.success) {
+    successMessage.value = 'Đăng ký Google thành công!'
+    errorMessage.value = ''
+    resetForm()
+
+    // Sau khi đăng ký Google thành công, kiểm tra thông tin profile
+    try {
+      const userRes = await axios.get('/api/info-account')
+      const user = userRes.data.account
+
+      // Nếu là tài khoản Google (có google_id), chỉ cần kiểm tra phone và address
+      let isProfileComplete
+      if (user.googleId) {
+        isProfileComplete = (
+          user.phone &&
+          user.address &&
+          user.phone.trim() !== '' &&
+          user.address.trim() !== ''
+        )
+      } else {
+        // Kiểm tra tất cả các trường bắt buộc cho tài khoản thường
+        isProfileComplete = (
+          user.username &&
+          user.name &&
+          user.email &&
+          user.phone &&
+          user.address &&
+          user.username.trim() !== '' &&
+          user.name.trim() !== '' &&
+          user.email.trim() !== '' &&
+          user.phone.trim() !== '' &&
+          user.address.trim() !== ''
+        )
+      }
+
+      if (!isProfileComplete && user.role === 'USER') {
+        // Nếu thông tin chưa đầy đủ và là USER, chuyển hướng đến trang profile
+        router.push('/user/profile')
+      } else {
+        // Nếu thông tin đầy đủ hoặc là ADMIN, chuyển về trang chủ
+        router.push('/')
+      }
+    } catch {
+      // Nếu không thể kiểm tra profile, chuyển về trang chủ
+      router.push('/')
+    }
+  } else {
+    googleError.value = result.error
+  }
+}
+
+onMounted(async () => {
+  try {
+    await renderGoogleButton('google-register-button', handleGoogleRegisterSuccess)
+  } catch (error) {
+    console.error('Không thể khởi tạo Google OAuth:', error)
+    googleError.value = 'Không thể khởi tạo đăng ký Google'
+  }
+})
 </script>

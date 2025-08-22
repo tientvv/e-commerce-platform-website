@@ -10,7 +10,17 @@ export function useUserInfo() {
   const isProfileComplete = computed(() => {
     if (!userInfo.value) return false
 
-    // Kiểm tra tất cả các trường bắt buộc (trừ google_id)
+    // Nếu là tài khoản Google (có google_id), chỉ cần kiểm tra phone và address
+    if (userInfo.value.googleId) {
+      return (
+        userInfo.value.phone &&
+        userInfo.value.address &&
+        userInfo.value.phone.trim() !== '' &&
+        userInfo.value.address.trim() !== ''
+      )
+    }
+
+    // Kiểm tra tất cả các trường bắt buộc cho tài khoản thường
     return (
       userInfo.value.username &&
       userInfo.value.name &&

@@ -52,6 +52,9 @@ public class OrderService {
   @Autowired
   private AccountService accountService;
 
+  @Autowired
+  private EmailService emailService;
+
   @SuppressWarnings("unused")
   @Autowired
   private DiscountRepository discountRepository;
@@ -188,7 +191,18 @@ public class OrderService {
     // Get order items and transactions for DTO
     List<Transaction> transactions = transactionRepository.findByOrderId(savedOrder.getId());
 
-    return convertToDto(savedOrder, orderItems, transactions);
+    // Convert to DTO
+    OrderDto orderDto = convertToDto(savedOrder, orderItems, transactions);
+
+    // Send order confirmation email
+    try {
+      emailService.sendOrderConfirmationEmail(orderDto);
+    } catch (Exception e) {
+      System.err.println("Error sending order confirmation email: " + e.getMessage());
+      // Don't fail the order creation if email fails
+    }
+
+    return orderDto;
   }
 
   public OrderDto getOrderById(UUID orderId) {
@@ -246,6 +260,7 @@ public class OrderService {
     Order order = orderRepository.findById(orderId)
         .orElseThrow(() -> new RuntimeException("Order not found"));
 
+    String oldStatus = order.getOrderStatus();
     order.setOrderStatus(status);
 
     if ("DELIVERED".equals(status)) {
@@ -266,8 +281,23 @@ public class OrderService {
 
     List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
     List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
+    OrderDto orderDto = convertToDto(order, orderItems, updatedTransactions);
 
-    return convertToDto(order, orderItems, updatedTransactions);
+    // Send email notifications based on status change
+    try {
+      if ("CANCELLED".equals(status)) {
+        emailService.sendOrderCancellationEmail(orderDto);
+      } else if ("DELIVERED".equals(status)) {
+        emailService.sendOrderDeliveryEmail(orderDto);
+      } else if (!oldStatus.equals(status)) {
+        emailService.sendOrderStatusUpdateEmail(orderDto, oldStatus, status);
+      }
+    } catch (Exception e) {
+      System.err.println("Error sending order status update email: " + e.getMessage());
+      // Don't fail the status update if email fails
+    }
+
+    return orderDto;
   }
 
   @Transactional

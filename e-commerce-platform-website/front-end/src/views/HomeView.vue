@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col h-screen">
+  <div class="min-h-screen">
     <NavbarView />
-    <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 py-6">
+    <main class="max-w-[1440px] w-full mx-auto px-4 py-6">
       <!-- Category Section -->
       <section class="mb-8">
         <CategoryGrid />

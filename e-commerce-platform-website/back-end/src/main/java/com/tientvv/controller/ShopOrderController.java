@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,6 +24,7 @@ import java.util.UUID;
 public class ShopOrderController {
 
   private final OrderService orderService;
+  private final com.tientvv.service.InvoiceService invoiceService;
 
   @GetMapping
   public ResponseEntity<Map<String, Object>> getShopOrders(
@@ -228,6 +231,32 @@ public class ShopOrderController {
       return ResponseEntity.badRequest().body(Map.of(
           "success", false,
           "message", "Lỗi lấy thống kê doanh thu: " + e.getMessage()));
+    }
+  }
+
+  @GetMapping("/{orderId}/invoice")
+  public ResponseEntity<String> exportInvoice(@PathVariable UUID orderId) {
+    try {
+      log.info("Exporting invoice for order: {}", orderId);
+
+      // Lấy thông tin đơn hàng
+      OrderDto order = orderService.getShopOrderById(orderId);
+      
+      // Tạo hóa đơn HTML
+      String htmlContent = invoiceService.generateInvoicePdf(order);
+
+      // Set headers
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.TEXT_HTML);
+      headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+      return ResponseEntity.ok()
+          .headers(headers)
+          .body(htmlContent);
+
+    } catch (Exception e) {
+      log.error("Error exporting invoice for order {}: ", orderId, e);
+      return ResponseEntity.badRequest().body("Không thể tạo hóa đơn: " + e.getMessage());
     }
   }
 }

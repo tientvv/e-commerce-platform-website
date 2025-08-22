@@ -97,35 +97,71 @@
       </div>
     </div>
 
-    <!-- Charts and Tables -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
       <!-- Revenue Chart -->
-      <n-card title="Biểu đồ doanh thu" class="h-96">
+      <div class="lg:col-span-2">
+        <n-card title="Biểu đồ doanh thu theo thời gian" class="h-96">
+          <div v-if="loading" class="flex items-center justify-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Đang tải...</span>
+          </div>
+          <div v-else-if="revenueStats.revenueByPeriod && revenueStats.revenueByPeriod.length > 0" class="h-64">
+            <RevenueChart :data="revenueStats.revenueByPeriod" :loading="loading" />
+          </div>
+          <div v-else class="flex items-center justify-center h-64">
+            <n-empty description="Không có dữ liệu doanh thu" />
+          </div>
+        </n-card>
+      </div>
+
+      <!-- Order Status Chart -->
+      <div class="lg:col-span-1">
+        <n-card title="Phân bố trạng thái đơn hàng" class="h-96">
+          <div v-if="loading" class="flex items-center justify-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="ml-2 text-gray-600">Đang tải...</span>
+          </div>
+          <div v-else-if="orderStatusStats && Object.keys(orderStatusStats).length > 0" class="h-64">
+            <OrderStatusChart :data="orderStatusStats" :loading="loading" />
+          </div>
+          <div v-else class="flex items-center justify-center h-64">
+            <n-empty description="Không có dữ liệu trạng thái" />
+          </div>
+        </n-card>
+      </div>
+    </div>
+
+    <!-- Top Products Chart -->
+    <div class="mb-6">
+      <n-card title="Biểu đồ top sản phẩm bán chạy" class="h-96">
         <div v-if="loading" class="flex items-center justify-center h-64">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <span class="ml-2 text-gray-600">Đang tải...</span>
         </div>
-        <div v-else-if="revenueStats.revenueByPeriod && revenueStats.revenueByPeriod.length > 0" class="h-64">
-          <!-- Chart sẽ được thêm sau -->
-          <div class="text-center text-gray-500 py-8">
-            Biểu đồ doanh thu theo thời gian
-          </div>
+        <div v-else-if="revenueStats.topProducts && revenueStats.topProducts.length > 0" class="h-64">
+          <TopProductsChart :data="revenueStats.topProducts" :loading="loading" />
         </div>
         <div v-else class="flex items-center justify-center h-64">
-          <n-empty description="Không có dữ liệu doanh thu" />
+          <n-empty description="Không có dữ liệu sản phẩm" />
         </div>
       </n-card>
+    </div>
 
-      <!-- Top Products -->
-      <n-card title="Top sản phẩm bán chạy" class="h-96">
-        <div v-if="loading" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span class="ml-2 text-gray-600">Đang tải...</span>
-        </div>
-        <div v-else-if="revenueStats.topProducts && revenueStats.topProducts.length > 0" class="overflow-y-auto h-64">
-          <div class="space-y-3">
-            <div v-for="(product, index) in revenueStats.topProducts" :key="index"
-                 class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+    <!-- Top Products List -->
+    <n-card title="Danh sách top sản phẩm bán chạy" class="mb-6">
+      <div v-if="loading" class="flex items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-2 text-gray-600">Đang tải...</span>
+      </div>
+      <div v-else-if="revenueStats.topProducts && revenueStats.topProducts.length > 0" class="overflow-y-auto max-h-96">
+        <div class="space-y-3">
+          <div v-for="(product, index) in revenueStats.topProducts" :key="index"
+               class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            <div class="flex items-center gap-4">
+              <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <span class="text-blue-600 font-semibold text-sm">{{ index + 1 }}</span>
+              </div>
               <div class="flex-1">
                 <div class="font-medium text-gray-900">{{ product.productName }}</div>
                 <div class="text-sm text-gray-500">
@@ -135,22 +171,22 @@
                   {{ product.orderCount }} đơn hàng
                 </div>
               </div>
-              <div class="text-right">
-                <div class="font-semibold text-green-600">
-                  {{ formatCurrency(product.totalRevenue) }}
-                </div>
-                <div class="text-sm text-gray-500">
-                  {{ product.totalQuantity }} sản phẩm
-                </div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold text-green-600">
+                {{ formatCurrency(product.totalRevenue) }}
+              </div>
+              <div class="text-sm text-gray-500">
+                {{ product.totalQuantity }} sản phẩm
               </div>
             </div>
           </div>
         </div>
-        <div v-else class="flex items-center justify-center h-64">
-          <n-empty description="Không có dữ liệu sản phẩm" />
-        </div>
-      </n-card>
-    </div>
+      </div>
+      <div v-else class="flex items-center justify-center py-8">
+        <n-empty description="Không có dữ liệu sản phẩm" />
+      </div>
+    </n-card>
 
     <!-- Revenue Details Table -->
     <n-card title="Chi tiết doanh thu" class="mt-6">
@@ -207,6 +243,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import axios from 'axios'
+import RevenueChart from '~/components/RevenueChart.vue'
+import TopProductsChart from '~/components/TopProductsChart.vue'
+import OrderStatusChart from '~/components/OrderStatusChart.vue'
 import {
   DollarSign,
   ShoppingCart,
@@ -225,6 +264,7 @@ const revenueStats = ref({
   revenueByPeriod: [],
   topProducts: []
 })
+const orderStatusStats = ref({})
 
 // Filters
 const filters = reactive({
@@ -287,6 +327,20 @@ const loadRevenueStatistics = async () => {
   }
 }
 
+const loadOrderStatusStatistics = async () => {
+  try {
+    const response = await axios.get('/api/shop/orders/statistics')
+
+    if (response.data.success) {
+      orderStatusStats.value = response.data.statistics
+    } else {
+      console.error('Error loading order status statistics:', response.data.message)
+    }
+  } catch (error) {
+    console.error('Error loading order status statistics:', error)
+  }
+}
+
 const onDateChange = () => {
   console.log('DEBUG: Date changed - startDate:', filters.startDate, 'endDate:', filters.endDate)
   // Khi người dùng chọn date, set period thành CUSTOM
@@ -320,6 +374,7 @@ const formatDate = (dateString) => {
 // Load data on mount
 onMounted(() => {
   loadRevenueStatistics()
+  loadOrderStatusStatistics()
 })
 </script>
 

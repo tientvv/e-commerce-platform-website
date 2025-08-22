@@ -5,9 +5,12 @@ import com.tientvv.dto.order.OrderDto;
 import com.tientvv.model.Account;
 import com.tientvv.service.AccountService;
 import com.tientvv.service.OrderService;
+import com.tientvv.service.InvoiceService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +28,9 @@ public class OrderController {
 
   @Autowired
   private AccountService accountService;
+
+  @Autowired
+  private InvoiceService invoiceService;
 
   @PostMapping
   public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderDto createOrderDto) {
@@ -239,6 +245,42 @@ public class OrderController {
       errorResponse.put("success", false);
       errorResponse.put("message", "Lỗi tạo đơn hàng mẫu: " + e.getMessage());
       return ResponseEntity.badRequest().body(errorResponse);
+    }
+  }
+
+  @GetMapping("/{orderId}/invoice")
+  public ResponseEntity<String> exportInvoice(@PathVariable UUID orderId) {
+    try {
+      // Lấy user hiện tại từ session
+      Account currentUser = accountService.getCurrentUserFromSession();
+      if (currentUser == null) {
+        return ResponseEntity.badRequest().body("Bạn cần đăng nhập để xem hóa đơn");
+      }
+
+      // Lấy thông tin đơn hàng
+      OrderDto order = orderService.getOrderById(orderId);
+      
+      // Kiểm tra xem đơn hàng có thuộc về user hiện tại không
+      if (!order.getAccountId().equals(currentUser.getId())) {
+        return ResponseEntity.badRequest().body("Bạn không có quyền xem hóa đơn này");
+      }
+
+      // Tạo hóa đơn HTML
+      String htmlContent = invoiceService.generateInvoicePdf(order);
+
+      // Set headers
+      HttpHeaders headers = new HttpHeaders();
+      headers.setContentType(MediaType.TEXT_HTML);
+      headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+      return ResponseEntity.ok()
+          .headers(headers)
+          .body(htmlContent);
+
+    } catch (Exception e) {
+      System.err.println("Error exporting invoice: " + e.getMessage());
+      e.printStackTrace();
+      return ResponseEntity.badRequest().body("Không thể tạo hóa đơn: " + e.getMessage());
     }
   }
 }

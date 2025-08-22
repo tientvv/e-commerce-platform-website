@@ -16,4 +16,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
   Account findByUsernameAndIsActive(String username, boolean isActive);
 
   Account findByUsername(String username);
+  
+  Account findByGoogleId(String googleId);
+  
+  Account findByEmail(String email);
 }
