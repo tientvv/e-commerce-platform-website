@@ -141,6 +141,7 @@ public class EmailService {
         html.append(".status-processing { background-color: #3498db; color: white; }");
         html.append(".status-delivered { background-color: #27ae60; color: white; }");
         html.append(".status-cancelled { background-color: #e74c3c; color: white; }");
+        html.append(".logo { font-size: 24px; font-weight: bold; color: #3498db; margin-bottom: 10px; }");
         html.append("</style>");
         html.append("</head>");
         html.append("<body>");
@@ -149,8 +150,9 @@ public class EmailService {
         
         // Header
         html.append("<div class='header'>");
+        html.append("<div class='logo'>E-Commerce Platform</div>");
         html.append("<h1>🎉 Đơn hàng đã được xác nhận!</h1>");
-        html.append("<p>Cảm ơn bạn đã đặt hàng tại ").append(appName).append("</p>");
+        html.append("<p>Cảm ơn bạn đã đặt hàng tại <strong>E-Commerce Platform</strong></p>");
         html.append("</div>");
         
         // Order Info
@@ -203,7 +205,7 @@ public class EmailService {
         // Footer
         html.append("<div class='footer'>");
         html.append("<p>Nếu bạn có bất kỳ câu hỏi nào, vui lòng liên hệ với chúng tôi.</p>");
-        html.append("<p>Trân trọng,<br>").append(appName).append("</p>");
+        html.append("<p>Trân trọng,<br><strong>E-Commerce Platform</strong></p>");
         html.append("</div>");
         
         html.append("</div>");
@@ -246,6 +248,7 @@ public class EmailService {
         
         // Header
         html.append("<div class='header'>");
+        html.append("<div class='logo'>E-Commerce Platform</div>");
         html.append("<h1>📢 Cập nhật trạng thái đơn hàng</h1>");
         html.append("<p>Đơn hàng của bạn đã được cập nhật trạng thái</p>");
         html.append("</div>");
@@ -271,7 +274,7 @@ public class EmailService {
         // Footer
         html.append("<div class='footer'>");
         html.append("<p>Bạn có thể theo dõi đơn hàng trong tài khoản của mình.</p>");
-        html.append("<p>Trân trọng,<br>").append(appName).append("</p>");
+        html.append("<p>Trân trọng,<br><strong>E-Commerce Platform</strong></p>");
         html.append("</div>");
         
         html.append("</div>");
@@ -296,6 +299,7 @@ public class EmailService {
         html.append(".cancellation-notice { background-color: #fdf2f2; padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center; border-left: 4px solid #e74c3c; }");
         html.append(".cancellation-notice h3 { color: #e74c3c; margin-top: 0; }");
         html.append(".order-info { background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin-bottom: 25px; }");
+        html.append(".logo { font-size: 24px; font-weight: bold; color: #3498db; margin-bottom: 10px; }");
         html.append(".order-info h3 { color: #2c3e50; margin-top: 0; }");
         html.append(".info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }");
         html.append(".label { font-weight: bold; color: #34495e; }");
@@ -309,6 +313,7 @@ public class EmailService {
         
         // Header
         html.append("<div class='header'>");
+        html.append("<div class='logo'>E-Commerce Platform</div>");
         html.append("<h1>❌ Đơn hàng đã bị hủy</h1>");
         html.append("<p>Đơn hàng của bạn đã được hủy thành công</p>");
         html.append("</div>");
@@ -332,7 +337,7 @@ public class EmailService {
         // Footer
         html.append("<div class='footer'>");
         html.append("<p>Nếu bạn có thắc mắc, vui lòng liên hệ với chúng tôi.</p>");
-        html.append("<p>Trân trọng,<br>").append(appName).append("</p>");
+        html.append("<p>Trân trọng,<br><strong>E-Commerce Platform</strong></p>");
         html.append("</div>");
         
         html.append("</div>");
@@ -357,6 +362,7 @@ public class EmailService {
         html.append(".delivery-notice { background-color: #e8f8f5; padding: 20px; border-radius: 8px; margin-bottom: 25px; text-align: center; border-left: 4px solid #27ae60; }");
         html.append(".delivery-notice h3 { color: #27ae60; margin-top: 0; }");
         html.append(".order-info { background-color: #ecf0f1; padding: 20px; border-radius: 8px; margin-bottom: 25px; }");
+        html.append(".logo { font-size: 24px; font-weight: bold; color: #3498db; margin-bottom: 10px; }");
         html.append(".order-info h3 { color: #2c3e50; margin-top: 0; }");
         html.append(".info-row { display: flex; justify-content: space-between; margin-bottom: 8px; }");
         html.append(".label { font-weight: bold; color: #34495e; }");
@@ -370,8 +376,9 @@ public class EmailService {
         
         // Header
         html.append("<div class='header'>");
+        html.append("<div class='logo'>E-Commerce Platform</div>");
         html.append("<h1>🎉 Đơn hàng đã được giao thành công!</h1>");
-        html.append("<p>Cảm ơn bạn đã mua hàng tại ").append(appName).append("</p>");
+        html.append("<p>Cảm ơn bạn đã mua hàng tại <strong>E-Commerce Platform</strong></p>");
         html.append("</div>");
         
         // Delivery Notice
@@ -394,7 +401,7 @@ public class EmailService {
         // Footer
         html.append("<div class='footer'>");
         html.append("<p>Hãy đánh giá sản phẩm để giúp chúng tôi cải thiện dịch vụ!</p>");
-        html.append("<p>Trân trọng,<br>").append(appName).append("</p>");
+        html.append("<p>Trân trọng,<br><strong>E-Commerce Platform</strong></p>");
         html.append("</div>");
         
         html.append("</div>");

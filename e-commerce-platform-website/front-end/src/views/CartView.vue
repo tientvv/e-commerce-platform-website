@@ -273,9 +273,16 @@
               <!-- Checkout Button -->
               <button
                 @click="handleCheckout"
-                class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                :disabled="isCheckoutLoading"
+                class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {{ shopCount > 1 ? `Đặt hàng (${shopCount} đơn)` : 'Đặt hàng' }}
+                <div v-if="isCheckoutLoading" class="flex items-center justify-center gap-2">
+                  <div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>{{ checkoutProgress || 'Đang xử lý...' }}</span>
+                </div>
+                <span v-else>
+                  {{ shopCount > 1 ? `Đặt hàng (${shopCount} đơn)` : 'Đặt hàng' }}
+                </span>
               </button>
 
             </div>
@@ -390,6 +397,8 @@ const appliedDiscount = ref(null)
 const discountError = ref('')
 const showDiscountDialog = ref(false)
 const selectedItems = ref([])
+const isCheckoutLoading = ref(false)
+const checkoutProgress = ref('')
 
 // Computed
 const subtotal = computed(() => {
@@ -708,8 +717,10 @@ const processMultipleOrders = async (ordersData) => {
     console.log('Processing multiple orders:', ordersData.length)
 
     // Tạo từng đơn hàng
-    for (const orderData of ordersData) {
+    for (let i = 0; i < ordersData.length; i++) {
+      const orderData = ordersData[i]
       try {
+        checkoutProgress.value = `Đang tạo đơn hàng ${i + 1}/${ordersData.length}...`
         console.log('Creating order for shop:', orderData.shopId, 'with total:', orderData.totalAmount)
         const order = await processCODPayment(orderData)
         if (order) {
@@ -723,6 +734,7 @@ const processMultipleOrders = async (ordersData) => {
     }
 
     // Xử lý kết quả
+    checkoutProgress.value = 'Đang hoàn tất đơn hàng...'
     if (createdOrders.length > 0) {
       if (createdOrders.length === ordersData.length) {
         // Tất cả đơn hàng thành công
@@ -760,6 +772,10 @@ const handleCheckout = async () => {
     return
   }
 
+  // Bắt đầu loading state
+  isCheckoutLoading.value = true
+  checkoutProgress.value = 'Đang kiểm tra thông tin...'
+
   try {
     // Kiểm tra xem có sản phẩm nào trong giỏ hàng không
     if (cartItems.value.length === 0) {
@@ -787,6 +803,7 @@ const handleCheckout = async () => {
     }
 
     // Lấy thông tin user hiện tại
+    checkoutProgress.value = 'Đang kiểm tra thông tin đăng nhập...'
     let userResponse
     try {
       userResponse = await axios.get('/api/info-account')
@@ -810,6 +827,7 @@ const handleCheckout = async () => {
     }
 
     // Phân nhóm sản phẩm theo shop (chỉ những sản phẩm đã chọn)
+    checkoutProgress.value = 'Đang phân nhóm sản phẩm theo cửa hàng...'
     const itemsByShop = {}
     console.log('=== DEBUG SHOP GROUPING ===')
     console.log('Selected items:', selectedItems.value)
@@ -954,6 +972,7 @@ const handleCheckout = async () => {
 
     if (selectedPaymentObject.value.paymentCode === 'PAYOS') {
       // PayOS - Hỗ trợ nhiều đơn hàng từ nhiều shop
+      checkoutProgress.value = 'Đang tạo thanh toán PayOS...'
       console.log('Processing PayOS payment for', ordersData.length, 'orders')
 
       // Tạm thời bỏ qua kiểm tra tồn kho để test
@@ -1022,6 +1041,7 @@ const handleCheckout = async () => {
               : firstOrderData.totalAmount
             localStorage.setItem('pendingOrderAmount', totalAmount.toString())
 
+            checkoutProgress.value = 'Đang chuyển hướng đến trang thanh toán PayOS...'
             message.info('Đang chuyển hướng đến trang thanh toán PayOS...')
             window.location.href = payosResponse.data.paymentUrl
           } else {
@@ -1053,12 +1073,17 @@ const handleCheckout = async () => {
       }
     } else {
       // COD hoặc các phương thức khác - Tạo nhiều đơn hàng
+      checkoutProgress.value = 'Đang tạo đơn hàng...'
       await processMultipleOrders(ordersData)
     }
   } catch (error) {
     console.error('Error during checkout:', error)
     const errorMessage = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi đặt hàng'
     message.error('Có lỗi xảy ra khi đặt hàng: ' + errorMessage)
+  } finally {
+    // Kết thúc loading state
+    isCheckoutLoading.value = false
+    checkoutProgress.value = ''
   }
 }
 

@@ -5,7 +5,7 @@ export function useGoogleAuth() {
   const loading = ref(false)
   const error = ref('')
 
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID_HERE'
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
   const initializeGoogleAuth = () => {
     return new Promise((resolve, reject) => {

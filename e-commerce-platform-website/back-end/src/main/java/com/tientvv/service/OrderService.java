@@ -7,6 +7,7 @@ import com.tientvv.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 import java.math.RoundingMode;
 
 @Service
+@Slf4j
 public class OrderService {
 
   @Autowired
@@ -948,5 +950,62 @@ public class OrderService {
     transactionRepository.save(transaction);
 
     return convertToDto(savedOrder, orderItems, List.of(transaction));
+  }
+
+  public OrderDto cancelOrder(UUID orderId) {
+    try {
+      log.info("Cancelling order: {}", orderId);
+
+      // Tìm đơn hàng
+      Order order = orderRepository.findById(orderId)
+          .orElseThrow(() -> new RuntimeException("Không tìm thấy đơn hàng"));
+
+      // Kiểm tra trạng thái đơn hàng
+      if ("CANCELLED".equals(order.getOrderStatus())) {
+        throw new RuntimeException("Đơn hàng đã bị hủy trước đó");
+      }
+
+      if ("DELIVERED".equals(order.getOrderStatus())) {
+        throw new RuntimeException("Không thể hủy đơn hàng đã giao");
+      }
+
+      // Cập nhật trạng thái đơn hàng
+      order.setOrderStatus("CANCELLED");
+      order.setCancelledDate(OffsetDateTime.now());
+      Order savedOrder = orderRepository.save(order);
+
+      // Cập nhật trạng thái transaction
+      List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+      for (Transaction transaction : transactions) {
+        if ("PENDING".equals(transaction.getTransactionStatus()) || "SUCCESS".equals(transaction.getTransactionStatus())) {
+          transaction.setTransactionStatus("CANCELLED");
+          transactionRepository.save(transaction);
+        }
+      }
+
+      // Hoàn lại số lượng sản phẩm
+      List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+      for (OrderItem item : orderItems) {
+        if (item.getProductVariant() != null) {
+          ProductVariant variant = item.getProductVariant();
+          variant.setQuantity(variant.getQuantity() + item.getQuantity());
+          productVariantRepository.save(variant);
+        }
+      }
+
+      // Gửi email thông báo hủy đơn hàng
+      try {
+        OrderDto orderDto = convertToDto(savedOrder, orderItems, transactions);
+        emailService.sendOrderCancellationEmail(orderDto);
+      } catch (Exception e) {
+        log.error("Error sending cancellation email: " + e.getMessage());
+      }
+
+      return convertToDto(savedOrder, orderItems, transactions);
+
+    } catch (Exception e) {
+      log.error("Error cancelling order {}: ", orderId, e);
+      throw new RuntimeException("Lỗi hủy đơn hàng: " + e.getMessage());
+    }
   }
 }

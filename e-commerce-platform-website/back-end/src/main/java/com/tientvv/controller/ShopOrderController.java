@@ -234,6 +234,26 @@ public class ShopOrderController {
     }
   }
 
+  @PutMapping("/{orderId}/cancel")
+  public ResponseEntity<Map<String, Object>> cancelOrder(@PathVariable UUID orderId) {
+    try {
+      log.info("Cancelling order: {}", orderId);
+
+      OrderDto cancelledOrder = orderService.cancelOrder(orderId);
+
+      return ResponseEntity.ok(Map.of(
+          "success", true,
+          "message", "Hủy đơn hàng thành công",
+          "order", cancelledOrder));
+
+    } catch (Exception e) {
+      log.error("Error cancelling order {}: ", orderId, e);
+      return ResponseEntity.badRequest().body(Map.of(
+          "success", false,
+          "message", "Lỗi hủy đơn hàng: " + e.getMessage()));
+    }
+  }
+
   @GetMapping("/{orderId}/invoice")
   public ResponseEntity<String> exportInvoice(@PathVariable UUID orderId) {
     try {

@@ -13,10 +13,11 @@ public class WebConfig implements WebMvcConfigurer {
   @Override
   public void addCorsMappings(CorsRegistry registry) {
     registry.addMapping("/**")
-        .allowedOriginPatterns("http://localhost:3000", "http://localhost:5173") // Chỉ định cụ thể origins
-        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+        .allowedOriginPatterns("http://localhost:3000", "http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:5173")
+        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
         .allowedHeaders("*")
-        .allowCredentials(true) // Quan trọng: cho phép gửi cookies/session
+        .exposedHeaders("Access-Control-Allow-Origin", "Access-Control-Allow-Credentials", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers")
+        .allowCredentials(true)
         .maxAge(3600);
   }
 

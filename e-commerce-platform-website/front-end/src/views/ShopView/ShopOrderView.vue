@@ -258,9 +258,13 @@
                                     v-if="order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'DELIVERED'"
                                     @click="cancelOrder(order.id)"
                                     class="action-btn-cancel-horizontal"
-                                    :disabled="order.orderStatus === 'CANCELLED'"
+                                    :disabled="order.orderStatus === 'CANCELLED' || order.isUpdating"
                                   >
-                                    <span class="text-xs">Hủy</span>
+                                    <div v-if="order.isUpdating" class="flex items-center gap-1">
+                                      <component :is="RefreshCw" class="w-3 h-3 animate-spin" />
+                                      <span class="text-xs">Đang hủy...</span>
+                                    </div>
+                                    <span v-else class="text-xs">Hủy</span>
                                   </button>
                                   <span v-else class="text-gray-400 text-sm">-</span>
                                 </div>
@@ -466,7 +470,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
-import { useMessage, NDatePicker } from 'naive-ui'
+import { useMessage, NDatePicker, useDialog } from 'naive-ui'
 import { Package, Clock, CheckCircle, Truck, XCircle, DollarSign, RefreshCw, RotateCcw, ArrowLeft } from 'lucide-vue-next'
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
@@ -475,6 +479,7 @@ import Swiper from 'swiper'
 import 'swiper/css'
 
 const message = useMessage()
+const dialog = useDialog()
 
 // Reactive data
 const loading = ref(false)
@@ -759,22 +764,81 @@ const downloadInvoice = async (orderId) => {
 }
 
 const cancelOrder = async (orderId) => {
-  if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) return
+  // Tìm đơn hàng trong danh sách hiện tại
+  const orderToCancel = orders.value.find(order => order.id === orderId)
+  const orderCode = orderToCancel ? orderToCancel.orderCode : orderId
+
+  // Dialog xác nhận với thông tin chi tiết
+  const confirmed = await new Promise((resolve) => {
+    dialog.warning({
+      title: 'Xác nhận hủy đơn hàng',
+      content: `Bạn có chắc chắn muốn hủy đơn hàng ${orderCode}?
+
+Thao tác này không thể hoàn tác và sẽ:
+• Cập nhật trạng thái đơn hàng thành "Đã hủy"
+• Hoàn lại số lượng sản phẩm vào kho
+• Gửi email thông báo cho khách hàng`,
+      positiveText: 'Xác nhận hủy',
+      negativeText: 'Không hủy',
+      onPositiveClick: () => resolve(true),
+      onNegativeClick: () => resolve(false),
+      onClose: () => resolve(false)
+    })
+  })
+
+  if (!confirmed) return
 
   try {
-    const response = await axios.put(`/api/shop/orders/${orderId}/status`, {
-      status: 'CANCELLED',
-    })
+    // Hiển thị loading cho đơn hàng đang được hủy
+    const orderIndex = orders.value.findIndex(order => order.id === orderId)
+    if (orderIndex !== -1) {
+      orders.value[orderIndex].isUpdating = true
+    }
+
+    const response = await axios.put(`/api/shop/orders/${orderId}/cancel`)
 
     if (response.data.success) {
       message.success('Hủy đơn hàng thành công')
-      loadOrders() // Reload to update statistics
+
+      // Cập nhật đơn hàng trong danh sách ngay lập tức
+      if (orderIndex !== -1) {
+        orders.value[orderIndex] = {
+          ...orders.value[orderIndex],
+          ...response.data.order,
+          orderStatus: 'CANCELLED',
+          isUpdating: false
+        }
+      }
+
+      // Cập nhật statistics ngay lập tức
+      if (statistics.value) {
+        statistics.value.totalOrders = (statistics.value.totalOrders || 0)
+        statistics.value.cancelledOrders = (statistics.value.cancelledOrders || 0) + 1
+        if (statistics.value.pendingOrders > 0) {
+          statistics.value.pendingOrders -= 1
+        }
+      }
+
+      // Load lại để đồng bộ dữ liệu từ server
+      setTimeout(() => {
+        loadOrders()
+      }, 1000)
+
     } else {
       message.error(response.data.message || 'Lỗi hủy đơn hàng')
+      if (orderIndex !== -1) {
+        orders.value[orderIndex].isUpdating = false
+      }
     }
   } catch (error) {
     console.error('Error cancelling order:', error)
     message.error('Lỗi hủy đơn hàng')
+
+    // Tắt loading state khi có lỗi
+    const orderIndex = orders.value.findIndex(order => order.id === orderId)
+    if (orderIndex !== -1) {
+      orders.value[orderIndex].isUpdating = false
+    }
   }
 }
 
