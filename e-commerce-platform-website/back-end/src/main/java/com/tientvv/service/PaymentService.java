@@ -61,8 +61,6 @@ public class PaymentService {
   public PaymentDto updatePayment(UpdatePaymentDto dto) {
     Payment payment = paymentRepository.findById(dto.getId())
         .orElseThrow(() -> new RuntimeException("Không tìm thấy phương thức thanh toán với ID: " + dto.getId()));
-
-    // Validate unique payment code (exclude current payment)
     if (paymentRepository.existsByPaymentCodeAndIdNot(dto.getPaymentCode(), dto.getId())) {
       throw new RuntimeException("Mã thanh toán đã tồn tại: " + dto.getPaymentCode());
     }

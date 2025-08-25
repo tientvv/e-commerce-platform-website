@@ -281,6 +281,11 @@ public class OrderService {
       order.setCancelledDate(OffsetDateTime.now());
       log.info("Order {} marked as cancelled at {}", orderId, order.getCancelledDate());
       
+      // Hoàn trả số lượng sản phẩm khi hủy đơn hàng
+      // Với COD: số lượng đã được trừ khi tạo đơn hàng
+      // Với PayOS: số lượng đã được trừ khi thanh toán thành công
+      restoreProductQuantities(orderId);
+      
       // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
       List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
       for (Transaction transaction : transactions) {
@@ -362,12 +367,17 @@ public class OrderService {
       // Cập nhật trạng thái đơn hàng dựa trên trạng thái thanh toán
       if ("SUCCESS".equals(transactionStatus)) {
         // Nếu transaction chuyển từ PENDING sang SUCCESS, trừ số lượng sản phẩm
-        if ("PENDING".equals(oldTransactionStatus)) {
+        // Chỉ trừ số lượng cho PayOS, không trừ cho COD vì đã trừ khi tạo đơn hàng
+        if ("PENDING".equals(oldTransactionStatus) && "PAYOS".equals(order.getPayment().getPaymentCode())) {
           deductProductQuantities(orderId);
         }
         order.setOrderStatus("PROCESSED");
         log.info("Order {} status updated to PROCESSED due to successful payment", orderId);
       } else if ("CANCELLED".equals(transactionStatus)) {
+        // Hoàn trả số lượng sản phẩm khi hủy transaction
+        // Với COD: số lượng đã được trừ khi tạo đơn hàng
+        // Với PayOS: số lượng đã được trừ khi thanh toán thành công
+        restoreProductQuantities(orderId);
         order.setOrderStatus("CANCELLED");
         order.setCancelledDate(OffsetDateTime.now());
         log.info("Order {} status updated to CANCELLED due to cancelled payment", orderId);
@@ -995,6 +1005,37 @@ public class OrderService {
     }
   }
 
+  /**
+   * Hoàn trả số lượng sản phẩm khi hủy đơn hàng
+   */
+  @Transactional
+  private void restoreProductQuantities(UUID orderId) {
+    try {
+      List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+
+      for (OrderItem orderItem : orderItems) {
+        if (orderItem.getProductVariant() != null) {
+          ProductVariant productVariant = orderItem.getProductVariant();
+          Integer currentQuantity = productVariant.getQuantity();
+          Integer orderedQuantity = orderItem.getQuantity();
+
+          if (currentQuantity != null && orderedQuantity != null) {
+            // Hoàn trả số lượng
+            int newQuantity = currentQuantity + orderedQuantity;
+            productVariant.setQuantity(newQuantity);
+            productVariantRepository.save(productVariant);
+
+            System.out.println("Đã hoàn trả " + orderedQuantity + " sản phẩm cho variant " +
+                productVariant.getId() + ". Số lượng hiện tại: " + newQuantity);
+          }
+        }
+      }
+    } catch (Exception e) {
+      System.err.println("Lỗi khi hoàn trả số lượng sản phẩm cho đơn hàng " + orderId + ": " + e.getMessage());
+      e.printStackTrace();
+    }
+  }
+
   public OrderDto createSampleOrder(UUID accountId) {
     // Tạo đơn hàng mẫu cho testing
     Account account = accountRepository.findById(accountId)
@@ -1116,15 +1157,13 @@ public class OrderService {
         }
       }
 
-      // Hoàn lại số lượng sản phẩm
+      // Hoàn lại số lượng sản phẩm cho cả COD và PayOS khi hủy đơn hàng
+      // Với COD: số lượng đã được trừ khi tạo đơn hàng
+      // Với PayOS: số lượng đã được trừ khi thanh toán thành công
+      restoreProductQuantities(orderId);
+
+      // Lấy order items cho DTO
       List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-      for (OrderItem item : orderItems) {
-        if (item.getProductVariant() != null) {
-          ProductVariant variant = item.getProductVariant();
-          variant.setQuantity(variant.getQuantity() + item.getQuantity());
-          productVariantRepository.save(variant);
-        }
-      }
 
       // Gửi email thông báo hủy đơn hàng
       try {

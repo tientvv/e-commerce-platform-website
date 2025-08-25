@@ -1077,6 +1077,22 @@ const handleCheckout = async () => {
       }
     } else {
       // COD hoặc các phương thức khác - Tạo nhiều đơn hàng
+      checkoutProgress.value = 'Đang kiểm tra tồn kho...'
+
+      // Kiểm tra tồn kho trước khi tạo đơn hàng COD
+      for (const orderData of ordersData) {
+        try {
+          await axios.post('/api/orders/check-inventory', orderData)
+        } catch (inventoryError) {
+          if (inventoryError.response?.data?.message) {
+            message.error('Lỗi kiểm tra tồn kho: ' + inventoryError.response.data.message)
+          } else {
+            message.error('Không đủ số lượng sản phẩm để đặt hàng')
+          }
+          return
+        }
+      }
+
       checkoutProgress.value = 'Đang tạo đơn hàng...'
       await processMultipleOrders(ordersData)
     }
