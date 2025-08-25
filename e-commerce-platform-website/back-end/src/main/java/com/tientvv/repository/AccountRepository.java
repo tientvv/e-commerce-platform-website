@@ -33,4 +33,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
   // Lấy tất cả người dùng (loại trừ ADMIN)
   @Query("SELECT a FROM Account a WHERE a.role != 'ADMIN'")
   List<Account> findAllExceptAdmin();
+  
+  // Đếm số lượng người dùng (loại trừ ADMIN)
+  @Query("SELECT COUNT(a) FROM Account a WHERE a.role != 'ADMIN'")
+  long countByRoleNot();
 }

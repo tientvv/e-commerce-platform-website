@@ -1,14 +1,15 @@
 <template>
   <n-space vertical :size="24" class="w-full">
-    <!-- Page Header -->
+        <!-- Page Header -->
     <div>
       <n-h1 style="font-size: 16px">Dashboard</n-h1>
       <n-text depth="3">Tổng quan hệ thống quản trị</n-text>
     </div>
 
     <!-- Statistics Cards -->
-    <div class="stats-grid">
-      <n-card v-for="stat in stats" :key="stat.title" hoverable>
+    <n-spin :show="loading">
+      <div class="stats-grid">
+        <n-card v-for="stat in stats" :key="stat.title" hoverable>
         <div class="stat-card-content">
           <div class="stat-header">
             <n-avatar :size="48" :style="{ backgroundColor: stat.bgColor }">
@@ -28,38 +29,79 @@
           </div>
         </div>
       </n-card>
-    </div>
+      </div>
+    </n-spin>
 
-    <!-- Recent Activities -->
-    <n-card title="Hoạt động gần đây">
-      <template #header-extra>
-        <n-button text type="primary" @click="viewAllActivities"> Xem tất cả → </n-button>
-      </template>
-
-      <div class="activities-container">
-        <div v-for="activity in activities" :key="activity.id" class="activity-item">
-          <div class="activity-avatar">
-            <n-avatar :size="40" :style="{ backgroundColor: activity.bgColor }">
-              <n-icon :size="20">
-                <component :is="activity.icon" />
-              </n-icon>
-            </n-avatar>
+    <!-- Charts Section -->
+    <div class="charts-grid">
+      <!-- Categories Chart -->
+      <n-card title="Thống kê theo danh mục">
+        <div class="chart-container">
+          <div class="chart-item">
+            <div class="chart-label">Danh mục</div>
+            <div class="chart-value">{{ stats[0].value }}</div>
+            <div class="chart-bar" :style="{ width: getChartPercentage(stats[0].value, 50) + '%' }"></div>
           </div>
+          <div class="chart-item">
+            <div class="chart-label">Sản phẩm</div>
+            <div class="chart-value">{{ stats[1].value }}</div>
+            <div class="chart-bar" :style="{ width: getChartPercentage(stats[1].value, 50) + '%' }"></div>
+          </div>
+          <div class="chart-item">
+            <div class="chart-label">Người dùng</div>
+            <div class="chart-value">{{ stats[2].value }}</div>
+            <div class="chart-bar" :style="{ width: getChartPercentage(stats[2].value, 50) + '%' }"></div>
+          </div>
+          <div class="chart-item">
+            <div class="chart-label">Cửa hàng</div>
+            <div class="chart-value">{{ stats[3].value }}</div>
+            <div class="chart-bar" :style="{ width: getChartPercentage(stats[3].value, 50) + '%' }"></div>
+          </div>
+        </div>
+      </n-card>
 
-          <div class="activity-content">
-            <div class="activity-title">{{ activity.title }}</div>
-            <div class="activity-meta">
-              <n-text depth="3" size="small">{{ activity.time }}</n-text>
-              <n-tag size="small" :type="getActivityTagType(activity.type)">
-                {{ getActivityTypeText(activity.type) }}
-              </n-tag>
+      <!-- Growth Chart -->
+      <n-card title="Tăng trưởng hệ thống">
+        <div class="growth-chart">
+          <div class="growth-item">
+            <n-icon size="24" color="#3b82f6">
+              <Package />
+            </n-icon>
+            <div class="growth-info">
+              <div class="growth-label">Danh mục mới</div>
+              <div class="growth-value">+{{ stats[0].trend }}</div>
+            </div>
+          </div>
+          <div class="growth-item">
+            <n-icon size="24" color="#10b981">
+              <ShoppingBag />
+            </n-icon>
+            <div class="growth-info">
+              <div class="growth-label">Sản phẩm mới</div>
+              <div class="growth-value">+{{ stats[1].trend }}</div>
+            </div>
+          </div>
+          <div class="growth-item">
+            <n-icon size="24" color="#8b5cf6">
+              <Users />
+            </n-icon>
+            <div class="growth-info">
+              <div class="growth-label">Người dùng mới</div>
+              <div class="growth-value">+{{ stats[2].trend }}</div>
+            </div>
+          </div>
+          <div class="growth-item">
+            <n-icon size="24" color="#f59e0b">
+              <Store />
+            </n-icon>
+            <div class="growth-info">
+              <div class="growth-label">Cửa hàng mới</div>
+              <div class="growth-value">+{{ stats[3].trend }}</div>
             </div>
           </div>
         </div>
-      </div>
-
-      <n-empty v-if="activities.length === 0" description="Chưa có hoạt động nào" />
-    </n-card>
+      </n-card>
+    </div>
 
     <!-- System Status -->
     <n-card title="Trạng thái hệ thống">
@@ -78,11 +120,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { Package, Users, ShoppingBag, Store, UserPlus, ShoppingCart } from 'lucide-vue-next'
-import { NH1, NH2, NSpace, NCard, NAvatar, NIcon, NTag, NText, NButton, NStatistic, NProgress, NEmpty } from 'naive-ui'
+import { Package, Users, ShoppingBag, Store } from 'lucide-vue-next'
+import { NH1, NH2, NSpace, NCard, NAvatar, NIcon, NTag, NText, NStatistic, NProgress, NSpin, useMessage } from 'naive-ui'
+import axios from '../../utils/axios'
 
-const router = useRouter()
+const message = useMessage()
+
+const loading = ref(false)
 
 const stats = ref([
   {
@@ -123,41 +167,6 @@ const stats = ref([
   },
 ])
 
-const activities = ref([
-  {
-    id: 1,
-    title: 'Sản phẩm mới được thêm',
-    time: '5 phút trước',
-    type: 'product',
-    icon: ShoppingBag,
-    bgColor: '#10b981',
-  },
-  {
-    id: 2,
-    title: 'Đơn hàng #1234 được tạo',
-    time: '15 phút trước',
-    type: 'order',
-    icon: ShoppingCart,
-    bgColor: '#3b82f6',
-  },
-  {
-    id: 3,
-    title: 'Người dùng mới đăng ký',
-    time: '1 giờ trước',
-    type: 'user',
-    icon: UserPlus,
-    bgColor: '#8b5cf6',
-  },
-  {
-    id: 4,
-    title: 'Cửa hàng ABC được duyệt',
-    time: '2 giờ trước',
-    type: 'shop',
-    icon: Store,
-    bgColor: '#f59e0b',
-  },
-])
-
 const systemStatus = ref([
   {
     name: 'CPU Usage',
@@ -185,59 +194,50 @@ const systemStatus = ref([
   },
 ])
 
-const viewAllActivities = () => {
-  router.push('/admin/activities')
-}
 
-const getActivityTagType = (type) => {
-  switch (type) {
-    case 'product':
-      return 'info'
-    case 'order':
-      return 'success'
-    case 'user':
-      return 'warning'
-    case 'shop':
-      return 'error'
-    default:
-      return 'info'
+
+// Load real data from API
+const fetchDashboardStats = async () => {
+  loading.value = true
+  try {
+    const response = await axios.get('/api/admin/dashboard/stats')
+    const data = response.data.stats
+
+    // Cập nhật thống kê danh mục
+    stats.value[0].value = data.totalCategories?.toString() || '0'
+    stats.value[0].subtitle = 'Tổng số danh mục'
+    stats.value[0].trend = '+0%'
+
+    // Cập nhật thống kê sản phẩm
+    stats.value[1].value = data.totalProducts?.toString() || '0'
+    stats.value[1].subtitle = 'Tổng số sản phẩm'
+    stats.value[1].trend = '+0%'
+
+    // Cập nhật thống kê người dùng
+    stats.value[2].value = data.totalUsers?.toString() || '0'
+    stats.value[2].subtitle = 'Tổng số người dùng'
+    stats.value[2].trend = '+0%'
+
+    // Cập nhật thống kê cửa hàng
+    stats.value[3].value = data.totalShops?.toString() || '0'
+    stats.value[3].subtitle = 'Tổng số cửa hàng'
+    stats.value[3].trend = '+0%'
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error)
+    message.error('Lỗi khi tải thống kê dashboard')
+  } finally {
+    loading.value = false
   }
 }
 
-const getActivityTypeText = (type) => {
-  switch (type) {
-    case 'product':
-      return 'Sản phẩm'
-    case 'order':
-      return 'Đơn hàng'
-    case 'user':
-      return 'Người dùng'
-    case 'shop':
-      return 'Cửa hàng'
-    default:
-      return 'Hoạt động'
-  }
+// Chart helper method
+const getChartPercentage = (value, maxValue) => {
+  const numValue = parseInt(value) || 0
+  return Math.min((numValue / maxValue) * 100, 100)
 }
 
-// Simulate data loading
 onMounted(() => {
-  setTimeout(() => {
-    stats.value[0].value = '24'
-    stats.value[0].subtitle = '+3 tuần này'
-    stats.value[0].trend = '+14%'
-
-    stats.value[1].value = '156'
-    stats.value[1].subtitle = '+12 tuần này'
-    stats.value[1].trend = '+8.3%'
-
-    stats.value[2].value = '89'
-    stats.value[2].subtitle = '+7 tuần này'
-    stats.value[2].trend = '+8%'
-
-    stats.value[3].value = '23'
-    stats.value[3].subtitle = '+3 tuần này'
-    stats.value[3].trend = '+15%'
-  }, 1000)
+  fetchDashboardStats()
 })
 </script>
 
@@ -323,5 +323,78 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 16px;
+}
+
+.chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.chart-label {
+  flex: 1;
+  font-weight: 500;
+  color: #374151;
+}
+
+.chart-value {
+  font-weight: bold;
+  color: #1f2937;
+  min-width: 40px;
+  text-align: right;
+}
+
+.chart-bar {
+  height: 8px;
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.growth-chart {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.growth-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.growth-info {
+  flex: 1;
+}
+
+.growth-label {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.growth-value {
+  font-weight: bold;
+  color: #1f2937;
+  font-size: 18px;
 }
 </style>
