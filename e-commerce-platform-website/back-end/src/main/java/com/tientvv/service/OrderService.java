@@ -676,14 +676,14 @@ public class OrderService {
     System.out.println("DEBUG: Today is: " + today);
     System.out.println("DEBUG: Period: " + period);
 
-        // Lấy doanh thu từ transactions SUCCESS
+        // Lấy doanh thu từ sản phẩm (không bao gồm tiền ship)
     BigDecimal totalRevenue = null;
     try {
-      totalRevenue = transactionRepository.getTotalRevenueByShopIdAndStatus(
+      totalRevenue = transactionRepository.getTotalProductRevenueByShopIdAndStatus(
           shopId, "SUCCESS", startDateFilter, endDateFilter);
-      System.out.println("DEBUG: Total revenue: " + totalRevenue);
+      System.out.println("DEBUG: Total product revenue (excluding shipping): " + totalRevenue);
     } catch (Exception e) {
-      System.err.println("DEBUG: Error getting total revenue: " + e.getMessage());
+      System.err.println("DEBUG: Error getting total product revenue: " + e.getMessage());
       totalRevenue = BigDecimal.ZERO;
     }
     
@@ -702,15 +702,15 @@ public class OrderService {
         ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, RoundingMode.HALF_UP)
         : BigDecimal.ZERO;
 
-    // Lấy doanh thu theo từng ngày/tuần/tháng
+    // Lấy doanh thu theo từng ngày/tuần/tháng (không bao gồm tiền ship)
     List<Object[]> revenueByPeriodRaw = null;
     try {
-      revenueByPeriodRaw = transactionRepository.getRevenueByPeriod(
+      revenueByPeriodRaw = transactionRepository.getProductRevenueByPeriod(
           shopId, "SUCCESS", startDateFilter, endDateFilter);
-      System.out.println("DEBUG: Revenue by period raw data size: "
+      System.out.println("DEBUG: Product revenue by period raw data size: "
           + (revenueByPeriodRaw != null ? revenueByPeriodRaw.size() : "null"));
     } catch (Exception e) {
-      System.err.println("DEBUG: Error getting revenue by period: " + e.getMessage());
+      System.err.println("DEBUG: Error getting product revenue by period: " + e.getMessage());
       revenueByPeriodRaw = new ArrayList<>();
     }
 

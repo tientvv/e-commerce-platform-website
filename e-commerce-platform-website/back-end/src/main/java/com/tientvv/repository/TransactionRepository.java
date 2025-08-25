@@ -37,6 +37,18 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 			@Param("startDate") LocalDate startDate,
 			@Param("endDate") LocalDate endDate);
 
+	@Query(value = "SELECT COALESCE(SUM(oi.product_price * oi.quantity), 0) FROM order_items oi " +
+			"JOIN orders o ON o.id = oi.order_id " +
+			"JOIN transactions t ON t.order_id = o.id " +
+			"WHERE o.shop_id = :shopId AND t.transaction_status = :status " +
+			"AND (:startDate IS NULL OR CAST(t.transaction_date AS date) >= :startDate) " +
+			"AND (:endDate IS NULL OR CAST(t.transaction_date AS date) <= :endDate)", nativeQuery = true)
+	BigDecimal getTotalProductRevenueByShopIdAndStatus(
+			@Param("shopId") UUID shopId,
+			@Param("status") String status,
+			@Param("startDate") LocalDate startDate,
+			@Param("endDate") LocalDate endDate);
+
 	@Query(value = "SELECT COUNT(DISTINCT t.order_id) FROM transactions t " +
 			"JOIN orders o ON o.id = t.order_id " +
 			"WHERE o.shop_id = :shopId AND t.transaction_status = 'SUCCESS' " +
@@ -58,6 +70,23 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 			"GROUP BY CAST(t.transaction_date AS date) " +
 			"ORDER BY date", nativeQuery = true)
 	List<Object[]> getRevenueByPeriod(
+			@Param("shopId") UUID shopId,
+			@Param("status") String status,
+			@Param("startDate") LocalDate startDate,
+			@Param("endDate") LocalDate endDate);
+
+	@Query(value = "SELECT CAST(t.transaction_date AS date) as date, " +
+			"SUM(oi.product_price * oi.quantity) as revenue, " +
+			"COUNT(DISTINCT t.order_id) as orderCount " +
+			"FROM transactions t " +
+			"JOIN orders o ON o.id = t.order_id " +
+			"JOIN order_items oi ON oi.order_id = o.id " +
+			"WHERE o.shop_id = :shopId AND t.transaction_status = :status " +
+			"AND (:startDate IS NULL OR CAST(t.transaction_date AS date) >= :startDate) " +
+			"AND (:endDate IS NULL OR CAST(t.transaction_date AS date) <= :endDate) " +
+			"GROUP BY CAST(t.transaction_date AS date) " +
+			"ORDER BY date", nativeQuery = true)
+	List<Object[]> getProductRevenueByPeriod(
 			@Param("shopId") UUID shopId,
 			@Param("status") String status,
 			@Param("startDate") LocalDate startDate,

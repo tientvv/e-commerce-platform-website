@@ -3,17 +3,28 @@
     <!-- Danh sách biến thể -->
       <n-card title="Danh sách Biến thể" size="small">
         <template #header-extra>
-          <n-input
-            v-model:value="searchKeyword"
-            placeholder="Tìm kiếm biến thể..."
-            class="w-60"
-            clearable
-            @input="handleSearch"
-          >
-            <template #prefix>
-              <n-icon><Search /></n-icon>
-            </template>
-          </n-input>
+          <div class="flex items-center gap-2">
+            <n-input
+              v-model:value="searchKeyword"
+              placeholder="Tìm kiếm biến thể..."
+              class="w-60"
+              clearable
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <n-icon><Search /></n-icon>
+              </template>
+            </n-input>
+            <n-button @click="handleSearch" type="primary" size="small">
+              Tìm kiếm
+            </n-button>
+            <n-button @click="refreshData" size="small">
+              <template #icon>
+                <RefreshCw class="w-4 h-4" />
+              </template>
+              Làm mới
+            </n-button>
+          </div>
         </template>
 
         <n-spin :show="loading">
@@ -262,13 +273,12 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'v
 import Swiper from 'swiper'
 import 'swiper/css'
 import axios from '../../utils/axios'
-import { Settings, Edit, Trash2, Image as ImageIcon, Upload, X, Search } from 'lucide-vue-next'
+import { Settings, Edit, Trash2, Image as ImageIcon, Upload, X, Search, RefreshCw } from 'lucide-vue-next'
 import {
   NSpace,
   NCard,
   NForm,
   NFormItem,
-
   NInput,
   NInputNumber,
   NButton,
@@ -277,6 +287,9 @@ import {
   NEmpty,
   NModal,
   NSwitch,
+  NUpload,
+  NAvatar,
+  NText,
   useMessage,
   useDialog,
 } from 'naive-ui'
@@ -512,6 +525,16 @@ const handleSearch = () => {
   }, 300)
 }
 
+const refreshData = async () => {
+  searchKeyword.value = ''
+  await loadProducts()
+  await loadVariants()
+  // Reinitialize swiper sau khi load data để giữ cursor grab
+  nextTick(() => {
+    initSwiper()
+  })
+}
+
 const addImage = async () => {
   if (!selectedFile.value) {
     imageErrorMessage.value = 'Vui lòng chọn file ảnh!'
@@ -565,17 +588,56 @@ const updateVariant = async () => {
   if (!editFormRef.value) return
 
   try {
-    await editFormRef.value.validate()
+    // Validate form trước
+    const validationResult = await editFormRef.value.validate()
 
-    await axios.put(`/api/product-variants/update/${editingVariant.value.id}`, editingVariant.value)
+    // Kiểm tra nếu validation thất bại
+    if (!validationResult) {
+      message.error('Vui lòng điền đầy đủ thông tin bắt buộc')
+      return
+    }
+
+    // Kiểm tra dữ liệu trước khi gửi
+    if (!editingVariant.value.variantName?.trim()) {
+      message.error('Vui lòng nhập tên biến thể')
+      return
+    }
+    if (!editingVariant.value.variantValue?.trim()) {
+      message.error('Vui lòng nhập giá trị biến thể')
+      return
+    }
+    if (!editingVariant.value.quantity || editingVariant.value.quantity < 0) {
+      message.error('Vui lòng nhập số lượng hợp lệ')
+      return
+    }
+    if (!editingVariant.value.price || editingVariant.value.price < 0) {
+      message.error('Vui lòng nhập giá hợp lệ')
+      return
+    }
+
+    // Tạo object mới không bao gồm id để tránh lỗi JSON parse
+    const updateData = {
+      variantName: editingVariant.value.variantName.trim(),
+      variantValue: editingVariant.value.variantValue.trim(),
+      quantity: editingVariant.value.quantity,
+      price: editingVariant.value.price,
+      isActive: editingVariant.value.isActive
+    }
+
+    await axios.put(`/api/product-variants/update/${editingVariant.value.id}`, updateData)
     message.success('Cập nhật biến thể thành công!')
     showEditModal.value = false
     await loadVariants()
+    // Reinitialize swiper sau khi load data để giữ cursor grab
+    nextTick(() => {
+      initSwiper()
+    })
   } catch (error) {
-    if (error.errors) {
-      message.error('Vui lòng kiểm tra lại thông tin')
+    if (error.response?.data?.message) {
+      // Hiển thị lỗi từ server
+      message.error(error.response.data.message)
     } else {
-      message.error(error.response?.data?.message || 'Có lỗi xảy ra!')
+      message.error('Có lỗi xảy ra khi cập nhật biến thể!')
     }
   }
 }
