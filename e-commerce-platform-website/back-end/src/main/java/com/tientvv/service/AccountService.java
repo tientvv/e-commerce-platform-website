@@ -1,19 +1,15 @@
 package com.tientvv.service;
 
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import com.tientvv.dto.account.RegisterAccountDto;
 import com.tientvv.dto.account.UpdateAccountDto;
 import com.tientvv.model.Account;
 import com.tientvv.repository.AccountRepository;
 import com.tientvv.utils.EncodingUtils;
-
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;

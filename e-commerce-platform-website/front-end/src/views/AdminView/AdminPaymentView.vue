@@ -281,7 +281,13 @@ const columns = [
     key: 'actions',
     width: 150,
     render(row) {
-      return h('div', { class: 'flex space-x-2' }, [
+      return h('div', {
+        style: {
+          display: 'flex',
+          justifyContent: 'flex-start',
+          gap: '4px 8px'
+        }
+      }, [
         h(
           NButton,
           {

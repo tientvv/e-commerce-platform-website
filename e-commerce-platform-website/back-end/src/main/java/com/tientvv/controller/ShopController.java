@@ -199,7 +199,9 @@ public class ShopController {
 
   // Admin endpoints
   @GetMapping("/admin/shops")
-  public Map<String, Object> getAllShopsForAdmin(HttpSession session) {
+  public Map<String, Object> getAllShopsForAdmin(
+      @RequestParam(value = "search", required = false) String search,
+      HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
 
@@ -209,7 +211,15 @@ public class ShopController {
     }
 
     try {
-      List<Shop> shops = shopRepository.findAll();
+      List<Shop> shops;
+      
+      // Nếu có tham số tìm kiếm, tìm kiếm theo tên cửa hàng
+      if (search != null && !search.trim().isEmpty()) {
+        shops = shopRepository.findByShopNameContaining(search.trim());
+      } else {
+        shops = shopRepository.findAll();
+      }
+      
       List<Map<String, Object>> shopList = new ArrayList<>();
 
       for (Shop shop : shops) {
@@ -219,13 +229,24 @@ public class ShopController {
         shopData.put("description", shop.getDescription());
         shopData.put("ownerName", shop.getUser().getName());
         shopData.put("ownerEmail", shop.getUser().getEmail());
+        shopData.put("ownerPhone", shop.getUser().getPhone());
+        shopData.put("ownerAddress", shop.getUser().getAddress());
+        shopData.put("shopEmail", shop.getEmail());
+        shopData.put("shopPhone", shop.getPhone());
+        shopData.put("shopAddress", shop.getAddress());
+        shopData.put("shopImage", shop.getShopImage());
         // Chỉ hiển thị ACTIVE hoặc BLOCKED
         shopData.put("status", shop.getIsActive() ? "ACTIVE" : "BLOCKED");
         shopData.put("createdAt", shop.getCreatedAt());
+        shopData.put("updatedAt", shop.getLastUpdated());
         shopList.add(shopData);
       }
 
       response.put("shops", shopList);
+      response.put("totalCount", shopList.size());
+      if (search != null && !search.trim().isEmpty()) {
+        response.put("searchTerm", search.trim());
+      }
     } catch (Exception e) {
       response.put("message", "Lỗi khi tải danh sách cửa hàng: " + e.getMessage());
     }

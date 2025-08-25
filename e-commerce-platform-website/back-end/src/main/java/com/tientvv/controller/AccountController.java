@@ -242,7 +242,9 @@ public class AccountController {
 
   // Admin endpoints
   @GetMapping("/admin/users")
-  public Map<String, Object> getAllUsersForAdmin(HttpSession session) {
+  public Map<String, Object> getAllUsersForAdmin(
+      @RequestParam(value = "search", required = false) String search,
+      HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
 
@@ -252,7 +254,15 @@ public class AccountController {
     }
 
     try {
-      List<Account> users = accountRepository.findAll();
+      List<Account> users;
+      
+      // Nếu có tham số tìm kiếm, tìm kiếm theo username hoặc email
+      if (search != null && !search.trim().isEmpty()) {
+        users = accountRepository.findByUsernameOrEmailContaining(search.trim());
+      } else {
+        users = accountRepository.findAllExceptAdmin();
+      }
+      
       List<Map<String, Object>> userList = new ArrayList<>();
 
       for (Account user : users) {
@@ -270,6 +280,10 @@ public class AccountController {
       }
 
       response.put("users", userList);
+      response.put("totalCount", userList.size());
+      if (search != null && !search.trim().isEmpty()) {
+        response.put("searchTerm", search.trim());
+      }
     } catch (Exception e) {
       response.put("message", "Lỗi khi tải danh sách người dùng: " + e.getMessage());
     }

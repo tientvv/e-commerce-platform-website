@@ -8,21 +8,55 @@
       </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <n-tabs v-model:value="activeTab" type="segment">
-      <n-tab-pane name="all" tab="Tất cả" />
-    </n-tabs>
+
 
     <!-- Users Table -->
     <n-card>
       <template #header>
         <div class="flex items-center justify-between">
-          <n-h3>Danh sách người dùng</n-h3>
-          <n-text depth="3">{{ users.length }} người dùng</n-text>
+          <div class="flex items-center gap-4">
+            <n-text depth="3">{{ users.length }} người dùng</n-text>
+          </div>
+          <div class="flex items-center gap-2">
+            <n-input
+              v-model:value="searchTerm"
+              placeholder="Tìm kiếm username hoặc email..."
+              style="width: 300px"
+              clearable
+              @keyup.enter="handleSearch"
+            >
+              <template #prefix>
+                <n-icon>
+                  <Search />
+                </n-icon>
+              </template>
+            </n-input>
+            <n-button @click="handleSearch" type="primary">
+              Tìm kiếm
+            </n-button>
+            <n-button @click="clearSearch" v-if="searchTerm">
+              Xóa tìm kiếm
+            </n-button>
+            <n-button @click="refreshData" type="info">
+              <template #icon>
+                <n-icon>
+                  <RefreshCw />
+                </n-icon>
+              </template>
+              Làm mới
+            </n-button>
+          </div>
         </div>
       </template>
 
       <n-spin :show="loading">
+        <!-- Search Results Info -->
+        <div v-if="!loading && searchTerm && users.length > 0" class="mb-4">
+          <n-alert type="info" show-icon>
+            Tìm thấy {{ users.length }} người dùng với từ khóa "{{ searchTerm }}" (tìm theo username hoặc email, không bao gồm tài khoản ADMIN)
+          </n-alert>
+        </div>
+
         <n-data-table
           v-if="!loading && users.length > 0"
           :columns="columns"
@@ -31,8 +65,11 @@
           :pagination="pagination"
         />
 
-        <!-- Empty State -->
-        <n-empty v-else-if="!loading && users.length === 0" description="Chưa có người dùng nào">
+                <!-- Empty State -->
+        <n-empty
+          v-else-if="!loading && users.length === 0"
+          :description="searchTerm ? `Không tìm thấy người dùng nào với từ khóa '${searchTerm}' (tìm theo username hoặc email, không bao gồm tài khoản ADMIN)` : 'Chưa có người dùng nào (không bao gồm tài khoản ADMIN)'"
+        >
           <template #icon>
             <n-icon size="48" color="#d1d5db">
               <Users />
@@ -98,10 +135,9 @@
 <script setup>
 import { ref, reactive, onMounted, h } from 'vue'
 import axios from '../../utils/axios'
-import { Users, Eye, Lock, Unlock } from 'lucide-vue-next'
+import { Users, Eye, Lock, Unlock, Search, RefreshCw } from 'lucide-vue-next'
 import {
   NH1,
-  NH3,
   NSpace,
   NCard,
   NText,
@@ -114,8 +150,8 @@ import {
   NTag,
   NIcon,
   NButton,
-  NTabs,
-  NTabPane,
+  NInput,
+  NAlert,
   useMessage,
 } from 'naive-ui'
 
@@ -127,7 +163,7 @@ const loading = ref(false)
 const detailModalVisible = ref(false)
 const statusModalVisible = ref(false)
 const selectedUser = ref(null)
-const activeTab = ref('all')
+const searchTerm = ref('')
 
 // Table columns
 const columns = [
@@ -178,34 +214,38 @@ const columns = [
     key: 'actions',
     width: 200,
     render(row) {
-      return h(NSpace, null, {
-        default: () => [
-          h(
-            NButton,
-            {
-              size: 'small',
-              type: 'info',
-              onClick: () => showUserDetails(row),
-            },
-            {
-              icon: () => h(NIcon, null, { default: () => h(Eye) }),
-              default: () => 'Chi tiết',
-            },
-          ),
-          h(
-            NButton,
-            {
-              size: 'small',
-              type: row.isActive ? 'error' : 'success',
-              onClick: () => showStatusModal(row),
-            },
-            {
-              icon: () => h(NIcon, null, { default: () => (row.isActive ? h(Lock) : h(Unlock)) }),
-              default: () => (row.isActive ? 'Khóa' : 'Mở khóa'),
-            },
-          ),
-        ],
-      })
+      return h('div', {
+        style: {
+          display: 'flex',
+          justifyContent: 'flex-start',
+          gap: '4px 8px'
+        }
+      }, [
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: 'info',
+            onClick: () => showUserDetails(row),
+          },
+          {
+            icon: () => h(NIcon, null, { default: () => h(Eye) }),
+            default: () => 'Chi tiết',
+          },
+        ),
+        h(
+          NButton,
+          {
+            size: 'small',
+            type: row.isActive ? 'error' : 'success',
+            onClick: () => showStatusModal(row),
+          },
+          {
+            icon: () => h(NIcon, null, { default: () => (row.isActive ? h(Lock) : h(Unlock)) }),
+            default: () => (row.isActive ? 'Khóa' : 'Mở khóa'),
+          },
+        ),
+      ])
     },
   },
 ]
@@ -223,19 +263,41 @@ const pagination = reactive({
     pagination.pageSize = pageSize
     pagination.page = 1
   },
+  showQuickJumper: true,
 })
 
 // Methods
-const fetchUsers = async () => {
+const fetchUsers = async (search = '') => {
   loading.value = true
   try {
-    const response = await axios.get('/api/admin/users')
+    const params = new URLSearchParams()
+    if (search && search.trim()) {
+      params.append('search', search.trim())
+    }
+
+    const url = `/api/admin/users${params.toString() ? '?' + params.toString() : ''}`
+    const response = await axios.get(url)
     users.value = response.data.users || []
   } catch {
     message.error('Không thể tải danh sách người dùng')
   } finally {
     loading.value = false
   }
+}
+
+const handleSearch = () => {
+  fetchUsers(searchTerm.value)
+}
+
+const clearSearch = () => {
+  searchTerm.value = ''
+  fetchUsers()
+}
+
+const refreshData = () => {
+  searchTerm.value = ''
+  fetchUsers()
+  message.success('Đã làm mới dữ liệu')
 }
 
 const showUserDetails = (user) => {
