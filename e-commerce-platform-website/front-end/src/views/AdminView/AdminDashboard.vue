@@ -32,76 +32,31 @@
       </div>
     </n-spin>
 
-    <!-- Charts Section -->
-    <div class="charts-grid">
-      <!-- Categories Chart -->
-      <n-card title="Thống kê theo danh mục">
-        <div class="chart-container">
-          <div class="chart-item">
-            <div class="chart-label">Danh mục</div>
-            <div class="chart-value">{{ stats[0].value }}</div>
-            <div class="chart-bar" :style="{ width: getChartPercentage(stats[0].value, 50) + '%' }"></div>
-          </div>
-          <div class="chart-item">
-            <div class="chart-label">Sản phẩm</div>
-            <div class="chart-value">{{ stats[1].value }}</div>
-            <div class="chart-bar" :style="{ width: getChartPercentage(stats[1].value, 50) + '%' }"></div>
-          </div>
-          <div class="chart-item">
-            <div class="chart-label">Người dùng</div>
-            <div class="chart-value">{{ stats[2].value }}</div>
-            <div class="chart-bar" :style="{ width: getChartPercentage(stats[2].value, 50) + '%' }"></div>
-          </div>
-          <div class="chart-item">
-            <div class="chart-label">Cửa hàng</div>
-            <div class="chart-value">{{ stats[3].value }}</div>
-            <div class="chart-bar" :style="{ width: getChartPercentage(stats[3].value, 50) + '%' }"></div>
-          </div>
+    <!-- Chart Section -->
+    <n-card title="Thống kê theo danh mục">
+      <div class="chart-container">
+        <div class="chart-item">
+          <div class="chart-label">Danh mục</div>
+          <div class="chart-value">{{ stats[0].value }}</div>
+          <div class="chart-bar" :style="{ width: getChartPercentage(stats[0].value, 50) + '%' }"></div>
         </div>
-      </n-card>
-
-      <!-- Growth Chart -->
-      <n-card title="Tăng trưởng hệ thống">
-        <div class="growth-chart">
-          <div class="growth-item">
-            <n-icon size="24" color="#3b82f6">
-              <Package />
-            </n-icon>
-            <div class="growth-info">
-              <div class="growth-label">Danh mục mới</div>
-              <div class="growth-value">+{{ stats[0].trend }}</div>
-            </div>
-          </div>
-          <div class="growth-item">
-            <n-icon size="24" color="#10b981">
-              <ShoppingBag />
-            </n-icon>
-            <div class="growth-info">
-              <div class="growth-label">Sản phẩm mới</div>
-              <div class="growth-value">+{{ stats[1].trend }}</div>
-            </div>
-          </div>
-          <div class="growth-item">
-            <n-icon size="24" color="#8b5cf6">
-              <Users />
-            </n-icon>
-            <div class="growth-info">
-              <div class="growth-label">Người dùng mới</div>
-              <div class="growth-value">+{{ stats[2].trend }}</div>
-            </div>
-          </div>
-          <div class="growth-item">
-            <n-icon size="24" color="#f59e0b">
-              <Store />
-            </n-icon>
-            <div class="growth-info">
-              <div class="growth-label">Cửa hàng mới</div>
-              <div class="growth-value">+{{ stats[3].trend }}</div>
-            </div>
-          </div>
+        <div class="chart-item">
+          <div class="chart-label">Sản phẩm</div>
+          <div class="chart-value">{{ stats[1].value }}</div>
+          <div class="chart-bar" :style="{ width: getChartPercentage(stats[1].value, 50) + '%' }"></div>
         </div>
-      </n-card>
-    </div>
+        <div class="chart-item">
+          <div class="chart-label">Người dùng</div>
+          <div class="chart-value">{{ stats[2].value }}</div>
+          <div class="chart-bar" :style="{ width: getChartPercentage(stats[2].value, 50) + '%' }"></div>
+        </div>
+        <div class="chart-item">
+          <div class="chart-label">Cửa hàng</div>
+          <div class="chart-value">{{ stats[3].value }}</div>
+          <div class="chart-bar" :style="{ width: getChartPercentage(stats[3].value, 50) + '%' }"></div>
+        </div>
+      </div>
+    </n-card>
 
     <!-- System Status -->
     <n-card title="Trạng thái hệ thống">
@@ -325,12 +280,6 @@ onMounted(() => {
   text-align: center;
 }
 
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 16px;
-}
-
 .chart-container {
   display: flex;
   flex-direction: column;
@@ -364,37 +313,5 @@ onMounted(() => {
   background: linear-gradient(90deg, #3b82f6, #1d4ed8);
   border-radius: 4px;
   transition: width 0.3s ease;
-}
-
-.growth-chart {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.growth-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border-left: 4px solid #3b82f6;
-}
-
-.growth-info {
-  flex: 1;
-}
-
-.growth-label {
-  font-size: 14px;
-  color: #6b7280;
-  margin-bottom: 4px;
-}
-
-.growth-value {
-  font-weight: bold;
-  color: #1f2937;
-  font-size: 18px;
 }
 </style>
