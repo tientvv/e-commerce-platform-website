@@ -2,22 +2,77 @@
   <div class="h-full flex flex-col">
     <!-- Products Table -->
     <div class="flex-1">
-      <n-card class="h-full flex flex-col no-border-card">
-        <template #header-extra>
-          <div class="flex items-center gap-2">
-            <n-button @click="fetchProducts" size="small">
-            <template #icon>
+      <!-- Header with Search and Filters -->
+      <div class="mb-6">
+
+        <!-- Search and Filter Bar -->
+        <div class="bg-white p-4 rounded-lg border border-gray-200">
+          <div class="flex items-center gap-4 flex-wrap">
+            <!-- Search Input -->
+            <div class="flex items-center gap-2">
+              <n-input
+                v-model:value="searchTerm"
+                placeholder="Tìm kiếm sản phẩm..."
+                style="width: 250px"
+                clearable
+                @keyup.enter="handleSearch"
+              >
+                <template #prefix>
+                  <Search class="w-4 h-4" />
+                </template>
+              </n-input>
+              <n-button @click="handleSearch" type="primary" size="small">
+                Tìm kiếm
+              </n-button>
+            </div>
+
+            <!-- Category Filter -->
+            <n-select
+              v-model:value="selectedCategory"
+              placeholder="Lọc theo danh mục"
+              style="width: 220px"
+              clearable
+              :options="categoryOptions"
+              @update:value="handleCategoryFilter"
+              filterable
+            />
+
+            <!-- Refresh Button -->
+            <n-button @click="refreshAndClearFilters" size="small">
+              <template #icon>
                 <RefreshCw class="w-4 h-4" />
               </template>
               Làm mới
             </n-button>
+
+            <!-- Clear Filters Button -->
+            <n-button @click="clearSearch" v-if="searchTerm || selectedCategory" size="small" type="default">
+              Xóa lọc
+            </n-button>
           </div>
-            </template>
+        </div>
+      </div>
+
+      <n-card class="h-full flex flex-col no-border-card">
 
         <div class="flex-1">
           <div class="w-full h-full">
             <div class="w-full h-full">
               <div class="w-full">
+                <!-- Search Results Info -->
+                <div v-if="!loading && (searchTerm || selectedCategory) && products.length > 0" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-center">
+                    <svg class="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span class="text-blue-800">
+                      Tìm thấy {{ products.length }} sản phẩm
+                      <span v-if="searchTerm"> với từ khóa "{{ searchTerm }}"</span>
+                      <span v-if="selectedCategory"> trong danh mục "{{ getCategoryName(selectedCategory) }}"</span>
+                    </span>
+                  </div>
+                </div>
+
                 <div class="swiper-table-container" ref="swiperContainer">
                   <!-- Loading State -->
                   <div v-if="loading" class="flex items-center justify-center py-8">
@@ -26,7 +81,7 @@
                   </div>
 
                   <!-- Swiper Table -->
-                  <div v-else class="swiper swiper-table">
+                  <div v-else-if="products.length > 0" class="swiper swiper-table">
                     <div class="swiper-wrapper">
                       <div class="swiper-slide">
                         <div class="custom-table">
@@ -100,6 +155,21 @@
                         </div>
                       </div>
                     </div>
+                  </div>
+
+                  <!-- Empty State -->
+                  <div v-else class="flex flex-col items-center justify-center py-12">
+                    <div class="text-gray-400 mb-4">
+                      <svg class="w-16 h-16" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clip-rule="evenodd"></path>
+                      </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">
+                      {{ getEmptyStateTitle() }}
+                    </h3>
+                    <p class="text-gray-500 text-center max-w-md">
+                      {{ getEmptyStateDescription() }}
+                    </p>
                   </div>
                 </div>
 
@@ -347,7 +417,7 @@
 <script setup>
 import { ref, onMounted, nextTick, computed, reactive } from 'vue'
 import axios from '../../utils/axios'
-import { Edit, Trash2, RefreshCw, Plus } from 'lucide-vue-next'
+import { Edit, Trash2, RefreshCw, Plus, Search } from 'lucide-vue-next'
 import { NCard, NButton, NModal, NForm, NFormItemGi, NGrid, NInput, NInputNumber, NSelect, NSpace, useMessage, useDialog } from 'naive-ui'
 import Swiper from 'swiper'
 import 'swiper/css'
@@ -357,6 +427,10 @@ const dialog = useDialog()
 
 const products = ref([])
 const loading = ref(true)
+
+// Search and filter state
+const searchTerm = ref('')
+const selectedCategory = ref(null)
 
 // Swiper refs
 const swiperContainer = ref(null)
@@ -383,6 +457,16 @@ const paginatedProducts = computed(() => {
   const end = start + pagination.pageSize
   return products.value.slice(start, end)
 })
+
+// Computed properties for filter options
+const categoryOptions = computed(() => {
+  return categories.value.map(category => ({
+    label: category.name,
+    value: category.id
+  }))
+})
+
+
 
 
 
@@ -458,10 +542,19 @@ const parsePrice = (input) => {
   return parseInt(input.replace(/\D/g, '')) || 0
 }
 
-const fetchProducts = async () => {
+const fetchProducts = async (search = '', categoryId = '') => {
   loading.value = true
   try {
-    const response = await axios.get('/api/products/user')
+    const params = new URLSearchParams()
+    if (search && typeof search === 'string' && search.trim()) {
+      params.append('search', search.trim())
+    }
+    if (categoryId) {
+      params.append('categoryId', categoryId)
+    }
+
+    const url = `/api/products/user${params.toString() ? '?' + params.toString() : ''}`
+    const response = await axios.get(url)
     products.value = response.data.products || []
     // Reinitialize swiper after data loads
     nextTick(() => {
@@ -483,6 +576,48 @@ const fetchCategories = async () => {
   } catch (error) {
     console.error('Error fetching categories:', error)
   }
+}
+
+// Search and filter methods
+const handleSearch = () => {
+  fetchProducts(searchTerm.value, selectedCategory.value)
+}
+
+const handleCategoryFilter = () => {
+  fetchProducts(searchTerm.value, selectedCategory.value)
+}
+
+const clearSearch = () => {
+  searchTerm.value = ''
+  selectedCategory.value = null
+  fetchProducts()
+}
+
+const refreshAndClearFilters = () => {
+  searchTerm.value = ''
+  selectedCategory.value = null
+  fetchProducts()
+}
+
+const getCategoryName = (categoryId) => {
+  const category = categories.value.find(cat => cat.id === categoryId)
+  return category ? category.name : 'Không xác định'
+}
+
+
+
+const getEmptyStateTitle = () => {
+  if (searchTerm.value || selectedCategory.value) {
+    return 'Không tìm thấy sản phẩm'
+  }
+  return 'Chưa có sản phẩm nào'
+}
+
+const getEmptyStateDescription = () => {
+  if (searchTerm.value || selectedCategory.value) {
+    return 'Không có sản phẩm nào phù hợp với bộ lọc hiện tại. Hãy thử thay đổi điều kiện tìm kiếm.'
+  }
+  return 'Bắt đầu thêm sản phẩm đầu tiên vào cửa hàng của bạn.'
 }
 
 const editProduct = (product) => {

@@ -73,7 +73,11 @@ public class ProductController {
   private ProductRepository productRepository;
 
   @GetMapping("/user")
-  public Map<String, Object> getUserProducts(HttpSession session) {
+  public Map<String, Object> getUserProducts(
+      @RequestParam(required = false) String search,
+      @RequestParam(required = false) String categoryId,
+      @RequestParam(required = false) String status,
+      HttpSession session) {
     Map<String, Object> response = new HashMap<>();
     Account account = (Account) session.getAttribute("account");
 
@@ -94,12 +98,44 @@ public class ProductController {
       // Lấy tất cả sản phẩm của shop (bao gồm cả active và inactive)
       List<Product> products = productService.findAllByShopId(shopDto.getId());
 
+      // Lọc theo tìm kiếm
+      if (search != null && !search.trim().isEmpty()) {
+        String searchTerm = search.trim().toLowerCase();
+        products = products.stream()
+            .filter(product -> 
+                product.getName().toLowerCase().contains(searchTerm) ||
+                (product.getBrand() != null && product.getBrand().toLowerCase().contains(searchTerm)) ||
+                (product.getDescription() != null && product.getDescription().toLowerCase().contains(searchTerm))
+            )
+            .collect(Collectors.toList());
+      }
+
+      // Lọc theo danh mục
+      if (categoryId != null && !categoryId.isEmpty()) {
+        UUID categoryUuid = UUID.fromString(categoryId);
+        products = products.stream()
+            .filter(product -> product.getCategory().getId().equals(categoryUuid))
+            .collect(Collectors.toList());
+      }
+
+      // Lọc theo trạng thái
+      if (status != null && !status.isEmpty()) {
+        boolean isActive = "active".equals(status);
+        products = products.stream()
+            .filter(product -> product.getIsActive() == isActive)
+            .collect(Collectors.toList());
+      }
+
       // Convert to DTOs
       List<ProductDto> productDtos = products.stream()
           .map(ProductDto::fromEntity)
           .collect(Collectors.toList());
 
       response.put("products", productDtos);
+      response.put("totalCount", productDtos.size());
+      if (search != null && !search.trim().isEmpty()) {
+        response.put("searchTerm", search.trim());
+      }
     } catch (Exception e) {
       response.put("message", "Lỗi khi tải danh sách sản phẩm: " + e.getMessage());
       response.put("products", List.of());
