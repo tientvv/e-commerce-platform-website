@@ -3,12 +3,14 @@ package com.tientvv.service;
 import com.tientvv.dto.account.GoogleLoginDto;
 import com.tientvv.model.Account;
 import com.tientvv.repository.AccountRepository;
+import com.tientvv.utils.EncodingUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -24,6 +26,7 @@ public class GoogleAuthService {
 
     public Account authenticateGoogleUser(GoogleLoginDto googleLoginDto) {
         logger.info("Starting Google authentication for email: {}", googleLoginDto.getEmail());
+        logger.info("Received Google name: '{}'", googleLoginDto.getName());
         
         // Validate input data
         if (googleLoginDto.getGoogleId() == null || googleLoginDto.getGoogleId().trim().isEmpty()) {
@@ -41,7 +44,8 @@ public class GoogleAuthService {
             if (existingAccount != null) {
                 logger.info("Found existing account with Google ID: {}", googleLoginDto.getGoogleId());
                 // Cập nhật thông tin mới nhất từ Google
-                existingAccount.setName(googleLoginDto.getName() != null ? googleLoginDto.getName() : existingAccount.getName());
+                String sanitizedName = sanitizeName(googleLoginDto.getName());
+                existingAccount.setName(sanitizedName != null ? sanitizedName : existingAccount.getName());
                 existingAccount.setEmail(googleLoginDto.getEmail());
                 existingAccount.setAccountsImage(googleLoginDto.getPicture());
                 existingAccount.setLastLogin(OffsetDateTime.now());
@@ -58,7 +62,8 @@ public class GoogleAuthService {
                 logger.info("Found existing account with email: {}", googleLoginDto.getEmail());
                 // Nếu email đã tồn tại, liên kết google_id với tài khoản hiện có
                 accountWithEmail.setGoogleId(googleLoginDto.getGoogleId());
-                accountWithEmail.setName(googleLoginDto.getName() != null ? googleLoginDto.getName() : accountWithEmail.getName());
+                String sanitizedName = sanitizeName(googleLoginDto.getName());
+                accountWithEmail.setName(sanitizedName != null ? sanitizedName : accountWithEmail.getName());
                 accountWithEmail.setAccountsImage(googleLoginDto.getPicture());
                 accountWithEmail.setLastLogin(OffsetDateTime.now());
                 accountWithEmail.setUpdatedAt(OffsetDateTime.now());
@@ -73,7 +78,8 @@ public class GoogleAuthService {
             Account newAccount = new Account();
             newAccount.setGoogleId(googleLoginDto.getGoogleId());
             newAccount.setUsername(generateUsername(googleLoginDto.getEmail()));
-            newAccount.setName(googleLoginDto.getName() != null ? googleLoginDto.getName() : "");
+            String sanitizedName = sanitizeName(googleLoginDto.getName());
+            newAccount.setName(sanitizedName != null ? sanitizedName : "");
             newAccount.setEmail(googleLoginDto.getEmail());
             newAccount.setAccountsImage(googleLoginDto.getPicture());
             newAccount.setPassword(""); // Set empty password for Google accounts
@@ -107,5 +113,28 @@ public class GoogleAuthService {
         }
         
         return username;
+    }
+
+    /**
+     * Xử lý encoding UTF-8 cho tên người dùng từ Google OAuth
+     */
+    private String sanitizeName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        
+        try {
+            logger.info("Original name: '{}'", name);
+            
+            // Sử dụng EncodingUtils để xử lý encoding
+            String sanitizedName = EncodingUtils.fixVietnameseEncoding(name);
+            
+            logger.info("Sanitized name: '{}'", sanitizedName);
+            
+            return sanitizedName;
+        } catch (Exception e) {
+            logger.error("Error sanitizing name: {}", e.getMessage());
+            return name;
+        }
     }
 }

@@ -56,6 +56,10 @@ public class AccountController {
       return response;
     }
     
+    // Log để debug encoding
+    System.out.println("Account name in session: '" + account.getName() + "'");
+    System.out.println("Account name bytes: " + java.util.Arrays.toString(account.getName() != null ? account.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8) : "null".getBytes()));
+    
     // Trả về thông tin đầy đủ hơn
     Map<String, Object> accountInfo = new HashMap<>();
     accountInfo.put("id", account.getId().toString());
@@ -78,6 +82,51 @@ public class AccountController {
     }
     
     response.put("account", accountInfo);
+    return response;
+  }
+
+  @GetMapping("/test-encoding")
+  public Map<String, Object> testEncoding() {
+    Map<String, Object> response = new HashMap<>();
+    
+    // Test với tên tiếng Việt
+    String testName = "Thủy Huỳnh Thị Thanh";
+    String encodedName = "Thá»?y Huá»?nh Thá»? Thanh"; // Tên bị lỗi encoding
+    
+    System.out.println("Original test name: '" + testName + "'");
+    System.out.println("Encoded test name: '" + encodedName + "'");
+    
+    // Test fix encoding
+    String fixedName = com.tientvv.utils.EncodingUtils.fixVietnameseEncoding(encodedName);
+    System.out.println("Fixed test name: '" + fixedName + "'");
+    
+    response.put("originalName", testName);
+    response.put("encodedName", encodedName);
+    response.put("fixedName", fixedName);
+    response.put("message", "Test encoding thành công");
+    
+    return response;
+  }
+
+  @PostMapping("/test-multipart")
+  public Map<String, Object> testMultipart(@RequestParam("file") MultipartFile file) {
+    Map<String, Object> response = new HashMap<>();
+    
+    try {
+      System.out.println("Test multipart - File name: " + file.getOriginalFilename());
+      System.out.println("Test multipart - File size: " + file.getSize());
+      System.out.println("Test multipart - Content type: " + file.getContentType());
+      
+      response.put("success", true);
+      response.put("fileName", file.getOriginalFilename());
+      response.put("fileSize", file.getSize());
+      response.put("contentType", file.getContentType());
+      response.put("message", "Test multipart thành công");
+    } catch (Exception e) {
+      response.put("success", false);
+      response.put("message", "Test multipart thất bại: " + e.getMessage());
+    }
+    
     return response;
   }
 
@@ -130,6 +179,8 @@ public class AccountController {
     
     try {
       System.out.println("Received Google login data: " + dto);
+      System.out.println("Google name: '" + dto.getName() + "'");
+      System.out.println("Google name bytes: " + java.util.Arrays.toString(dto.getName() != null ? dto.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8) : "null".getBytes()));
       
       if (dto.getGoogleId() == null || dto.getGoogleId().isEmpty()) {
         response.put("message", "Thông tin Google không hợp lệ!");
@@ -138,6 +189,9 @@ public class AccountController {
 
       Account account = googleAuthService.authenticateGoogleUser(dto);
       session.setAttribute("account", account);
+      
+      System.out.println("Account name after authentication: '" + account.getName() + "'");
+      System.out.println("Account name bytes: " + java.util.Arrays.toString(account.getName() != null ? account.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8) : "null".getBytes()));
       
       response.put("message", "Đăng nhập Google thành công!");
       response.put("account", account);
@@ -301,8 +355,16 @@ public class AccountController {
         return ResponseEntity.badRequest().body(response);
       }
       
+      // Log để debug encoding
+      System.out.println("Update account - Received name: '" + updateDto.getName() + "'");
+      System.out.println("Update account - Name bytes: " + java.util.Arrays.toString(updateDto.getName() != null ? updateDto.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8) : "null".getBytes()));
+      
       Account updatedAccount = accountService.updateAccount(updateDto);
       session.setAttribute("account", updatedAccount);
+      
+      // Log sau khi update
+      System.out.println("Update account - Updated name: '" + updatedAccount.getName() + "'");
+      System.out.println("Update account - Updated name bytes: " + java.util.Arrays.toString(updatedAccount.getName() != null ? updatedAccount.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8) : "null".getBytes()));
       
       Map<String, Object> response = Map.of(
         "success", true,
@@ -330,7 +392,7 @@ public class AccountController {
         return ResponseEntity.badRequest().body(response);
       }
 
-      if (profileImage.isEmpty()) {
+      if (profileImage == null || profileImage.isEmpty()) {
         Map<String, Object> response = Map.of(
           "success", false,
           "message", "Vui lòng chọn ảnh để tải lên!"
@@ -338,8 +400,35 @@ public class AccountController {
         return ResponseEntity.badRequest().body(response);
       }
 
+      // Validate file type
+      String contentType = profileImage.getContentType();
+      if (contentType == null || !contentType.startsWith("image/")) {
+        Map<String, Object> response = Map.of(
+          "success", false,
+          "message", "File không phải là ảnh hợp lệ!"
+        );
+        return ResponseEntity.badRequest().body(response);
+      }
+
+      // Validate file size (5MB)
+      if (profileImage.getSize() > 5 * 1024 * 1024) {
+        Map<String, Object> response = Map.of(
+          "success", false,
+          "message", "Kích thước file không được vượt quá 5MB!"
+        );
+        return ResponseEntity.badRequest().body(response);
+      }
+
       // Upload image to Cloudinary
       String imageUrl = imageUploadService.uploadImage(profileImage);
+      
+      if (imageUrl == null || imageUrl.isEmpty()) {
+        Map<String, Object> response = Map.of(
+          "success", false,
+          "message", "Không thể upload ảnh lên Cloudinary!"
+        );
+        return ResponseEntity.badRequest().body(response);
+      }
       
       // Update account with new profile image
       account.setAccountsImage(imageUrl);
@@ -350,10 +439,13 @@ public class AccountController {
       
       Map<String, Object> response = Map.of(
         "success", true,
-        "message", "Cập nhật ảnh đại diện thành công"
+        "message", "Cập nhật ảnh đại diện thành công",
+        "imageUrl", imageUrl
       );
       return ResponseEntity.ok(response);
     } catch (Exception e) {
+      System.err.println("Error updating profile image: " + e.getMessage());
+      e.printStackTrace();
       Map<String, Object> response = Map.of(
         "success", false,
         "message", "Có lỗi xảy ra khi cập nhật ảnh: " + e.getMessage()

@@ -1,5 +1,6 @@
 package com.tientvv.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -11,6 +12,7 @@ import com.tientvv.dto.account.RegisterAccountDto;
 import com.tientvv.dto.account.UpdateAccountDto;
 import com.tientvv.model.Account;
 import com.tientvv.repository.AccountRepository;
+import com.tientvv.utils.EncodingUtils;
 
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -53,7 +55,9 @@ public class AccountService {
       throw new RuntimeException("Số điện thoại đã được sử dụng!");
     }
 
-    account.setName(dto.getName());
+    // Xử lý encoding UTF-8 cho tên người dùng
+    String sanitizedName = sanitizeName(dto.getName());
+    account.setName(sanitizedName);
     account.setEmail(dto.getEmail());
     account.setPhone(dto.getPhone());
     account.setAddress(dto.getAddress());
@@ -82,7 +86,9 @@ public class AccountService {
 
   public Account registerAccount(RegisterAccountDto dto) {
     Account account = new Account();
-    account.setName(dto.getName());
+    // Xử lý encoding UTF-8 cho tên người dùng
+    String sanitizedName = sanitizeName(dto.getName());
+    account.setName(sanitizedName);
     account.setUsername(dto.getUsername());
     account.setEmail(dto.getEmail());
     account.setPassword(BCrypt.hashpw(dto.getPassword(), BCrypt.gensalt()));
@@ -91,5 +97,28 @@ public class AccountService {
     account.setRole("USER");
     account.setCreatedAt(OffsetDateTime.now());
     return accountRepository.save(account);
+  }
+
+  /**
+   * Xử lý encoding UTF-8 cho tên người dùng
+   */
+  private String sanitizeName(String name) {
+    if (name == null || name.trim().isEmpty()) {
+      return "";
+    }
+    
+    try {
+      System.out.println("Original name: '" + name + "'");
+      
+      // Sử dụng EncodingUtils để xử lý encoding
+      String sanitizedName = EncodingUtils.fixVietnameseEncoding(name);
+      
+      System.out.println("Sanitized name: '" + sanitizedName + "'");
+      
+      return sanitizedName;
+    } catch (Exception e) {
+      System.err.println("Error sanitizing name: " + e.getMessage());
+      return name;
+    }
   }
 }

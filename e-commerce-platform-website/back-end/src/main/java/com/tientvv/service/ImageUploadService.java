@@ -13,12 +13,25 @@ public class ImageUploadService {
   private Cloudinary cloudinary;
 
   public String uploadImage(MultipartFile file) throws Exception {
-    if (file == null || file.isEmpty())
-      return null;
-    Map<?, ?> uploadResult = cloudinary.uploader().upload(
-        file.getBytes(),
-        Map.of()
-    );
-    return (String) uploadResult.get("secure_url");
+    if (file == null || file.isEmpty()) {
+      throw new IllegalArgumentException("File không được để trống");
+    }
+    
+    try {
+      Map<?, ?> uploadResult = cloudinary.uploader().upload(
+          file.getBytes(),
+          Map.of("resource_type", "image")
+      );
+      
+      String secureUrl = (String) uploadResult.get("secure_url");
+      if (secureUrl == null || secureUrl.isEmpty()) {
+        throw new RuntimeException("Không thể lấy URL ảnh từ Cloudinary");
+      }
+      
+      return secureUrl;
+    } catch (Exception e) {
+      System.err.println("Error uploading image to Cloudinary: " + e.getMessage());
+      throw new RuntimeException("Lỗi khi upload ảnh lên Cloudinary: " + e.getMessage(), e);
+    }
   }
 }
