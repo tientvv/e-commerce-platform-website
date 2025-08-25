@@ -28,11 +28,20 @@
       <ShoppingBasket width="18" />
       Đơn hàng của bạn
     </RouterLink>
+
+    <RouterLink
+      v-if="!hasShop"
+      to="/user/chat"
+      class="py-1 px-2 bg-white text-gray-700 rounded-xs border border-gray-300 hover:bg-blue-600 hover:text-white hover:border-transparent transition-colors font-medium flex items-center gap-2"
+    >
+      <MessageCircle width="18" />
+      Tin nhắn
+    </RouterLink>
   </div>
 </template>
 
 <script setup>
-import { Store, Plus, User } from 'lucide-vue-next'
+import { Store, Plus, User, MessageCircle } from 'lucide-vue-next'
 import { ShoppingBasket } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import { ref, onMounted } from 'vue'

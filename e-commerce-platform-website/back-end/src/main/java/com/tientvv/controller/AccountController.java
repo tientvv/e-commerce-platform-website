@@ -8,6 +8,7 @@ import com.tientvv.repository.AccountRepository;
 import com.tientvv.service.AccountService;
 import com.tientvv.service.ImageUploadService;
 import com.tientvv.service.GoogleAuthService;
+import com.tientvv.service.PasswordStrengthService;
 import jakarta.servlet.http.HttpSession;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class AccountController {
 
   @Autowired
   private GoogleAuthService googleAuthService;
+
+  @Autowired
+  private PasswordStrengthService passwordStrengthService;
 
   @PostMapping("/logout")
   public Map<String, Object> logout(HttpSession session) {
@@ -68,6 +72,11 @@ public class AccountController {
     accountInfo.put("lastLogin", account.getLastLogin());
     accountInfo.put("isActive", account.getIsActive());
     
+    // Thêm shopId nếu user có shop
+    if (account.getShop() != null) {
+      accountInfo.put("shopId", account.getShop().getId().toString());
+    }
+    
     response.put("account", accountInfo);
     return response;
   }
@@ -75,15 +84,32 @@ public class AccountController {
   @PostMapping("/login")
   public Map<String, Object> login(@RequestBody LoginAccountDto dto, HttpSession session) {
     Map<String, Object> response = new HashMap<>();
-    if (dto.getUsername().isEmpty() || dto.getPassword().isEmpty()) {
+    if (dto.getLoginIdentifier().isEmpty() || dto.getPassword().isEmpty()) {
       response.put("message", "Vui lòng điền đầy đủ thông tin đăng nhập!");
       return response;
     }
-    if (!accountRepository.existsByUsername(dto.getUsername())) {
-      response.put("message", "Sai tên đăng nhập hoặc mật khẩu!");
-      return response;
+    
+    // Tìm account theo username hoặc email
+    Account account = null;
+    String loginIdentifier = dto.getLoginIdentifier().trim();
+    
+    // Kiểm tra xem có phải email không
+    if (loginIdentifier.contains("@")) {
+      // Đăng nhập bằng email
+      if (!accountRepository.existsByEmail(loginIdentifier)) {
+        response.put("message", "Sai email hoặc mật khẩu!");
+        return response;
+      }
+      account = accountRepository.findByEmailAndIsActive(loginIdentifier, true);
+    } else {
+      // Đăng nhập bằng username
+      if (!accountRepository.existsByUsername(loginIdentifier)) {
+        response.put("message", "Sai tên đăng nhập hoặc mật khẩu!");
+        return response;
+      }
+      account = accountRepository.findByUsernameAndIsActive(loginIdentifier, true);
     }
-    Account account = accountRepository.findByUsernameAndIsActive(dto.getUsername(), true);
+    
     if (account == null) {
       response.put("message", "Tài khoản không tồn tại!");
       return response;
@@ -91,7 +117,7 @@ public class AccountController {
       response.put("message", "Tài khoản của bạn đã bị khóa!");
       return response;
     } else if (!BCrypt.checkpw(dto.getPassword(), account.getPassword())) {
-      response.put("message", "Sai tên đăng nhập hoặc mật khẩu!");
+      response.put("message", "Sai thông tin đăng nhập hoặc mật khẩu!");
       return response;
     }
     session.setAttribute("account", account);
@@ -140,8 +166,14 @@ public class AccountController {
       response.put("message", "Email đã được sử dụng!");
       return response;
     }
-    if (dto.getPassword().length() < 6) {
-      response.put("message", "Mật khẩu phải có ít nhất 6 ký tự!");
+    // Kiểm tra độ mạnh mật khẩu
+    PasswordStrengthService.PasswordStrengthResult strengthResult = 
+        passwordStrengthService.checkPasswordStrength(dto.getPassword());
+    
+    if (!strengthResult.isValid()) {
+      response.put("message", strengthResult.getMessage());
+      response.put("strength", strengthResult.getStrength().name());
+      response.put("score", strengthResult.getScore());
       return response;
     }
     if (accountRepository.existsByPhone(dto.getPhone())) {

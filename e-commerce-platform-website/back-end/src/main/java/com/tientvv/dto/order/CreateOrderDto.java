@@ -7,6 +7,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
 
 @Data
 public class CreateOrderDto {
@@ -37,6 +38,8 @@ public class CreateOrderDto {
   private List<OrderItemDto> orderItems;
 
   private String discountCode;
+
+  private Map<String, Object> additionalData;
 
   @Data
   public static class OrderItemDto {

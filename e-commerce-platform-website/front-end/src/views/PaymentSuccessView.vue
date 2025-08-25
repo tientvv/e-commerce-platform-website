@@ -131,80 +131,80 @@ onMounted(async () => {
         paymentMethod: 'PayOS',
       }
 
-      // Kiểm tra xem có nhiều đơn hàng không
-      const pendingMultipleOrders = localStorage.getItem('pendingMultipleOrders')
+      // Lấy thông tin đơn hàng từ localStorage
+      const pendingOrderAmount = localStorage.getItem('pendingOrderAmount')
+      if (pendingOrderAmount) {
+        orderInfo.value.amount = parseFloat(pendingOrderAmount)
+      }
 
-      if (pendingMultipleOrders) {
-        // Xử lý nhiều đơn hàng
-        try {
-          const multipleOrdersData = JSON.parse(pendingMultipleOrders)
-          orderInfo.value.multipleOrders = true
-          orderInfo.value.totalOrders = multipleOrdersData.length
-
-          // Tạo tất cả đơn hàng
-          const createdOrders = []
-          for (const orderData of multipleOrdersData) {
+      // Verify payment với backend để cập nhật trạng thái
+      try {
+        console.log('Verifying payment with backend for orderCode:', orderCode)
+        
+        // Kiểm tra xem có nhiều đơn hàng không
+        const pendingMultipleOrders = localStorage.getItem('pendingMultipleOrders')
+        
+        if (pendingMultipleOrders) {
+          // Có nhiều đơn hàng - verify tất cả
+          console.log('Found multiple orders, verifying all orders')
+          const multipleOrders = JSON.parse(pendingMultipleOrders)
+          
+          for (let i = 0; i < multipleOrders.length; i++) {
+            const orderData = multipleOrders[i]
             try {
-              console.log('Creating order for shop:', orderData.shopId, 'with total:', orderData.totalAmount)
-              const orderResponse = await axios.post('/api/orders', orderData)
-              if (orderResponse.data) {
-                createdOrders.push(orderResponse.data)
-                console.log('Order created successfully:', orderResponse.data.id)
+              console.log(`Verifying order ${i + 1}/${multipleOrders.length} for shop:`, orderData.shopId)
+              
+              // Sử dụng orderId thật nếu có
+              const pendingOrderId = localStorage.getItem('pendingOrderId')
+              const orderIdToVerify = pendingOrderId || orderCode
+              
+              const verifyResponse = await axios.post('/api/payos/verify-payment', {
+                orderCode: orderIdToVerify,
+                transactionCode: 'PAYOS_SUCCESS'
+              })
 
-                // Cập nhật trạng thái thanh toán thành SUCCESS cho đơn hàng vừa tạo
-                try {
-                  await axios.put(`/api/shop/orders/${orderResponse.data.id}/payment-status`, {
-                    paymentStatus: 'SUCCESS'
-                  })
-                  console.log('Payment status updated to SUCCESS for order:', orderResponse.data.id)
-                } catch (paymentStatusError) {
-                  console.error('Error updating payment status for order:', orderResponse.data.id, paymentStatusError)
-                }
+              if (verifyResponse.data.success) {
+                console.log(`Order ${i + 1} verified successfully:`, verifyResponse.data)
+              } else {
+                console.error(`Order ${i + 1} verification failed:`, verifyResponse.data)
               }
-            } catch (orderError) {
-              console.error('Error creating order:', orderError)
-              message.error('Lỗi tạo đơn hàng cho shop: ' + orderData.shopId)
+            } catch (orderVerifyError) {
+              console.error(`Error verifying order ${i + 1}:`, orderVerifyError)
             }
           }
+          
+          message.success('Thanh toán thành công! Đã cập nhật tất cả đơn hàng.')
+        } else {
+          // Chỉ có 1 đơn hàng - verify như cũ
+          console.log('Single order, verifying normally')
+          
+          // Sử dụng orderId thật nếu có
+          const pendingOrderId = localStorage.getItem('pendingOrderId')
+          const orderIdToVerify = pendingOrderId || orderCode
+          
+          const verifyResponse = await axios.post('/api/payos/verify-payment', {
+            orderCode: orderIdToVerify,
+            transactionCode: 'PAYOS_SUCCESS'
+          })
 
-          // Tính tổng tiền
-          orderInfo.value.amount = createdOrders.reduce((total, order) => total + order.totalAmount, 0)
-          orderInfo.value.paymentMethod = 'PayOS'
-
-          if (createdOrders.length > 0) {
-            message.success(`Thanh toán thành công! Đã tạo ${createdOrders.length} đơn hàng.`)
+          if (verifyResponse.data.success) {
+            console.log('Payment verified successfully:', verifyResponse.data)
+            message.success('Thanh toán thành công!')
           } else {
-            message.error('Không thể tạo đơn hàng nào. Vui lòng liên hệ hỗ trợ.')
+            console.error('Payment verification failed:', verifyResponse.data)
+            message.warning('Thanh toán thành công nhưng có lỗi khi cập nhật trạng thái đơn hàng')
           }
-
-          // Clear localStorage
-          localStorage.removeItem('pendingMultipleOrders')
-          localStorage.removeItem('pendingOrderCode')
-          localStorage.removeItem('pendingOrderAmount')
-
-        } catch (multipleOrdersError) {
-          console.error('Error processing multiple orders:', multipleOrdersError)
-          message.error('Có lỗi xảy ra khi tạo đơn hàng')
         }
-      } else {
-        // Xử lý đơn hàng đơn lẻ - không cần tạo đơn hàng mới vì đã được tạo trong PayOS
-        try {
-          // Lấy thông tin đơn hàng từ localStorage hoặc tạo mới
-          const pendingOrderAmount = localStorage.getItem('pendingOrderAmount')
-          if (pendingOrderAmount) {
-            orderInfo.value.amount = parseFloat(pendingOrderAmount)
-          }
-
-          message.success('Thanh toán thành công!')
-
-          // Clear localStorage
-          localStorage.removeItem('pendingOrderCode')
-          localStorage.removeItem('pendingOrderAmount')
-        } catch (error) {
-          console.error('Error processing single order:', error)
-          message.error('Có lỗi xảy ra khi xử lý đơn hàng')
-        }
+      } catch (verifyError) {
+        console.error('Error verifying payment:', verifyError)
+        message.warning('Thanh toán thành công nhưng có lỗi khi xác minh với hệ thống')
       }
+
+      // Clear localStorage
+      localStorage.removeItem('pendingOrderCode')
+      localStorage.removeItem('pendingOrderId')
+      localStorage.removeItem('pendingOrderAmount')
+      localStorage.removeItem('pendingMultipleOrders')
 
       // Clear cart sau khi thanh toán thành công
       clear()

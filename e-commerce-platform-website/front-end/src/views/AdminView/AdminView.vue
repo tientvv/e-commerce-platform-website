@@ -36,6 +36,30 @@
 
       <!-- Main Content -->
       <n-layout-content class="p-6">
+        <!-- Email Notification Banner -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div class="flex items-center">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800">Hệ thống Email đã được kích hoạt</h3>
+              <div class="mt-2 text-sm text-blue-700">
+                <p>Email thông báo sẽ được gửi tự động khi:</p>
+                <ul class="list-disc list-inside mt-1 space-y-1">
+                  <li>Tạo đơn hàng mới</li>
+                  <li>Cập nhật trạng thái đơn hàng</li>
+                  <li>Hủy đơn hàng</li>
+                  <li>Giao hàng thành công</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <RouterView />
       </n-layout-content>
     </n-layout>

@@ -8,7 +8,7 @@
 <script setup>
 import { computed, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Info, Package, Settings, Image, ShoppingCart, TrendingUp } from 'lucide-vue-next'
+import { Info, Package, Settings, Image, ShoppingCart, TrendingUp, MessageCircle } from 'lucide-vue-next'
 import { NH3, NMenu, NIcon } from 'naive-ui'
 
 const route = useRoute()
@@ -48,6 +48,11 @@ const menuOptions = [
     label: 'Thống kê doanh thu',
     key: '/user/shop/revenue',
     icon: () => h(NIcon, null, { default: () => h(TrendingUp) }),
+  },
+  {
+    label: 'Quản lý tin nhắn',
+    key: '/user/shop/chat',
+    icon: () => h(NIcon, null, { default: () => h(MessageCircle) }),
   },
 ]
 

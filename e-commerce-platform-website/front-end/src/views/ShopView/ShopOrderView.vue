@@ -643,7 +643,7 @@ const updateOrderStatus = async () => {
     })
 
     if (response.data.success) {
-      message.success('Cập nhật trạng thái thành công')
+      message.success('Cập nhật trạng thái thành công và đã gửi email thông báo cho khách hàng')
       selectedOrder.value = response.data.order
       loadOrders() // Reload to update statistics
     } else {
@@ -651,7 +651,15 @@ const updateOrderStatus = async () => {
     }
   } catch (error) {
     console.error('Error updating order status:', error)
-    message.error('Lỗi cập nhật trạng thái đơn hàng')
+    
+    // Hiển thị thông báo lỗi chi tiết từ backend
+    const errorMessage = error.response?.data?.message || error.message || 'Lỗi cập nhật trạng thái đơn hàng'
+    message.error(errorMessage)
+    
+    // Log chi tiết để debug
+    if (error.response?.data) {
+      console.error('Backend error details:', error.response.data)
+    }
   } finally {
     updatingStatus.value = false
   }
@@ -798,7 +806,7 @@ Thao tác này không thể hoàn tác và sẽ:
     const response = await axios.put(`/api/shop/orders/${orderId}/cancel`)
 
     if (response.data.success) {
-      message.success('Hủy đơn hàng thành công')
+      message.success('Hủy đơn hàng thành công và đã gửi email thông báo cho khách hàng')
 
       // Cập nhật đơn hàng trong danh sách ngay lập tức
       if (orderIndex !== -1) {
@@ -852,7 +860,7 @@ const updatePaymentStatus = async () => {
     })
 
     if (response.data.success) {
-      message.success('Cập nhật trạng thái thanh toán thành công')
+      message.success('Cập nhật trạng thái thanh toán thành công và đã gửi email thông báo cho khách hàng')
 
       // Cập nhật selectedOrder với dữ liệu mới
       selectedOrder.value = response.data.order
@@ -870,7 +878,15 @@ const updatePaymentStatus = async () => {
     }
   } catch (error) {
     console.error('Error updating payment status:', error)
-    message.error('Lỗi cập nhật trạng thái thanh toán')
+    
+    // Hiển thị thông báo lỗi chi tiết từ backend
+    const errorMessage = error.response?.data?.message || error.message || 'Lỗi cập nhật trạng thái thanh toán'
+    message.error(errorMessage)
+    
+    // Log chi tiết để debug
+    if (error.response?.data) {
+      console.error('Backend error details:', error.response.data)
+    }
   } finally {
     updatingPaymentStatus.value = false
   }

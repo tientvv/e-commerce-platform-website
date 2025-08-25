@@ -66,4 +66,9 @@ onMounted(async () => {
 :deep(.n-layout-sider) {
   transition: none !important;
 }
+
+/* Đảm bảo n-spin-content có h-full */
+:deep(.n-spin-content) {
+  height: 100% !important;
+}
 </style>

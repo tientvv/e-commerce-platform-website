@@ -94,13 +94,7 @@ public class ProductVariants {
         variants = productVariantService.getProductVariantsByProductId(uuid);
       }
       
-      // Log để debug
-      System.out.println("Product variants for product ID: " + productId);
-      for (ProductVariantDto variant : variants) {
-        System.out.println("  - Variant ID: " + variant.getId());
-        System.out.println("  - VariantName: " + variant.getVariantName());
-        System.out.println("  - VariantValue: " + variant.getVariantValue());
-      }
+
       
       response.put("variants", variants);
     } catch (Exception e) {
@@ -115,20 +109,7 @@ public class ProductVariants {
     try {
       List<ProductVariantDto> variants = productVariantService.getAllProductVariants();
       
-      // Debug: Log all variants to check data
-      System.out.println("=== DEBUG ALL PRODUCT VARIANTS ===");
-      System.out.println("Total variants: " + variants.size());
-      for (ProductVariantDto variant : variants) {
-        System.out.println("Variant ID: " + variant.getId());
-        System.out.println("  - Product ID: " + variant.getProductId());
-        System.out.println("  - VariantName: " + variant.getVariantName());
-        System.out.println("  - VariantValue: " + variant.getVariantValue());
-        System.out.println("  - Price: " + variant.getPrice());
-        System.out.println("  - Quantity: " + variant.getQuantity());
-        System.out.println("  - IsActive: " + variant.getIsActive());
-        System.out.println("---");
-      }
-      System.out.println("=== END DEBUG ALL PRODUCT VARIANTS ===");
+
       
       response.put("variants", variants);
     } catch (Exception e) {

@@ -6,6 +6,8 @@ import RegisterAccountView from '~/views/RegisterAccountView.vue'
 import CategoryView from '~/views/CategoryView.vue'
 import ProductDetailView from '~/views/ProductDetailView.vue'
 import CartView from '~/views/CartView.vue'
+import ForgotPasswordView from '~/views/ForgotPasswordView.vue'
+import ResetPasswordView from '~/views/ResetPasswordView.vue'
 import axios from '../utils/axios'
 import UserView from '~/views/UserView/UserView.vue'
 
@@ -14,6 +16,8 @@ const router = createRouter({
   routes: [
     { path: '/', component: HomeView, name: 'home', meta: { title: 'Trang chủ' } },
     { path: '/login', component: LoginAccountView, name: 'login', meta: { title: 'Đăng nhập' } },
+    { path: '/forgot-password', component: ForgotPasswordView, name: 'forgot-password', meta: { title: 'Quên mật khẩu' } },
+    { path: '/reset-password', component: ResetPasswordView, name: 'reset-password', meta: { title: 'Đặt lại mật khẩu' } },
     { path: '/category/:id', component: CategoryView, name: 'category', meta: { title: 'Danh mục sản phẩm' } },
     { path: '/product/:id', component: ProductDetailView, name: 'product', meta: { title: 'Chi tiết sản phẩm' } },
     { path: '/cart', component: CartView, name: 'cart', meta: { title: 'Giỏ hàng' } },
@@ -102,9 +106,16 @@ const router = createRouter({
               name: 'shop-revenue',
               meta: { requiresShop: true, title: 'Thống kê doanh thu' },
             },
+            {
+              path: 'chat',
+              component: () => import('~/views/ShopView/ShopChatView.vue'),
+              name: 'shop-chat',
+              meta: { requiresShop: true, title: 'Quản lý tin nhắn' },
+            },
           ],
         },
         { path: 'order', component: () => import('~/views/UserView/OrderView.vue'), name: 'user-order', meta: { title: 'Đơn hàng của bạn' } },
+        { path: 'chat', component: () => import('~/views/UserView/CustomerChatView.vue'), name: 'user-chat', meta: { title: 'Tin nhắn của tôi' } },
       ],
     },
     {
@@ -186,7 +197,7 @@ router.beforeEach(async (to) => {
   } catch (error) {
     console.log('Router guard - not logged in, error:', error.message)
     // Nếu chưa đăng nhập, chỉ cho phép truy cập các route công khai
-    const publicRoutes = ['/', '/login', '/register']
+    const publicRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password']
     if (publicRoutes.includes(to.path)) {
       console.log('Router guard - allowing access to public route:', to.path)
       return true
@@ -200,14 +211,14 @@ router.beforeEach(async (to) => {
     return true
   }
 
-  // Nếu đã đăng nhập, redirect khỏi trang login/register
-  if (user && (to.path === '/login' || to.path === '/register')) {
+  // Nếu đã đăng nhập, redirect khỏi trang login/register/forgot-password/reset-password
+  if (user && (to.path === '/login' || to.path === '/register' || to.path === '/forgot-password' || to.path === '/reset-password')) {
     console.log('Router guard - redirecting logged in user from', to.path, 'to /')
     return '/'
   }
 
   // Các route không cần kiểm tra thông tin profile (nhưng vẫn cần đăng nhập)
-  const exemptRoutes = ['/', '/login', '/register', '/register-shop']
+  const exemptRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/register-shop']
   if (exemptRoutes.includes(to.path)) {
     return true
   }

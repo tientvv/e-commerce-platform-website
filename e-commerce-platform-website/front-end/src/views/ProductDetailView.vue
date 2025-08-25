@@ -421,6 +421,16 @@
     />
 
     <FooterView />
+
+    <!-- ChatBot Component - Only show for regular users, not shop owners -->
+    <ChatBot
+      v-if="product && product.shopId && !isShopOwner"
+      :product-id="product.id"
+      :shop-id="product.shopId"
+      :shop-name="product.shopName"
+    />
+
+
   </div>
 </template>
 
@@ -433,6 +443,8 @@ import NavbarView from './components/NavbarView.vue'
 import FooterView from './components/FooterView.vue'
 import ReviewDialog from '../components/ReviewDialog.vue'
 import ReviewList from '../components/ReviewList.vue'
+import ChatBot from '../components/ChatBot.vue'
+
 import { useCart } from '../composables/useCart'
 
 const route = useRoute()
@@ -459,9 +471,13 @@ const canReview = ref(false)
 // Check if current user is shop owner
 const isShopOwner = computed(() => {
   if (!product.value || !product.value.shopId) return false
-  // TODO: Implement proper shop owner check
-  // For now, return false - you'll need to implement this based on your auth system
-  return false
+  
+  // Get user info from localStorage or session
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+  const userShopId = userInfo.shopId
+  
+  // Check if current user owns this shop
+  return userShopId === product.value.shopId
 })
 
 const { addItem } = useCart()
@@ -538,7 +554,7 @@ const fetchProduct = async () => {
     // Fetch product details
     const productResponse = await axios.get(`/api/products/${productId}`)
     product.value = productResponse.data
-    console.log('Product loaded:', product.value.name)
+
 
     // Fetch product variants
     try {

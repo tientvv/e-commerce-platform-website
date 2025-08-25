@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class LoginAccountDto {
-  private String username;
+  private String loginIdentifier; // Có thể là username hoặc email
   private String password;
 }

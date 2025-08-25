@@ -4,6 +4,54 @@
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-800 mb-2">Đơn hàng của bạn</h1>
+
+      <!-- Filter Buttons -->
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button
+          @click="setFilter('all')"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+            currentFilter === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          Tất cả đơn hàng
+        </button>
+        <button
+          @click="setFilter('new')"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+            currentFilter === 'new'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          Đơn hàng mới đặt
+        </button>
+        <button
+          @click="setFilter('delivered')"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+            currentFilter === 'delivered'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          Đơn hàng đã giao
+        </button>
+        <button
+          @click="setFilter('cancelled')"
+          :class="[
+            'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+            currentFilter === 'cancelled'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          ]"
+        >
+          Đơn hàng đã hủy
+        </button>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -281,17 +329,28 @@ const orders = ref([])
 const loading = ref(true)
 const error = ref(false)
 const errorMessage = ref('')
+const currentFilter = ref('all') // Thêm state cho filter
 
 // Review dialog state
 const showReviewDialog = ref(false)
 const selectedProductForReview = ref(null)
+
+const setFilter = async (filter) => {
+  currentFilter.value = filter
+  await fetchOrders()
+}
 
 const fetchOrders = async () => {
   try {
     loading.value = true
     error.value = false
 
-    const response = await axios.get('/api/orders/my-orders')
+    // Sử dụng endpoint filter nếu không phải "all"
+    const url = currentFilter.value === 'all'
+      ? '/api/orders/my-orders'
+      : `/api/orders/my-orders/filter?filter=${currentFilter.value}`
+
+    const response = await axios.get(url)
 
     if (response.data.success) {
       // Sắp xếp đơn hàng theo thời gian đặt hàng mới nhất
@@ -303,9 +362,10 @@ const fetchOrders = async () => {
 
       // Debug: Log variant information
       console.log('=== FRONTEND DEBUG ORDERS ===')
+      console.log('Current filter:', currentFilter.value)
       for (let i = 0; i < orders.value.length; i++) {
         const order = orders.value[i]
-        console.log(`Order ${i + 1} (ID: ${order.id}):`)
+        console.log(`Order ${i + 1} (ID: ${order.id}, Status: ${order.orderStatus}):`)
         if (order.orderItems) {
           console.log(`  Order items count: ${order.orderItems.length}`)
           for (let j = 0; j < order.orderItems.length; j++) {

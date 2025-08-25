@@ -10,15 +10,19 @@
       {{ errorMessage }}
     </n-alert>
 
-    <n-form-item label="Username" path="username">
-      <n-input v-model:value="form.username" placeholder="Nhập username" :input-props="{ autocomplete: 'username' }" />
+    <n-form-item label="Username hoặc Email" path="loginIdentifier">
+      <n-input 
+        v-model:value="form.loginIdentifier" 
+        placeholder="Nhập username hoặc email" 
+        :input-props="{ autocomplete: 'username' }" 
+      />
     </n-form-item>
 
-    <n-form-item label="Password" path="password">
+    <n-form-item label="Mật khẩu" path="password">
       <n-input
         v-model:value="form.password"
         type="password"
-        placeholder="Nhập password"
+        placeholder="Nhập mật khẩu"
         show-password-on="click"
         :input-props="{ autocomplete: 'current-password' }"
       />
@@ -27,6 +31,10 @@
     <n-form-item>
       <n-button type="primary" block attr-type="submit" :loading="loading"> Đăng nhập </n-button>
     </n-form-item>
+
+    <n-text class="text-center block mb-4">
+      <n-button text type="info" @click="$router.push('/forgot-password')">Quên mật khẩu?</n-button>
+    </n-text>
 
     <n-divider>hoặc</n-divider>
 
@@ -55,7 +63,7 @@ const googleError = ref('')
 const { handleGoogleLogin, renderGoogleButton } = useGoogleAuth()
 
 const form = ref({
-  username: '',
+  loginIdentifier: '',
   password: '',
 })
 

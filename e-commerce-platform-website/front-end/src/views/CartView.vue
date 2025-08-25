@@ -1019,8 +1019,11 @@ const handleCheckout = async () => {
             const paymentData = {
               ...firstOrderData,
               totalAmount: totalAmount, // Sử dụng tổng tiền của tất cả đơn hàng
-              multipleOrders: true,
-              totalOrders: ordersData.length
+              additionalData: {
+                multipleOrders: true,
+                totalOrders: ordersData.length,
+                pendingOrders: JSON.stringify(ordersData)
+              }
             }
 
             // Lưu ordersData riêng vào localStorage
@@ -1035,6 +1038,7 @@ const handleCheckout = async () => {
 
           if (payosResponse.data.success) {
             localStorage.setItem('pendingOrderCode', payosResponse.data.orderCode)
+            localStorage.setItem('pendingOrderId', payosResponse.data.orderId) // Lưu orderId thật
             // Lưu tổng tiền đúng (tổng của tất cả đơn hàng nếu có nhiều shop)
             const totalAmount = ordersData.length > 1
               ? ordersData.reduce((sum, order) => sum + order.totalAmount, 0)

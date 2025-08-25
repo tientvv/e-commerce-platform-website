@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -126,12 +128,68 @@ public class OrderController {
       response.put("success", true);
       response.put("orders", orders);
       response.put("message", "Lấy danh sách đơn hàng thành công");
-      
       return ResponseEntity.ok(response);
     } catch (Exception e) {
+      System.err.println("Error getting my orders: " + e.getMessage());
+      e.printStackTrace();
       Map<String, Object> errorResponse = new HashMap<>();
       errorResponse.put("success", false);
-      errorResponse.put("message", "Lỗi lấy danh sách đơn hàng: " + e.getMessage());
+      errorResponse.put("message", "Có lỗi xảy ra khi lấy danh sách đơn hàng: " + e.getMessage());
+      return ResponseEntity.badRequest().body(errorResponse);
+    }
+  }
+
+  @GetMapping("/my-orders/filter")
+  public ResponseEntity<Map<String, Object>> getMyOrdersWithFilter(@RequestParam(required = false) String filter) {
+    try {
+      // Lấy user hiện tại từ session
+      Account currentUser = accountService.getCurrentUserFromSession();
+      if (currentUser == null) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("success", false);
+        errorResponse.put("message", "Bạn cần phải đăng nhập để xem đơn hàng");
+        return ResponseEntity.badRequest().body(errorResponse);
+      }
+
+      List<OrderDto> allOrders = orderService.getOrdersByAccountId(currentUser.getId());
+      List<OrderDto> filteredOrders = new ArrayList<>();
+
+      if (filter == null || filter.isEmpty() || "all".equalsIgnoreCase(filter)) {
+        // Trả về tất cả đơn hàng
+        filteredOrders = allOrders;
+      } else if ("new".equalsIgnoreCase(filter)) {
+        // Đơn hàng mới đặt: tất cả trạng thái trừ DELIVERED và CANCELLED
+        filteredOrders = allOrders.stream()
+            .filter(order -> !"DELIVERED".equals(order.getOrderStatus()) && 
+                           !"CANCELLED".equals(order.getOrderStatus()))
+            .collect(Collectors.toList());
+      } else if ("delivered".equalsIgnoreCase(filter)) {
+        // Đơn hàng đã giao: chỉ DELIVERED
+        filteredOrders = allOrders.stream()
+            .filter(order -> "DELIVERED".equals(order.getOrderStatus()))
+            .collect(Collectors.toList());
+      } else if ("cancelled".equalsIgnoreCase(filter)) {
+        // Đơn hàng đã hủy: chỉ CANCELLED
+        filteredOrders = allOrders.stream()
+            .filter(order -> "CANCELLED".equals(order.getOrderStatus()))
+            .collect(Collectors.toList());
+      } else {
+        // Filter không hợp lệ, trả về tất cả
+        filteredOrders = allOrders;
+      }
+      
+      Map<String, Object> response = new HashMap<>();
+      response.put("success", true);
+      response.put("orders", filteredOrders);
+      response.put("filter", filter);
+      response.put("message", "Lấy danh sách đơn hàng thành công");
+      return ResponseEntity.ok(response);
+    } catch (Exception e) {
+      System.err.println("Error getting my orders with filter: " + e.getMessage());
+      e.printStackTrace();
+      Map<String, Object> errorResponse = new HashMap<>();
+      errorResponse.put("success", false);
+      errorResponse.put("message", "Có lỗi xảy ra khi lấy danh sách đơn hàng: " + e.getMessage());
       return ResponseEntity.badRequest().body(errorResponse);
     }
   }

@@ -35,8 +35,36 @@
     </n-form-item>
 
     <n-form-item label="Mật khẩu" path="password">
-      <n-input v-model:value="form.password" type="password" placeholder="Nhập mật khẩu" show-password-on="click" />
+      <n-input
+        v-model:value="form.password"
+        type="password"
+        placeholder="Nhập mật khẩu"
+        show-password-on="click"
+        @input="checkPasswordStrength"
+      />
     </n-form-item>
+
+    <!-- Hiển thị mức độ mật khẩu -->
+    <div v-if="form.password" class="mb-4">
+      <div class="flex items-center justify-between text-sm">
+        <span>Mức độ mật khẩu:</span>
+        <span :class="getStrengthColorClass()">{{ passwordStrength.displayName }}</span>
+      </div>
+
+      <!-- Thanh tiến trình mức độ -->
+      <div class="mt-1 w-full bg-gray-200 rounded-full h-2">
+        <div
+          class="h-2 rounded-full transition-all duration-300"
+          :class="getStrengthBarColorClass()"
+          :style="{ width: getStrengthPercentage() + '%' }"
+        ></div>
+      </div>
+
+      <!-- Thông báo chi tiết -->
+      <div v-if="passwordStrength.message" class="mt-2 text-xs" :class="getStrengthTextColorClass()">
+        {{ passwordStrength.message }}
+      </div>
+    </div>
 
     <n-form-item label="Số điện thoại" path="phone">
       <n-input v-model:value="form.phone" placeholder="Nhập số điện thoại" :input-props="{ autocomplete: 'tel' }" />
@@ -81,6 +109,15 @@ const form = ref({
   phone: '',
 })
 
+const passwordStrength = ref({
+  strength: 'VERY_WEAK',
+  displayName: 'Rất yếu',
+  score: 0,
+  level: 1,
+  message: '',
+  isValid: false
+})
+
 const resetForm = () => {
   form.value = {
     name: '',
@@ -89,9 +126,109 @@ const resetForm = () => {
     password: '',
     phone: '',
   }
+  passwordStrength.value = {
+    strength: 'VERY_WEAK',
+    displayName: 'Rất yếu',
+    score: 0,
+    level: 1,
+    message: '',
+    isValid: false
+  }
+}
+
+const checkPasswordStrength = async () => {
+  if (!form.value.password) {
+    passwordStrength.value = {
+      strength: 'VERY_WEAK',
+      displayName: 'Rất yếu',
+      score: 0,
+      level: 1,
+      message: '',
+      isValid: false
+    }
+    return
+  }
+
+  try {
+    const response = await axios.post('/api/auth/check-password-strength', {
+      password: form.value.password
+    })
+
+    if (response.data.success) {
+      passwordStrength.value = {
+        strength: response.data.strength,
+        displayName: response.data.displayName,
+        score: response.data.score,
+        level: response.data.level,
+        message: response.data.message,
+        isValid: response.data.isValid
+      }
+    }
+  } catch (error) {
+    console.error('Error checking password strength:', error)
+  }
+}
+
+const getStrengthColorClass = () => {
+  switch (passwordStrength.value.strength) {
+    case 'VERY_WEAK':
+      return 'text-red-600 font-semibold'
+    case 'WEAK':
+      return 'text-orange-600 font-semibold'
+    case 'MEDIUM':
+      return 'text-yellow-600 font-semibold'
+    case 'STRONG':
+      return 'text-blue-600 font-semibold'
+    case 'VERY_STRONG':
+      return 'text-green-600 font-semibold'
+    default:
+      return 'text-gray-600'
+  }
+}
+
+const getStrengthBarColorClass = () => {
+  switch (passwordStrength.value.strength) {
+    case 'VERY_WEAK':
+      return 'bg-red-500'
+    case 'WEAK':
+      return 'bg-orange-500'
+    case 'MEDIUM':
+      return 'bg-yellow-500'
+    case 'STRONG':
+      return 'bg-blue-500'
+    case 'VERY_STRONG':
+      return 'bg-green-500'
+    default:
+      return 'bg-gray-500'
+  }
+}
+
+const getStrengthTextColorClass = () => {
+  switch (passwordStrength.value.strength) {
+    case 'VERY_WEAK':
+    case 'WEAK':
+      return 'text-red-600'
+    case 'MEDIUM':
+      return 'text-yellow-600'
+    case 'STRONG':
+    case 'VERY_STRONG':
+      return 'text-green-600'
+    default:
+      return 'text-gray-600'
+  }
+}
+
+const getStrengthPercentage = () => {
+  return (passwordStrength.value.score / 6) * 100
 }
 
 const registerAccount = async () => {
+  // Kiểm tra độ mạnh mật khẩu trước khi đăng ký
+  if (!passwordStrength.value.isValid) {
+    errorMessage.value = 'Vui lòng chọn mật khẩu mạnh hơn'
+    return
+  }
+
   loading.value = true
   try {
     const res = await axios.post('/api/register', form.value)

@@ -198,9 +198,11 @@ public class OrderService {
 
     // Send order confirmation email
     try {
+      log.info("Attempting to send order confirmation email for order {}", savedOrder.getId());
       emailService.sendOrderConfirmationEmail(orderDto);
+      log.info("Order confirmation email sent successfully for order {}", savedOrder.getId());
     } catch (Exception e) {
-      System.err.println("Error sending order confirmation email: " + e.getMessage());
+      log.error("Error sending order confirmation email for order {}: {}", savedOrder.getId(), e.getMessage(), e);
       // Don't fail the order creation if email fails
     }
 
@@ -259,16 +261,25 @@ public class OrderService {
 
   @Transactional
   public OrderDto updateOrderStatus(UUID orderId, String status) {
+    return updateOrderStatus(orderId, status, true);
+  }
+
+  @Transactional
+  public OrderDto updateOrderStatus(UUID orderId, String status, boolean sendEmail) {
     Order order = orderRepository.findById(orderId)
         .orElseThrow(() -> new RuntimeException("Order not found"));
 
     String oldStatus = order.getOrderStatus();
+    log.info("Updating order {} status from {} to {} (sendEmail: {})", orderId, oldStatus, status, sendEmail);
+    
     order.setOrderStatus(status);
 
     if ("DELIVERED".equals(status)) {
       order.setDeliveredDate(OffsetDateTime.now());
+      log.info("Order {} marked as delivered at {}", orderId, order.getDeliveredDate());
     } else if ("CANCELLED".equals(status)) {
       order.setCancelledDate(OffsetDateTime.now());
+      log.info("Order {} marked as cancelled at {}", orderId, order.getCancelledDate());
       
       // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
       List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
@@ -276,27 +287,42 @@ public class OrderService {
         transaction.setTransactionStatus("CANCELLED");
         transaction.setTransactionDate(OffsetDateTime.now());
         transactionRepository.save(transaction);
+        log.info("Transaction {} cancelled for order {}", transaction.getId(), orderId);
       }
     }
 
     order = orderRepository.save(order);
+    log.info("Order {} status updated successfully to {}", orderId, status);
 
     List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
     List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
     OrderDto orderDto = convertToDto(order, orderItems, updatedTransactions);
 
-    // Send email notifications based on status change
-    try {
-      if ("CANCELLED".equals(status)) {
-        emailService.sendOrderCancellationEmail(orderDto);
-      } else if ("DELIVERED".equals(status)) {
-        emailService.sendOrderDeliveryEmail(orderDto);
-      } else if (!oldStatus.equals(status)) {
-        emailService.sendOrderStatusUpdateEmail(orderDto, oldStatus, status);
+    // Send email notifications based on status change (only if sendEmail = true)
+    if (sendEmail) {
+      try {
+        log.info("Attempting to send email notification for order {} status change from {} to {}", 
+            orderId, oldStatus, status);
+        
+        if ("CANCELLED".equals(status)) {
+          log.info("Sending cancellation email for order {}", orderId);
+          emailService.sendOrderCancellationEmail(orderDto);
+          log.info("Cancellation email sent successfully for order {}", orderId);
+        } else if ("DELIVERED".equals(status)) {
+          log.info("Sending delivery email for order {}", orderId);
+          emailService.sendOrderDeliveryEmail(orderDto);
+          log.info("Delivery email sent successfully for order {}", orderId);
+        } else if (!oldStatus.equals(status)) {
+          log.info("Sending status update email for order {} from {} to {}", orderId, oldStatus, status);
+          emailService.sendOrderStatusUpdateEmail(orderDto, oldStatus, status);
+          log.info("Status update email sent successfully for order {}", orderId);
+        }
+      } catch (Exception e) {
+        log.error("Error sending order status update email for order {}: {}", orderId, e.getMessage(), e);
+        // Don't fail the status update if email fails, but log the error
       }
-    } catch (Exception e) {
-      System.err.println("Error sending order status update email: " + e.getMessage());
-      // Don't fail the status update if email fails
+    } else {
+      log.info("Skipping email notification for order {} status change (sendEmail=false)", orderId);
     }
 
     return orderDto;
@@ -304,39 +330,92 @@ public class OrderService {
 
   @Transactional
   public OrderDto updateTransactionStatus(UUID orderId, String transactionStatus) {
-    Order order = orderRepository.findById(orderId)
-        .orElseThrow(() -> new RuntimeException("Order not found"));
+    return updateTransactionStatus(orderId, transactionStatus, true);
+  }
 
-    // Cập nhật trạng thái transaction
-    List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
-    System.out
-        .println("Updating transactions for order " + orderId + ", found " + transactions.size() + " transactions");
+  @Transactional
+  public OrderDto updateTransactionStatus(UUID orderId, String transactionStatus, boolean sendEmail) {
+    try {
+      Order order = orderRepository.findById(orderId)
+          .orElseThrow(() -> {
+            log.error("Order {} not found for transaction status update", orderId);
+            return new RuntimeException("Không tìm thấy đơn hàng");
+          });
 
-    for (Transaction transaction : transactions) {
-      String oldStatus = transaction.getTransactionStatus();
-      System.out.println("Transaction " + transaction.getId() + " current status: " + oldStatus);
-
-      // Nếu transaction chuyển từ PENDING sang SUCCESS, trừ số lượng sản phẩm và cập nhật order status
-      if ("PENDING".equals(oldStatus) && "SUCCESS".equals(transactionStatus)) {
-        deductProductQuantities(orderId);
-        // Cập nhật order status thành PROCESSED khi thanh toán thành công
-        order.setOrderStatus("PROCESSED");
-        orderRepository.save(order);
+      List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+      if (transactions.isEmpty()) {
+        log.error("No transactions found for order {}", orderId);
+        throw new RuntimeException("Không tìm thấy thông tin thanh toán cho đơn hàng");
       }
 
-      // Cập nhật transaction status
+      Transaction transaction = transactions.get(0);
+      String oldTransactionStatus = transaction.getTransactionStatus();
+      String oldOrderStatus = order.getOrderStatus();
+
+      log.info("Updating transaction status for order {} from {} to {} (sendEmail: {})", 
+          orderId, oldTransactionStatus, transactionStatus, sendEmail);
+
       transaction.setTransactionStatus(transactionStatus);
       transaction.setTransactionDate(OffsetDateTime.now());
       transactionRepository.save(transaction);
 
-      System.out
-          .println("Updated transaction " + transaction.getId() + " from " + oldStatus + " to " + transactionStatus);
+      // Cập nhật trạng thái đơn hàng dựa trên trạng thái thanh toán
+      if ("SUCCESS".equals(transactionStatus)) {
+        // Nếu transaction chuyển từ PENDING sang SUCCESS, trừ số lượng sản phẩm
+        if ("PENDING".equals(oldTransactionStatus)) {
+          deductProductQuantities(orderId);
+        }
+        order.setOrderStatus("PROCESSED");
+        log.info("Order {} status updated to PROCESSED due to successful payment", orderId);
+      } else if ("CANCELLED".equals(transactionStatus)) {
+        order.setOrderStatus("CANCELLED");
+        order.setCancelledDate(OffsetDateTime.now());
+        log.info("Order {} status updated to CANCELLED due to cancelled payment", orderId);
+      }
+
+      order = orderRepository.save(order);
+      log.info("Transaction status updated successfully for order {}", orderId);
+
+      List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+      List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
+      OrderDto orderDto = convertToDto(order, orderItems, updatedTransactions);
+
+      // Send email notifications for transaction status changes (only if sendEmail = true)
+      if (sendEmail) {
+        try {
+          log.info("Attempting to send email notification for transaction status change from {} to {} for order {}", 
+              oldTransactionStatus, transactionStatus, orderId);
+          
+          if ("SUCCESS".equals(transactionStatus) && "PENDING".equals(oldTransactionStatus)) {
+            log.info("Sending payment success confirmation email for order {} with full product details", orderId);
+            // Gửi email confirmation với đầy đủ thông tin sản phẩm khi thanh toán thành công
+            emailService.sendOrderConfirmationEmail(orderDto);
+            log.info("Payment success confirmation email sent successfully for order {}", orderId);
+          } else if ("CANCELLED".equals(transactionStatus)) {
+            log.info("Sending payment cancellation email for order {}", orderId);
+            emailService.sendOrderCancellationEmail(orderDto);
+            log.info("Payment cancellation email sent successfully for order {}", orderId);
+          } else if (!transactionStatus.equals(oldTransactionStatus)) {
+            log.info("Sending transaction status update email for order {} from {} to {}", 
+                orderId, oldTransactionStatus, order.getOrderStatus());
+            emailService.sendOrderStatusUpdateEmail(orderDto, oldOrderStatus, order.getOrderStatus());
+            log.info("Transaction status update email sent successfully for order {}", orderId);
+          }
+        } catch (Exception e) {
+          log.error("Error sending transaction status update email for order {}: {}", orderId, e.getMessage(), e);
+          // Don't fail the transaction update if email fails, but log the error
+        }
+      } else {
+        log.info("Skipping email notification for transaction status change (sendEmail=false)", orderId);
+      }
+
+      return orderDto;
+    } catch (RuntimeException e) {
+      throw e;
+    } catch (Exception e) {
+      log.error("Unexpected error updating transaction status for order {}: {}", orderId, e.getMessage(), e);
+      throw new RuntimeException("Lỗi hệ thống khi cập nhật trạng thái thanh toán: " + e.getMessage());
     }
-
-    List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-    List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
-
-    return convertToDto(order, orderItems, updatedTransactions);
   }
 
   // Shop Order Management Methods
@@ -381,35 +460,77 @@ public class OrderService {
 
   @Transactional
   public OrderDto updateShopOrderStatus(UUID orderId, String status) {
-    UUID shopId = getCurrentShopId();
-    if (shopId == null) {
-      throw new RuntimeException("Shop not found for current user");
-    }
-
-    Order order = orderRepository.findByIdAndShopId(orderId, shopId)
-        .orElseThrow(() -> new RuntimeException("Order not found or does not belong to this shop"));
-
-    order.setOrderStatus(status);
-
-    if ("DELIVERED".equals(status)) {
-      order.setDeliveredDate(OffsetDateTime.now());
-    } else if ("CANCELLED".equals(status)) {
-      order.setCancelledDate(OffsetDateTime.now());
+    try {
+      UUID shopId = getCurrentShopId();
       
-      // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
-      List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
-      for (Transaction transaction : transactions) {
-        transaction.setTransactionStatus("CANCELLED");
-        transaction.setTransactionDate(OffsetDateTime.now());
-        transactionRepository.save(transaction);
+      log.info("Shop {} attempting to update order {} status to {}", shopId, orderId, status);
+
+      Order order = orderRepository.findByIdAndShopId(orderId, shopId)
+          .orElseThrow(() -> {
+            log.error("Order {} not found or does not belong to shop {}", orderId, shopId);
+            return new RuntimeException("Không tìm thấy đơn hàng hoặc đơn hàng không thuộc về cửa hàng của bạn");
+          });
+
+      String oldStatus = order.getOrderStatus();
+      log.info("Shop {} updating order {} status from {} to {}", shopId, orderId, oldStatus, status);
+      
+      order.setOrderStatus(status);
+
+      if ("DELIVERED".equals(status)) {
+        order.setDeliveredDate(OffsetDateTime.now());
+        log.info("Order {} marked as delivered at {}", orderId, order.getDeliveredDate());
+      } else if ("CANCELLED".equals(status)) {
+        order.setCancelledDate(OffsetDateTime.now());
+        log.info("Order {} marked as cancelled at {}", orderId, order.getCancelledDate());
+        
+        // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
+        List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+        for (Transaction transaction : transactions) {
+          transaction.setTransactionStatus("CANCELLED");
+          transaction.setTransactionDate(OffsetDateTime.now());
+          transactionRepository.save(transaction);
+          log.info("Transaction {} cancelled for order {}", transaction.getId(), orderId);
+        }
       }
+
+      order = orderRepository.save(order);
+      log.info("Order {} status updated successfully to {}", orderId, status);
+
+      List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+      List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
+      OrderDto orderDto = convertToDto(order, orderItems, updatedTransactions);
+
+      // Send email notifications based on status change
+      try {
+        log.info("Attempting to send email notification for shop order {} status change from {} to {}", 
+            orderId, oldStatus, status);
+        
+        if ("CANCELLED".equals(status)) {
+          log.info("Sending cancellation email for order {}", orderId);
+          emailService.sendOrderCancellationEmail(orderDto);
+          log.info("Cancellation email sent successfully for order {}", orderId);
+        } else if ("DELIVERED".equals(status)) {
+          log.info("Sending delivery email for order {}", orderId);
+          emailService.sendOrderDeliveryEmail(orderDto);
+          log.info("Delivery email sent successfully for order {}", orderId);
+        } else if (!oldStatus.equals(status)) {
+          log.info("Sending status update email for order {} from {} to {}", orderId, oldStatus, status);
+          emailService.sendOrderStatusUpdateEmail(orderDto, oldStatus, status);
+          log.info("Status update email sent successfully for order {}", orderId);
+        }
+      } catch (Exception e) {
+        log.error("Error sending order status update email for order {}: {}", orderId, e.getMessage(), e);
+        // Don't fail the status update if email fails, but log the error
+      }
+
+      return orderDto;
+    } catch (RuntimeException e) {
+      // Re-throw RuntimeException để giữ nguyên message
+      throw e;
+    } catch (Exception e) {
+      log.error("Unexpected error updating shop order status for order {}: {}", orderId, e.getMessage(), e);
+      throw new RuntimeException("Lỗi hệ thống khi cập nhật trạng thái đơn hàng: " + e.getMessage());
     }
-
-    order = orderRepository.save(order);
-
-    List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
-    List<Transaction> updatedTransactions = transactionRepository.findByOrderId(orderId);
-    return convertToDto(order, orderItems, updatedTransactions);
   }
 
   public Map<String, Object> getShopOrderStatistics() {
@@ -667,25 +788,32 @@ public class OrderService {
       // Get current user from session
       Account currentUser = getCurrentUser();
       if (currentUser == null) {
-        System.out.println("No current user found");
-        return null;
+        log.error("No current user found in session");
+        throw new RuntimeException("Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn");
       }
 
-      System.out.println("Current user: " + currentUser.getUsername());
+      log.info("Current user: {}", currentUser.getUsername());
 
       // Get shop for current user
       Shop shop = shopRepository.findByUser(currentUser);
       if (shop == null) {
-        System.out.println("No shop found for user: " + currentUser.getUsername());
-        return null;
+        log.error("No shop found for user: {}", currentUser.getUsername());
+        throw new RuntimeException("Bạn chưa đăng ký cửa hàng. Vui lòng đăng ký cửa hàng trước khi quản lý đơn hàng");
       }
 
-      System.out.println("Found shop: " + shop.getShopName() + " (ID: " + shop.getId() + ")");
+      if (!shop.getIsActive()) {
+        log.error("Shop is inactive for user: {}", currentUser.getUsername());
+        throw new RuntimeException("Cửa hàng của bạn đã bị khóa. Vui lòng liên hệ admin để được hỗ trợ");
+      }
+
+      log.info("Found active shop: {} (ID: {})", shop.getShopName(), shop.getId());
       return shop.getId();
+    } catch (RuntimeException e) {
+      // Re-throw RuntimeException để giữ nguyên message
+      throw e;
     } catch (Exception e) {
-      System.err.println("Error getting current shop ID: " + e.getMessage());
-      e.printStackTrace();
-      return null;
+      log.error("Error getting current shop ID: {}", e.getMessage(), e);
+      throw new RuntimeException("Lỗi hệ thống khi xác định cửa hàng: " + e.getMessage());
     }
   }
 
@@ -756,6 +884,11 @@ public class OrderService {
     dto.setDeliveredDate(order.getDeliveredDate());
     dto.setCancelledDate(order.getCancelledDate());
     dto.setShippingAddress(order.getShippingAddress());
+
+    // Log để debug total amount
+    log.info("Order {} - TotalAmount: {}, DiscountAmount: {}, ShippingPrice: {}", 
+        order.getId(), order.getTotalAmount(), order.getDiscountAmount(), 
+        order.getShipping() != null ? order.getShipping().getPrice() : "N/A");
 
     // Set transaction status (lấy từ transaction đầu tiên hoặc PENDING nếu không
     // có)
@@ -995,10 +1128,12 @@ public class OrderService {
 
       // Gửi email thông báo hủy đơn hàng
       try {
+        log.info("Attempting to send cancellation email for order {}", orderId);
         OrderDto orderDto = convertToDto(savedOrder, orderItems, transactions);
         emailService.sendOrderCancellationEmail(orderDto);
+        log.info("Cancellation email sent successfully for order {}", orderId);
       } catch (Exception e) {
-        log.error("Error sending cancellation email: " + e.getMessage());
+        log.error("Error sending cancellation email for order {}: {}", orderId, e.getMessage(), e);
       }
 
       return convertToDto(savedOrder, orderItems, transactions);
@@ -1007,5 +1142,30 @@ public class OrderService {
       log.error("Error cancelling order {}: ", orderId, e);
       throw new RuntimeException("Lỗi hủy đơn hàng: " + e.getMessage());
     }
+  }
+
+  @Transactional
+  public void deleteOrder(UUID orderId) {
+    Order order = orderRepository.findById(orderId)
+        .orElseThrow(() -> new RuntimeException("Order not found"));
+
+    log.info("Deleting order: {}", orderId);
+
+    // Xóa order items trước
+    List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+    for (OrderItem item : orderItems) {
+      orderItemRepository.delete(item);
+    }
+
+    // Xóa transactions
+    List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
+    for (Transaction transaction : transactions) {
+      transactionRepository.delete(transaction);
+    }
+
+    // Xóa order
+    orderRepository.delete(order);
+
+    log.info("Order {} deleted successfully", orderId);
   }
 }
