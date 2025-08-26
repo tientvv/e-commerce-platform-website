@@ -264,7 +264,26 @@
 
               <!-- Total -->
               <div class="border-t border-gray-200 pt-4">
-                <div class="flex justify-between text-lg font-bold text-gray-900">
+                <!-- Subtotal -->
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Tạm tính</span>
+                  <span>{{ formatPrice(subtotal) }}</span>
+                </div>
+
+                <!-- Shipping -->
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Phí vận chuyển</span>
+                  <span>{{ formatPrice(shippingCost * shopCount) }}</span>
+                </div>
+
+                <!-- Discount -->
+                <div v-if="discountAmount > 0" class="flex justify-between text-sm text-green-600 mb-2">
+                  <span>Giảm giá</span>
+                  <span>-{{ formatPrice(discountAmount) }}</span>
+                </div>
+
+                <!-- Final Total -->
+                <div class="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                   <p>Tổng cộng</p>
                   <p>{{ formatPrice(finalTotal) }}</p>
                 </div>
@@ -878,7 +897,20 @@ const handleCheckout = async () => {
       }, 0)
 
       const shopShippingCost = selectedShippingObject.value.price
-      const shopDiscountAmount = 0 // Discount sẽ được tính riêng cho từng shop nếu cần
+
+      // Tính toán giảm giá cho shop này
+      let shopDiscountAmount = 0
+      if (appliedDiscount.value) {
+        if (appliedDiscount.value.discountType === 'PERCENTAGE') {
+          shopDiscountAmount = (shopSubtotal * appliedDiscount.value.discountValue) / 100
+        } else if (appliedDiscount.value.discountType === 'FIXED') {
+          // Chia đều giảm giá cố định cho các shop
+          const totalDiscount = Math.min(appliedDiscount.value.discountValue, subtotal.value)
+          const shopRatio = shopSubtotal / subtotal.value
+          shopDiscountAmount = totalDiscount * shopRatio
+        }
+      }
+
       const shopTotal = Math.max(0, shopSubtotal + shopShippingCost - shopDiscountAmount)
 
       // Validate dữ liệu trước khi tạo
@@ -890,33 +922,33 @@ const handleCheckout = async () => {
         throw new Error(`Không có sản phẩm nào được chọn cho shop ${shopId}`)
       }
 
-      return {
-        accountId: userResponse.data.account.id,
-        shopId: shopId,
-        shippingId: selectedShippingObject.value.id,
-        paymentId: selectedPaymentObject.value.id,
-        totalAmount: shopTotal,
-        discountAmount: shopDiscountAmount,
-        orderStatus: 'PENDING',
-        shippingAddress: userResponse.data.account.address || 'Chưa cập nhật địa chỉ',
-        orderItems: items.map((item) => {
-          const itemPrice = getItemPrice(item)
-          if (itemPrice <= 0) {
-            throw new Error(`Giá sản phẩm ${item.product?.name || 'Không xác định'} phải lớn hơn 0`)
-          }
-          if (!item.quantity || item.quantity <= 0) {
-            throw new Error(`Số lượng sản phẩm ${item.product?.name || 'Không xác định'} phải lớn hơn 0`)
-          }
+              return {
+          accountId: userResponse.data.account.id,
+          shopId: shopId,
+          shippingId: selectedShippingObject.value.id,
+          paymentId: selectedPaymentObject.value.id,
+          totalAmount: shopTotal,
+          discountAmount: shopDiscountAmount,
+          orderStatus: 'PENDING',
+          shippingAddress: userResponse.data.account.address || 'Chưa cập nhật địa chỉ',
+          orderItems: items.map((item) => {
+            const itemPrice = getItemPrice(item)
+            if (itemPrice <= 0) {
+              throw new Error(`Giá sản phẩm ${item.product?.name || 'Không xác định'} phải lớn hơn 0`)
+            }
+            if (!item.quantity || item.quantity <= 0) {
+              throw new Error(`Số lượng sản phẩm ${item.product?.name || 'Không xác định'} phải lớn hơn 0`)
+            }
 
-          return {
-            productVariantId: item.variant ? item.variant.id : null,
-            quantity: item.quantity,
-            productPrice: itemPrice,
-            discountApplied: 0,
-          }
-        }),
-        discountCode: null, // Discount sẽ được xử lý riêng cho từng shop
-      }
+            return {
+              productVariantId: item.variant ? item.variant.id : null,
+              quantity: item.quantity,
+              productPrice: itemPrice,
+              discountApplied: 0,
+            }
+          }),
+          discountCode: appliedDiscount.value ? appliedDiscount.value.name : null,
+        }
     })
 
     console.log('Orders data for each shop:', ordersData)
