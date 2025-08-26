@@ -86,6 +86,18 @@ public class EmailService {
     public void sendOrderCancellationEmail(OrderDto order) {
         try {
             log.info("Preparing order cancellation email for order {} to {}", order.getOrderCode(), order.getAccountEmail());
+            log.info("Email Order Data - TotalAmount: {}, OrderItems count: {}, CancelledDate: {}", 
+                order.getTotalAmount(), order.getOrderItems() != null ? order.getOrderItems().size() : "null", 
+                order.getCancelledDate());
+            
+            // Debug: Log order items for email
+            if (order.getOrderItems() != null) {
+                for (int i = 0; i < order.getOrderItems().size(); i++) {
+                    OrderDto.OrderItemDto item = order.getOrderItems().get(i);
+                    log.info("Email Order Item {}: ProductName={}, Quantity={}, Price={}", 
+                        i + 1, item.getProductName(), item.getQuantity(), item.getProductPrice());
+                }
+            }
             
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -463,7 +475,18 @@ public class EmailService {
         html.append("<div class='info-row'><span class='label'>Mã đơn hàng:</span><span class='value'>").append(order.getOrderCode()).append("</span></div>");
         html.append("<div class='info-row'><span class='label'>Ngày đặt hàng:</span><span class='value'>").append(formatDate(order.getOrderDate())).append("</span></div>");
         html.append("<div class='info-row'><span class='label'>Tổng tiền:</span><span class='value'>").append(formatPrice(order.getTotalAmount())).append("</span></div>");
-        html.append("<div class='info-row'><span class='label'>Ngày hủy:</span><span class='value'>").append(formatDate(order.getCancelledDate())).append("</span></div>");
+        
+        // Thêm thông tin giảm giá nếu có
+        if (order.getDiscountAmount() != null && order.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            html.append("<div class='info-row'><span class='label'>Giảm giá:</span><span class='value' style='color: #e74c3c;'>-").append(formatPrice(order.getDiscountAmount())).append("</span></div>");
+        }
+        
+        // Thêm thông tin phí vận chuyển
+        if (order.getShippingPrice() != null && order.getShippingPrice().compareTo(BigDecimal.ZERO) > 0) {
+            html.append("<div class='info-row'><span class='label'>Phí vận chuyển:</span><span class='value'>").append(formatPrice(order.getShippingPrice())).append("</span></div>");
+        }
+        
+        html.append("<div class='info-row'><span class='label'>Ngày hủy:</span><span class='value'>").append(order.getCancelledDate() != null ? formatDate(order.getCancelledDate()) : "Vừa hủy").append("</span></div>");
         html.append("</div>");
         
         // Products Table

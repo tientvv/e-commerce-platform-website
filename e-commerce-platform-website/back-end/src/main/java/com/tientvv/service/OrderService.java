@@ -493,6 +493,9 @@ public class OrderService {
         order.setCancelledDate(OffsetDateTime.now());
         log.info("Order {} marked as cancelled at {}", orderId, order.getCancelledDate());
         
+        // Debug: Log cancelled date
+        log.info("Order {} - CancelledDate set to: {}", orderId, order.getCancelledDate());
+        
         // Cập nhật trạng thái thanh toán thành CANCELLED khi hủy đơn hàng
         List<Transaction> transactions = transactionRepository.findByOrderId(orderId);
         for (Transaction transaction : transactions) {
@@ -894,11 +897,29 @@ public class OrderService {
     dto.setDeliveredDate(order.getDeliveredDate());
     dto.setCancelledDate(order.getCancelledDate());
     dto.setShippingAddress(order.getShippingAddress());
+    
+    // Debug: Log cancelled date in DTO
+    log.info("Order {} - DTO CancelledDate: {}", order.getId(), order.getCancelledDate());
 
     // Log để debug total amount
     log.info("Order {} - TotalAmount: {}, DiscountAmount: {}, ShippingPrice: {}", 
         order.getId(), order.getTotalAmount(), order.getDiscountAmount(), 
         order.getShipping() != null ? order.getShipping().getPrice() : "N/A");
+    
+    // Debug: Log order items count
+    log.info("Order {} - OrderItems count: {}", order.getId(), 
+        orderItems != null ? orderItems.size() : "null");
+    
+    // Debug: Log each order item
+    if (orderItems != null) {
+      for (int i = 0; i < orderItems.size(); i++) {
+        OrderItem item = orderItems.get(i);
+        log.info("Order {} - Item {}: ProductName={}, Quantity={}, Price={}", 
+            order.getId(), i + 1, 
+            item.getProductVariant() != null ? item.getProductVariant().getProduct().getName() : "N/A",
+            item.getQuantity(), item.getProductPrice());
+      }
+    }
 
     // Set transaction status (lấy từ transaction đầu tiên hoặc PENDING nếu không
     // có)
@@ -909,7 +930,7 @@ public class OrderService {
     }
 
     // Convert order items
-    dto.setOrderItems(orderItems.stream()
+    dto.setOrderItems(orderItems != null ? orderItems.stream()
         .map(item -> {
           OrderDto.OrderItemDto itemDto = new OrderDto.OrderItemDto();
           itemDto.setId(item.getId());
@@ -949,7 +970,7 @@ public class OrderService {
           itemDto.setDiscountApplied(item.getDiscountApplied());
           return itemDto;
         })
-        .collect(Collectors.toList()));
+        .collect(Collectors.toList()) : new ArrayList<>());
 
     // Convert transactions
     dto.setTransactions(transactions.stream()
@@ -1146,6 +1167,10 @@ public class OrderService {
       // Cập nhật trạng thái đơn hàng
       order.setOrderStatus("CANCELLED");
       order.setCancelledDate(OffsetDateTime.now());
+      
+      // Debug: Log cancelled date
+      log.info("Order {} - CancelledDate set to: {}", orderId, order.getCancelledDate());
+      
       Order savedOrder = orderRepository.save(order);
 
       // Cập nhật trạng thái transaction
@@ -1169,6 +1194,20 @@ public class OrderService {
       try {
         log.info("Attempting to send cancellation email for order {}", orderId);
         OrderDto orderDto = convertToDto(savedOrder, orderItems, transactions);
+        
+        // Debug: Log order DTO data before sending email
+        log.info("Order DTO for email - ID: {}, TotalAmount: {}, OrderItems count: {}", 
+            orderDto.getId(), orderDto.getTotalAmount(), 
+            orderDto.getOrderItems() != null ? orderDto.getOrderItems().size() : "null");
+        
+        if (orderDto.getOrderItems() != null) {
+          for (int i = 0; i < orderDto.getOrderItems().size(); i++) {
+            OrderDto.OrderItemDto item = orderDto.getOrderItems().get(i);
+            log.info("Email Item {}: ProductName={}, Quantity={}, Price={}", 
+                i + 1, item.getProductName(), item.getQuantity(), item.getProductPrice());
+          }
+        }
+        
         emailService.sendOrderCancellationEmail(orderDto);
         log.info("Cancellation email sent successfully for order {}", orderId);
       } catch (Exception e) {
