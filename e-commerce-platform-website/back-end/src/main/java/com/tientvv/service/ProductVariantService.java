@@ -40,7 +40,7 @@ public class ProductVariantService {
     productVariant.setVariantValue(dto.getVariantValue());
     productVariant.setQuantity(dto.getQuantity());
     productVariant.setPrice(dto.getPrice());
-    productVariant.setIsActive(true);
+    productVariant.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
 
     ProductVariant savedVariant = productVariantRepository.save(productVariant);
     return convertToDto(savedVariant);

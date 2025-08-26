@@ -511,23 +511,25 @@ const variantFormRules = {
   variantName: {
     required: true,
     message: 'Vui lòng nhập tên biến thể',
-    trigger: ['blur', 'input'],
+    trigger: ['blur'],
   },
   variantValue: {
     required: true,
     message: 'Vui lòng nhập giá trị biến thể',
-    trigger: ['blur', 'input'],
+    trigger: ['blur'],
   },
   quantity: {
     required: true,
     type: 'number',
-    message: 'Vui lòng nhập số lượng',
+    min: 0,
+    message: 'Vui lòng nhập số lượng hợp lệ',
     trigger: ['blur', 'change'],
   },
   price: {
     required: true,
     type: 'number',
-    message: 'Vui lòng nhập giá',
+    min: 0,
+    message: 'Vui lòng nhập giá hợp lệ',
     trigger: ['blur', 'change'],
   },
 }
@@ -720,9 +722,18 @@ const handleEditImageChange = (event) => {
 
 // Variant methods
 const openAddVariantDialog = (product) => {
+  console.log('Opening add variant dialog for product:', product)
   selectedProduct.value = product
   showAddVariantDialog.value = true
   resetVariantForm()
+
+  // Force clear validation after modal opens
+  nextTick(() => {
+    if (variantFormRef.value) {
+      variantFormRef.value.restoreValidation()
+      variantFormRef.value.clearValidate()
+    }
+  })
 }
 
 const closeAddVariantDialog = () => {
@@ -739,6 +750,12 @@ const resetVariantForm = () => {
   variantForm.isActive = true
   variantSuccessMessage.value = ''
   variantErrorMessage.value = ''
+
+  // Clear validation errors
+  if (variantFormRef.value) {
+    variantFormRef.value.restoreValidation()
+    variantFormRef.value.clearValidate()
+  }
 }
 
 
@@ -747,24 +764,60 @@ const addVariant = async () => {
   if (!variantFormRef.value) return
 
   try {
+    console.log('Starting variant creation...')
+    console.log('Form data:', variantForm)
+    console.log('Selected product:', selectedProduct.value)
+
+    // Validate form first
     await variantFormRef.value.validate()
+
+    // Additional validation
+    if (!variantForm.variantName || variantForm.variantName.trim() === '') {
+      variantErrorMessage.value = 'Vui lòng nhập tên biến thể'
+      return
+    }
+
+    if (!variantForm.variantValue || variantForm.variantValue.trim() === '') {
+      variantErrorMessage.value = 'Vui lòng nhập giá trị biến thể'
+      return
+    }
+
+    if (!variantForm.quantity || variantForm.quantity < 0) {
+      variantErrorMessage.value = 'Vui lòng nhập số lượng hợp lệ'
+      return
+    }
+
+    if (!variantForm.price || variantForm.price < 0) {
+      variantErrorMessage.value = 'Vui lòng nhập giá hợp lệ'
+      return
+    }
+
+    if (!selectedProduct.value || !selectedProduct.value.id) {
+      variantErrorMessage.value = 'Không tìm thấy thông tin sản phẩm'
+      return
+    }
+
     variantLoading.value = true
     variantErrorMessage.value = ''
 
     const variantData = {
       variantName: variantForm.variantName.trim(),
       variantValue: variantForm.variantValue.trim(),
-      quantity: variantForm.quantity,
-      price: variantForm.price,
+      quantity: parseInt(variantForm.quantity) || 0,
+      price: parseFloat(variantForm.price) || 0,
       isActive: variantForm.isActive,
       productId: selectedProduct.value.id
     }
+
+    console.log('Sending variant data:', variantData)
 
     const response = await axios.post('/api/product-variants/create', variantData, {
       headers: {
         'Content-Type': 'application/json',
       },
     })
+
+    console.log('Response:', response.data)
 
     if (response.data.message) {
       variantSuccessMessage.value = response.data.message
@@ -775,6 +828,10 @@ const addVariant = async () => {
       variantErrorMessage.value = 'Thêm biến thể thất bại'
     }
   } catch (error) {
+    console.error('Add variant error:', error)
+    console.error('Error response:', error.response?.data)
+    console.error('Error status:', error.response?.status)
+
     if (error.errors) {
       variantErrorMessage.value = 'Vui lòng kiểm tra lại thông tin'
     } else if (error.response?.data?.message) {
@@ -782,7 +839,7 @@ const addVariant = async () => {
     } else if (error.response?.data?.errorMessage) {
       variantErrorMessage.value = error.response.data.errorMessage
     } else {
-      variantErrorMessage.value = 'Không thể thêm biến thể'
+      variantErrorMessage.value = 'Không thể thêm biến thể: ' + (error.message || 'Lỗi không xác định')
     }
   } finally {
     variantLoading.value = false

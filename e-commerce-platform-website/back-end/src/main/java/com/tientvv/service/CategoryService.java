@@ -35,8 +35,11 @@ public class CategoryService {
   }
 
   public Category createCategory(CreateCategoryDto dto) throws Exception {
+    System.out.println("Creating category with name: " + dto.getName());
+    
     // Check if category name already exists (case insensitive)
     if (categoryRepository.existsByNameIgnoreCase(dto.getName())) {
+      System.out.println("Category name already exists: " + dto.getName());
       throw new RuntimeException("Tên danh mục đã tồn tại: " + dto.getName());
     }
 
@@ -50,7 +53,22 @@ public class CategoryService {
       category.setCategoryImage(imageUrl);
     }
 
-    return categoryRepository.save(category);
+    try {
+      System.out.println("Saving category to database...");
+      return categoryRepository.save(category);
+    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+      System.out.println("DataIntegrityViolationException caught: " + e.getMessage());
+      // Handle database constraint violations
+      if (e.getMessage().contains("UNIQUE") && e.getMessage().contains("categories")) {
+        System.out.println("UNIQUE constraint violation detected");
+        throw new RuntimeException("Tên danh mục đã tồn tại: " + dto.getName());
+      }
+      System.out.println("Other DataIntegrityViolationException: " + e.getMessage());
+      throw e;
+    } catch (Exception e) {
+      System.out.println("Other exception caught: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+      throw e;
+    }
   }
 
   public Category updateCategory(UpdateCategoryDto dto) throws Exception {
@@ -76,7 +94,15 @@ public class CategoryService {
       category.setCategoryImage(dto.getExistingImageUrl());
     }
 
-    return categoryRepository.save(category);
+    try {
+      return categoryRepository.save(category);
+    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+      // Handle database constraint violations
+      if (e.getMessage().contains("UNIQUE") && e.getMessage().contains("categories")) {
+        throw new RuntimeException("Tên danh mục đã tồn tại: " + dto.getName());
+      }
+      throw e;
+    }
   }
 
   public void deleteCategory(UUID id) {

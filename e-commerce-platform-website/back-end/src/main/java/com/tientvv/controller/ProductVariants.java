@@ -58,6 +58,11 @@ public class ProductVariants {
         response.put("message", "Vui lòng điền đầy đủ thông tin biến thể!");
         return response;
       }
+      
+      // Set default value for isActive if not provided
+      if (dto.getIsActive() == null) {
+        dto.setIsActive(true);
+      }
 
       ProductVariantDto createdVariant = productVariantService.createProductVariant(dto);
       response.put("message", "Tạo biến thể sản phẩm thành công!");

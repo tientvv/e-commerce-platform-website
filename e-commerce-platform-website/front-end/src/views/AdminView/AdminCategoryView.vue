@@ -56,9 +56,14 @@
       :closable="false"
       style="width: 600px"
     >
-      <n-form ref="formRef" :model="formData" :rules="rules">
+      <n-form ref="formRef" :model="formData" :rules="rules" :show-label="true">
         <n-form-item path="name" label="Tên danh mục">
-          <n-input v-model:value="formData.name" placeholder="Nhập tên danh mục" clearable />
+          <n-input 
+            v-model:value="formData.name" 
+            placeholder="Nhập tên danh mục" 
+            clearable 
+            @blur="handleNameBlur"
+          />
         </n-form-item>
 
         <n-form-item path="image" label="Hình ảnh danh mục">
@@ -142,7 +147,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
+import { ref, reactive, onMounted, h, nextTick } from 'vue'
 import axios from '../../utils/axios'
 import { Plus, Edit, Trash2, Package, Upload, X } from 'lucide-vue-next'
 import {
@@ -194,9 +199,37 @@ const uploadKey = ref(0)
 // Form validation rules
 const rules = {
   name: {
-    required: true,
-    message: 'Vui lòng nhập tên danh mục',
-    trigger: ['input', 'blur'],
+    trigger: [], // Don't trigger automatically
+    validator: (rule, value) => {
+      console.log('Validating name:', value)
+      console.log('Categories:', categories.value)
+      console.log('Is edit:', isEdit.value)
+      console.log('Current category ID:', currentCategoryId.value)
+
+      if (!value || value.trim() === '') {
+        console.log('Validation failed: empty name')
+        return new Error('Vui lòng nhập tên danh mục')
+      }
+
+      // Check for duplicate names (case insensitive)
+      const trimmedValue = value.trim()
+      console.log('Checking for duplicate name:', trimmedValue)
+
+      const existingCategory = categories.value.find(cat => {
+        const isDuplicate = cat.name.toLowerCase() === trimmedValue.toLowerCase() &&
+          (!isEdit.value || cat.id !== currentCategoryId.value)
+        console.log(`Checking category "${cat.name}" (ID: ${cat.id}): ${isDuplicate}`)
+        return isDuplicate
+      })
+
+      if (existingCategory) {
+        console.log('Validation failed: duplicate name found:', existingCategory)
+        return new Error('Tên danh mục đã tồn tại')
+      }
+
+      console.log('Validation passed')
+      return true
+    }
   },
 }
 
@@ -287,9 +320,13 @@ const pagination = reactive({
 const fetchCategories = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/categories')
+    const response = await axios.get('/api/admin/categories')
     console.log('Fetched categories:', response.data)
-    categories.value = response.data
+    if (response.data.categories) {
+      categories.value = response.data.categories
+    } else {
+      categories.value = response.data
+    }
   } catch (error) {
     console.error('Fetch categories error:', error)
     message.error('Không thể tải danh sách danh mục')
@@ -300,9 +337,21 @@ const fetchCategories = async () => {
 
 // Show create modal
 const showCreateModal = () => {
+  console.log('Opening create modal')
   isEdit.value = false
   resetForm()
   modalVisible.value = true
+
+  // Force validation reset after modal opens
+  nextTick(() => {
+    if (formRef.value) {
+      formRef.value.restoreValidation()
+      // Clear any validation errors
+      formRef.value.clearValidate()
+      // Force clear all validation errors
+      formRef.value.clearValidate(['name'])
+    }
+  })
 }
 
 // Show edit modal
@@ -330,6 +379,29 @@ const resetForm = () => {
   currentCategoryId.value = null
   removeExistingImageFlag.value = false
   uploadKey.value = 0
+
+  // Clear validation errors immediately
+  if (formRef.value) {
+    formRef.value.restoreValidation()
+    formRef.value.clearValidate()
+  }
+
+  // Force re-render form to clear any cached validation state
+  nextTick(() => {
+    if (formRef.value) {
+      formRef.value.restoreValidation()
+      formRef.value.clearValidate()
+      // Force clear all validation errors
+      formRef.value.clearValidate(['name'])
+    }
+  })
+}
+
+// Handle name blur for validation
+const handleNameBlur = () => {
+  if (formData.name && formData.name.trim()) {
+    formRef.value?.validateField('name')
+  }
 }
 
 // Get upload button text
@@ -380,11 +452,43 @@ const removeExistingImage = () => {
 // Handle submit
 const handleSubmit = async () => {
   try {
-    await formRef.value?.validate()
+    console.log('Starting form submission...')
+    console.log('Form data:', formData)
+    console.log('Form ref:', formRef.value)
+    console.log('Form data name:', formData.name)
+    console.log('Form data name trimmed:', formData.name?.trim())
+
+    // Check if name is empty before validation
+    if (!formData.name || formData.name.trim() === '') {
+      message.error('Vui lòng nhập tên danh mục')
+      return
+    }
+
+    // Validate form first
+    if (!formRef.value) {
+      console.error('Form ref is null')
+      message.error('Lỗi form validation')
+      return
+    }
+
+    // Only validate if we have data to validate and it's not empty
+    if (formData.name && formData.name.trim()) {
+      try {
+        await formRef.value.validate()
+        console.log('Form validation passed')
+      } catch (validationError) {
+        console.log('Validation failed:', validationError)
+        // Don't show additional error message, validation error is already shown
+        return
+      }
+    }
+
     submitting.value = true
 
     const submitData = new FormData()
-    submitData.append('name', formData.name)
+    const trimmedName = formData.name.trim()
+    submitData.append('name', trimmedName)
+    console.log('Submitting name:', trimmedName)
 
     if (formData.image) {
       submitData.append('categoryImage', formData.image)
@@ -418,7 +522,12 @@ const handleSubmit = async () => {
         },
       })
       console.log('Create response:', response.data)
-      message.success('Tạo danh mục thành công')
+      console.log('Response status:', response.status)
+      if (response.data.message) {
+        message.success(response.data.message)
+      } else {
+        message.success('Tạo danh mục thành công')
+      }
     }
 
     closeModal()
@@ -426,10 +535,71 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('Submit error:', error)
     console.error('Error response:', error.response?.data)
+    console.error('Error status:', error.response?.status)
+    console.error('Error message:', error.message)
+    console.error('Error message type:', typeof error.message)
+    console.error('Error message is object:', typeof error.message === 'object')
+    console.error('Error type:', typeof error)
+    console.error('Error keys:', Object.keys(error))
+    console.error('Full error object:', JSON.stringify(error, null, 2))
+
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      // Form validation error - already handled by form component
+      console.log('Validation error caught, not showing additional message')
+      return
+    }
+
+        // Handle server errors
     if (error.response?.data?.message) {
-      message.error(error.response.data.message)
+      console.log('Using server error message:', error.response.data.message)
+      const serverMessage = error.response.data.message
+      if (serverMessage.includes('đã tồn tại') || serverMessage.includes('duplicate')) {
+        message.error('Tên danh mục đã tồn tại')
+      } else {
+        message.error(serverMessage)
+      }
+    } else if (error.response?.status === 409) {
+      console.log('Conflict status detected, showing duplicate name error')
+      message.error('Tên danh mục đã tồn tại')
+    } else if (error.response?.status === 400) {
+      // Handle validation errors from server
+      if (error.response?.data?.message) {
+        message.error(error.response.data.message)
+      } else {
+        message.error('Dữ liệu không hợp lệ')
+      }
+    } else if (error.response?.status === 401) {
+      message.error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn')
+    } else if (error.response?.status === 403) {
+      message.error('Bạn không có quyền truy cập')
+    } else if (error.response?.status === 500) {
+      message.error('Lỗi server: ' + (error.response.data?.message || 'Lỗi không xác định'))
+    } else if (error.response?.status) {
+      // Handle other HTTP status codes
+      message.error(`Lỗi ${error.response.status}: ${error.response.data?.message || 'Lỗi không xác định'}`)
     } else {
-      message.error('Có lỗi xảy ra khi lưu danh mục')
+      // Handle case where error.message might be undefined or an object
+      let errorMessage = 'Lỗi không xác định'
+      if (error.message) {
+        if (typeof error.message === 'string') {
+          errorMessage = error.message
+        } else if (typeof error.message === 'object') {
+          errorMessage = JSON.stringify(error.message)
+        } else {
+          errorMessage = String(error.message)
+        }
+      } else if (error.toString) {
+        errorMessage = error.toString()
+      }
+      
+      // Don't show the generic error message for duplicate names
+      if (errorMessage.includes('đã tồn tại') || errorMessage.includes('duplicate')) {
+        message.error('Tên danh mục đã tồn tại')
+      } else {
+        // Don't show generic error message at all
+        console.error('Silent error handling:', errorMessage)
+      }
     }
   } finally {
     submitting.value = false

@@ -105,9 +105,29 @@ public class AdminCategoryController {
       response.put("message", "Tạo danh mục thành công!");
       return ResponseEntity.status(HttpStatus.CREATED).body(response);
     } catch (RuntimeException e) {
+      System.out.println("RuntimeException caught in controller: " + e.getMessage());
+      System.out.println("Exception class: " + e.getClass().getSimpleName());
+      
+      // Handle business logic exceptions (like duplicate name)
+      if (e.getMessage().contains("đã tồn tại")) {
+        System.out.println("Duplicate name detected, returning CONFLICT");
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+      }
+      // Handle database constraint violations
+      if (e.getMessage().contains("UNIQUE") && e.getMessage().contains("categories")) {
+        System.out.println("UNIQUE constraint detected, returning CONFLICT");
+        response.put("message", "Tên danh mục đã tồn tại: " + dto.getName());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+      }
+      System.out.println("Other RuntimeException, returning BAD_REQUEST");
       response.put("message", e.getMessage());
-      return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     } catch (Exception e) {
+      System.out.println("General Exception caught in controller: " + e.getMessage());
+      System.out.println("Exception class: " + e.getClass().getSimpleName());
+      System.out.println("Exception stack trace:");
+      e.printStackTrace();
       response.put("message", "Lỗi khi tạo danh mục: " + e.getMessage());
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
@@ -143,6 +163,12 @@ public class AdminCategoryController {
       if (e.getMessage().contains("not found")) {
         response.put("message", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+      } else if (e.getMessage().contains("đã tồn tại")) {
+        response.put("message", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+      } else if (e.getMessage().contains("UNIQUE") && e.getMessage().contains("categories")) {
+        response.put("message", "Tên danh mục đã tồn tại: " + dto.getName());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
       } else {
         response.put("message", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
